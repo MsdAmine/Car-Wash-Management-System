@@ -1,9 +1,11 @@
+import { APP_NAME, API_URL } from './config';
+
 function App() {
     return (
-        <main>
-            <h1>Car Wash Management System</h1>
-            <p>Frontend is running successfully.</p>
-        </main>
+        <div className="App">
+            <h1>Welcome to {APP_NAME}</h1>
+            <p>Backend API: {API_URL}</p>
+        </div>
     );
 }
 
