@@ -1,6 +1,6 @@
 package com.carwash.car_wash_api.exception;
 
-import com.carwash.car_wash_api.dto.ErrorResponse;
+import com.carwash.car_wash_api.dto.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -15,9 +15,9 @@ import java.util.Map;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-    // Handle Validation Errors (e.g., @NotBlank, @Size)
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidationExceptions(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationExceptions(
+            MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach((error) -> {
             String fieldName = ((FieldError) error).getField();
@@ -25,22 +25,22 @@ public class GlobalExceptionHandler {
             errors.put(fieldName, errorMessage);
         });
 
-        ErrorResponse response = ErrorResponse.builder()
-                .status(HttpStatus.BAD_REQUEST.value())
+        ApiResponse<Map<String, String>> response = ApiResponse.<Map<String, String>>builder()
+                .success(false)
                 .message("Validation Failed")
+                .data(errors)
                 .timestamp(LocalDateTime.now())
-                .validationErrors(errors)
                 .build();
 
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
-    // Handle General Exceptions
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGeneralException(Exception ex) {
-        ErrorResponse response = ErrorResponse.builder()
-                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                .message("An unexpected error occurred")
+    public ResponseEntity<ApiResponse<Object>> handleGeneralException(Exception ex) {
+        ApiResponse<Object> response = ApiResponse.builder()
+                .success(false)
+                .message("An unexpected error occurred: " + ex.getMessage())
+                .data(null)
                 .timestamp(LocalDateTime.now())
                 .build();
 
