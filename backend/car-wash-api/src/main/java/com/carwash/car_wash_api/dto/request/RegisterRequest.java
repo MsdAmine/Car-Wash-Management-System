@@ -19,5 +19,5 @@ public class RegisterRequest {
     @NotBlank
     private String lastName;
     private String phone;
-    private Role role; // Defaults to CUSTOMER in service logic
+    private Role role;
 }

@@ -1,10 +1,6 @@
-package com.carwash.car_wash_api.dto;
+package com.carwash.car_wash_api.dto.response;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
+import lombok.*;
 import java.time.LocalDateTime;
 
 @Data
@@ -17,7 +13,6 @@ public class ApiResponse<T> {
     private T data;
     private LocalDateTime timestamp;
 
-    // Helper method for quick success responses
     public static <T> ApiResponse<T> success(T data, String message) {
         return ApiResponse.<T>builder()
                 .success(true)

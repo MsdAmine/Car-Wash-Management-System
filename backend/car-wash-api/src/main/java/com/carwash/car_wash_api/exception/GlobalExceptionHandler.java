@@ -1,12 +1,13 @@
 package com.carwash.car_wash_api.exception;
 
-import com.carwash.car_wash_api.dto.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+
+import com.carwash.car_wash_api.dto.response.ApiResponse;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
