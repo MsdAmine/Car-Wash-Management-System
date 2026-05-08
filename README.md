@@ -62,3 +62,16 @@ The first version includes:
 - Basic dashboards
 
 Advanced features will be added after the MVP is stable.
+
+
+## Quick Start
+
+### Backend
+1. Navigate to `backend/car-wash-api`.
+2. Run `.\mvnw spring-boot:run`.
+3. API Documentation: `http://localhost:8080/swagger-ui/index.html`.
+
+### Frontend
+1. Navigate to `frontend/car-wash-web`.
+2. Run `npm install` then `npm run dev`.
+3. App URL: `http://localhost:5173`.
