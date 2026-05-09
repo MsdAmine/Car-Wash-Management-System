@@ -44,32 +44,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             userEmail = jwtService.extractUsername(jwt);
-            System.out.println("DEBUG: Extracted Email: " + userEmail);
-
+            
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
-                System.out.println("DEBUG: User Authorities from DB: " + userDetails.getAuthorities());
 
                 if (jwtService.isTokenValid(jwt, userDetails)) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userDetails,
                             null,
                             userDetails.getAuthorities());
+                    authToken.setDetails(
+                            new WebAuthenticationDetailsSource().buildDetails(request));
 
-                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    
                     SecurityContext context = SecurityContextHolder.createEmptyContext();
                     context.setAuthentication(authToken);
                     SecurityContextHolder.setContext(context);
-                    
-                    System.out.println("DEBUG: SecurityContext successfully populated for: " + userEmail);
-                    System.out.println("DEBUG: Assigned Authorities: " + authToken.getAuthorities());
-                } else {
-                    System.out.println("DEBUG: Token validation FAILED for: " + userEmail);
                 }
             }
         } catch (Exception e) {
-            System.out.println("DEBUG: Error processing JWT: " + e.getMessage());
+            // Silently fail authentication for invalid tokens
         }
 
         // This MUST be at the very end of the method

@@ -4,15 +4,22 @@ import type { AuthResponse, LoginRequest, RegisterRequest, User } from '../types
 
 const authService = {
     async login(credentials: LoginRequest): Promise<AuthResponse> {
-        const response = await api.post<AuthResponse>('/auth/login', credentials);
-        if (response.data.token) {
-            localStorage.setItem('token', response.data.token);
+        const response = await api.post<any>('/auth/login', credentials);
+
+        // Access the 'data' property from your JSON response
+        const authData = response.data.data;
+
+        if (authData.token) {
+            localStorage.setItem('token', authData.token);
         }
-        return response.data;
+
+        // Return the nested data object so the Context gets firstName, lastName, etc.
+        return authData;
     },
 
     async register(data: RegisterRequest): Promise<AuthResponse> {
         const response = await api.post<AuthResponse>('/auth/register', data);
+
         if (response.data.token) {
             localStorage.setItem('token', response.data.token);
         }
@@ -20,13 +27,14 @@ const authService = {
     },
 
     async getProfile(): Promise<User> {
+        // This call relies on the axios interceptor to attach the Bearer token
         const response = await api.get<User>('/users/profile');
         return response.data;
     },
 
     logout(): void {
         localStorage.removeItem('token');
-        // Simple redirect to login on logout
+        // Using window.location.href is a "hard" reset which clears all memory leaks
         window.location.href = '/login';
     },
 
@@ -38,5 +46,6 @@ const authService = {
         return !!this.getToken();
     }
 };
-(window as any).authService = authService;
+
+
 export default authService;

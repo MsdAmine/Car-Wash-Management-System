@@ -19,7 +19,8 @@ import java.util.stream.Collectors;
 @Service
 public class JwtService {
 
-    private static final String SECRET_KEY = "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970";
+    // Use a strictly valid Base64-encoded 256-bit key
+    private static final String SECRET_KEY = "Y2FyLXdhc2gtbWFuYWdlbWVudC1zeXN0ZW0tc2VjcmV0LWtleS0yMDI0LWdt";
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
