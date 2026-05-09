@@ -1,12 +1,24 @@
 import axios from 'axios';
-import { API_URL } from '../config';
 
-const axiosInstance = axios.create({
-    baseURL: API_URL,
+const api = axios.create({
+    baseURL: 'http://localhost:8080/api/v1',
     headers: {
         'Content-Type': 'application/json',
     },
 });
 
-// You can add interceptors here later for JWT tokens
-export default axiosInstance;
+// Add a request interceptor to include the JWT in headers
+api.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
+    }
+);
+
+export default api;
