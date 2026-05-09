@@ -57,6 +57,7 @@ public class User implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
+        // Correctly adds the ROLE_ prefix for Spring Security
         return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
     }
 
