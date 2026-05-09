@@ -1,50 +1,46 @@
 package com.carwash.car_wash_api.exception;
 
+import com.carwash.car_wash_api.dto.response.ErrorResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.FieldError;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-
-import com.carwash.car_wash_api.dto.response.ApiResponse;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
 
-@ControllerAdvice
+@RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationExceptions(
-            MethodArgumentNotValidException ex) {
-        Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getAllErrors().forEach((error) -> {
-            String fieldName = ((FieldError) error).getField();
-            String errorMessage = error.getDefaultMessage();
-            errors.put(fieldName, errorMessage);
-        });
-
-        ApiResponse<Map<String, String>> response = ApiResponse.<Map<String, String>>builder()
-                .success(false)
-                .message("Validation Failed")
-                .data(errors)
-                .timestamp(LocalDateTime.now())
-                .build();
-
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ErrorResponse> handleBadCredentials(
+            BadCredentialsException ex, HttpServletRequest request) {
+        return buildErrorResponse(HttpStatus.UNAUTHORIZED, "Invalid email or password", request);
     }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Object>> handleGeneralException(Exception ex) {
-        ApiResponse<Object> response = ApiResponse.builder()
-                .success(false)
-                .message("An unexpected error occurred: " + ex.getMessage())
-                .data(null)
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDenied(
+            AccessDeniedException ex, HttpServletRequest request) {
+        return buildErrorResponse(HttpStatus.FORBIDDEN, "You do not have permission to access this resource", request);
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErrorResponse> handleAuthenticationException(
+            AuthenticationException ex, HttpServletRequest request) {
+        return buildErrorResponse(HttpStatus.UNAUTHORIZED, "Authentication failed: " + ex.getMessage(), request);
+    }
+
+    private ResponseEntity<ErrorResponse> buildErrorResponse(
+            HttpStatus status, String message, HttpServletRequest request) {
+        ErrorResponse error = ErrorResponse.builder()
+                .status(status.value())
+                .message(message)
+                .path(request.getRequestURI())
                 .timestamp(LocalDateTime.now())
                 .build();
-
-        return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        return new ResponseEntity<>(error, status);
     }
 }

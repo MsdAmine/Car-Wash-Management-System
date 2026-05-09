@@ -9,6 +9,7 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -25,12 +26,17 @@ public class SecurityConfig {
 
         private final JwtAuthenticationFilter jwtAuthFilter;
         private final AuthenticationProvider authenticationProvider;
+        // Inject the entry point for custom error handling
+        private final AuthenticationEntryPoint authEntryPoint;
 
         @Bean
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
                 http
                                 .cors(Customizer.withDefaults())
                                 .csrf(csrf -> csrf.disable())
+                                // Register the custom exception handling entry point
+                                .exceptionHandling(exception -> exception
+                                                .authenticationEntryPoint(authEntryPoint))
                                 .authorizeHttpRequests(auth -> auth
                                                 // 1. Public Endpoints
                                                 .requestMatchers(
@@ -50,6 +56,10 @@ public class SecurityConfig {
 
                                                 // Both CUSTOMER and ADMIN can manage vehicles
                                                 .requestMatchers("/api/v1/vehicles/**").hasAnyRole("CUSTOMER", "ADMIN")
+
+                                                // Profile and User-specific routes
+                                                .requestMatchers("/api/v1/users/**").authenticated()
+
                                                 .requestMatchers("/api/v1/test/admin-only").hasRole("ADMIN")
                                                 .requestMatchers("/api/v1/test/secret").authenticated()
 
