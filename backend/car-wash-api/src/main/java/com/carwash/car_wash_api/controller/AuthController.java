@@ -1,5 +1,6 @@
 package com.carwash.car_wash_api.controller;
 
+import com.carwash.car_wash_api.dto.request.LoginRequest; // New DTO
 import com.carwash.car_wash_api.dto.request.RegisterRequest;
 import com.carwash.car_wash_api.dto.response.AuthResponse;
 import com.carwash.car_wash_api.dto.response.ApiResponse;
@@ -20,10 +21,14 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<AuthResponse>> register(@Valid @RequestBody RegisterRequest request) {
         AuthResponse response = authService.register(request);
-
-        // Use the static helper method instead of the 'new' keyword
         return new ResponseEntity<>(
                 ApiResponse.success(response, "User registered successfully"),
                 HttpStatus.CREATED);
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
+        AuthResponse response = authService.login(request);
+        return ResponseEntity.ok(ApiResponse.success(response, "Login successful"));
     }
 }
