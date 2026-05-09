@@ -52,6 +52,7 @@ public class User implements UserDetails {
         updatedAt = LocalDateTime.now();
     }
 
+    @Builder.Default
     @Column(nullable = false)
     private boolean enabled = true;
 

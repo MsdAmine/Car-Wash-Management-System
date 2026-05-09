@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -40,23 +41,38 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         jwt = authHeader.substring(7);
-        userEmail = jwtService.extractUsername(jwt);
 
-        if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
+        try {
+            userEmail = jwtService.extractUsername(jwt);
+            System.out.println("DEBUG: Extracted Email: " + userEmail);
 
-            if (jwtService.isTokenValid(jwt, userDetails)) {
-                // Ensure userDetails.getAuthorities() is passed here to hydrate the security
-                // context with roles
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities());
+            if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
+                System.out.println("DEBUG: User Authorities from DB: " + userDetails.getAuthorities());
 
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+                if (jwtService.isTokenValid(jwt, userDetails)) {
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null,
+                            userDetails.getAuthorities());
+
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    
+                    SecurityContext context = SecurityContextHolder.createEmptyContext();
+                    context.setAuthentication(authToken);
+                    SecurityContextHolder.setContext(context);
+                    
+                    System.out.println("DEBUG: SecurityContext successfully populated for: " + userEmail);
+                    System.out.println("DEBUG: Assigned Authorities: " + authToken.getAuthorities());
+                } else {
+                    System.out.println("DEBUG: Token validation FAILED for: " + userEmail);
+                }
             }
+        } catch (Exception e) {
+            System.out.println("DEBUG: Error processing JWT: " + e.getMessage());
         }
+
+        // This MUST be at the very end of the method
         filterChain.doFilter(request, response);
     }
 }
