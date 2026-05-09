@@ -26,17 +26,18 @@ public class SecurityConfig {
 
         private final JwtAuthenticationFilter jwtAuthFilter;
         private final AuthenticationProvider authenticationProvider;
-        // Inject the entry point for custom error handling
         private final AuthenticationEntryPoint authEntryPoint;
+        private final CustomAccessDeniedHandler accessDeniedHandler;
 
         @Bean
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
                 http
                                 .cors(Customizer.withDefaults())
                                 .csrf(csrf -> csrf.disable())
-                                // Register the custom exception handling entry point
+                                // Register custom exception handling
                                 .exceptionHandling(exception -> exception
-                                                .authenticationEntryPoint(authEntryPoint))
+                                                .authenticationEntryPoint(authEntryPoint)
+                                                .accessDeniedHandler(accessDeniedHandler))
                                 .authorizeHttpRequests(auth -> auth
                                                 // 1. Public Endpoints
                                                 .requestMatchers(
@@ -48,19 +49,20 @@ public class SecurityConfig {
                                                 .requestMatchers("/api/v1/auth/**").permitAll()
 
                                                 // 2. Role-Based Access Rules
-                                                // Only ADMIN can perform DELETE operations
+                                                // Specific test routes
+                                                .requestMatchers("/api/v1/test/admin-only").hasRole("ADMIN")
+                                                
+                                                // Admin management routes
+                                                .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                                                
+                                                // Broad restriction: Only ADMIN can perform DELETE operations across the API
                                                 .requestMatchers(HttpMethod.DELETE, "/api/v1/**").hasRole("ADMIN")
 
-                                                // Only ADMIN can access designated admin management routes
-                                                .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-
-                                                // Both CUSTOMER and ADMIN can manage vehicles
+                                                // Vehicle management for both roles
                                                 .requestMatchers("/api/v1/vehicles/**").hasAnyRole("CUSTOMER", "ADMIN")
 
                                                 // Profile and User-specific routes
                                                 .requestMatchers("/api/v1/users/**").authenticated()
-
-                                                .requestMatchers("/api/v1/test/admin-only").hasRole("ADMIN")
                                                 .requestMatchers("/api/v1/test/secret").authenticated()
 
                                                 // 3. Global Rule: All other requests must be authenticated
