@@ -3,6 +3,7 @@ package com.carwash.car_wash_api.config;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -22,52 +23,56 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthFilter;
-    private final AuthenticationProvider authenticationProvider;
+        private final JwtAuthenticationFilter jwtAuthFilter;
+        private final AuthenticationProvider authenticationProvider;
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                // 1. Enable CORS with our custom configuration
-                .cors(Customizer.withDefaults())
-                // 2. Disable CSRF as we are using JWTs and not Cookies
-                .csrf(csrf -> csrf.disable())
-                // 3. Configure Request Authorization
-                .authorizeHttpRequests(auth -> auth
-                        // Public Swagger & Documentation routes
-                        .requestMatchers(
-                                "/v3/api-docs/**",
-                                "/swagger-ui/**",
-                                "/swagger-ui.html")
-                        .permitAll()
-                        // Public Health Check
-                        .requestMatchers("/api/v1/health").permitAll()
-                        // Public Authentication endpoints (Login/Register)
-                        .requestMatchers("/api/v1/auth/**").permitAll()
-                        // All other requests must be authenticated
-                        .anyRequest().authenticated())
-                // 4. Set Session Management to STATELESS
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                // 5. Link our Authentication Provider (DaoAuthenticationProvider)
-                .authenticationProvider(authenticationProvider)
-                // 6. Add JWT Filter BEFORE the standard Username/Password filter
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+        @Bean
+        public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+                http
+                                .cors(Customizer.withDefaults())
+                                .csrf(csrf -> csrf.disable())
+                                .authorizeHttpRequests(auth -> auth
+                                                // 1. Public Endpoints
+                                                .requestMatchers(
+                                                                "/v3/api-docs/**",
+                                                                "/swagger-ui/**",
+                                                                "/swagger-ui.html")
+                                                .permitAll()
+                                                .requestMatchers("/api/v1/health").permitAll()
+                                                .requestMatchers("/api/v1/auth/**").permitAll()
 
-        return http.build();
-    }
+                                                // 2. Role-Based Access Rules
+                                                // Only ADMIN can perform DELETE operations
+                                                .requestMatchers(HttpMethod.DELETE, "/api/v1/**").hasRole("ADMIN")
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        // Allow the React/Vite frontend origin
-        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
-        configuration.setAllowCredentials(true);
+                                                // Only ADMIN can access designated admin management routes
+                                                .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
-    }
+                                                // Both CUSTOMER and ADMIN can manage vehicles
+                                                .requestMatchers("/api/v1/vehicles/**").hasAnyRole("CUSTOMER", "ADMIN")
+                                                .requestMatchers("/api/v1/test/admin-only").hasRole("ADMIN")
+                                                .requestMatchers("/api/v1/test/secret").authenticated()
+
+                                                // 3. Global Rule: All other requests must be authenticated
+                                                .anyRequest().authenticated())
+                                .sessionManagement(session -> session
+                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                                .authenticationProvider(authenticationProvider)
+                                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+
+                return http.build();
+        }
+
+        @Bean
+        public CorsConfigurationSource corsConfigurationSource() {
+                CorsConfiguration configuration = new CorsConfiguration();
+                configuration.setAllowedOrigins(List.of("http://localhost:5173"));
+                configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+                configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
+                configuration.setAllowCredentials(true);
+
+                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+                source.registerCorsConfiguration("/**", configuration);
+                return source;
+        }
 }
