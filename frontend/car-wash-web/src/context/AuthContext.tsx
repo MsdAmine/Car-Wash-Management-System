@@ -1,12 +1,12 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import authService from '../services/authService';
-import type { User } from '../types/auth';
+import type { User, RegisterRequest } from '../types/auth';
 
 interface AuthContextType {
     user: User | null;
     loading: boolean;
     login: (credentials: any) => Promise<void>;
+    register: (data: RegisterRequest) => Promise<void>;
     logout: () => void;
     refreshProfile: () => Promise<void>;
 }
@@ -39,11 +39,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, []);
 
     const login = async (credentials: any) => {
-        // 1. Get the 'data' object from the service
         const userData = await authService.login(credentials);
+        if (userData) {
+            setUser({
+                email: userData.email,
+                role: userData.role,
+                firstName: userData.firstName,
+                lastName: userData.lastName
+            } as User);
+        } else {
+            await refreshProfile();
+        }
+    };
 
-        // 2. Map the fields to your User state
-        // Your JSON uses 'firstName' and 'lastName' directly in the data object
+    const register = async (data: RegisterRequest) => {
+        const userData = await authService.register(data);
         if (userData) {
             setUser({
                 email: userData.email,
@@ -63,7 +73,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, logout, refreshProfile }}>
+        <AuthContext.Provider value={{ user, loading, login, register, logout, refreshProfile }}>
             {children}
         </AuthContext.Provider>
     );

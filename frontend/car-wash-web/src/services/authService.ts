@@ -18,12 +18,13 @@ const authService = {
     },
 
     async register(data: RegisterRequest): Promise<AuthResponse> {
-        const response = await api.post<AuthResponse>('/auth/register', data);
+        const response = await api.post<any>('/auth/register', data);
+        const authData = response.data.data;
 
-        if (response.data.token) {
-            localStorage.setItem('token', response.data.token);
+        if (authData.token) {
+            localStorage.setItem('token', authData.token);
         }
-        return response.data;
+        return authData;
     },
 
     async getProfile(): Promise<User> {
