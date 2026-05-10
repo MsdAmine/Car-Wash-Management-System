@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { APP_NAME, API_URL } from './config';
 import { useAuth } from './context/AuthContext';
 import Login from './pages/Login';
+import Register from './pages/Register';
 
 function App() {
     const { user, loading, logout } = useAuth();
@@ -9,11 +10,10 @@ function App() {
     if (loading) return <div className="flex justify-center items-center h-screen">Loading...</div>;
 
     return (
-        // Adding a key tied to user status helps force a re-render on login
         <div key={user ? user.email : 'guest'}>
             <Routes>
                 <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
-
+                <Route path="/register" element={!user ? <Register /> : <Navigate to="/" />} />
                 <Route path="/" element={
                     <div className="App p-8">
                         <div className="flex justify-between items-center mb-6">
