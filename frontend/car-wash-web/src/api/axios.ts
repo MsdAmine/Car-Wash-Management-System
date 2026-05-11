@@ -20,21 +20,27 @@ api.interceptors.request.use(
     }
 );
 
-
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        // If the backend returns 401, it means the JWT is no longer valid
-        if (error.response && error.response.status === 401) {
+        // 1. Handle Network Errors (Server down, no internet)
+        if (!error.response) {
+            console.error('Network error or server is unreachable');
+            return Promise.reject(error);
+        }
+
+        // 2. Handle 401 Unauthorized (Expired/Invalid JWT)
+        if (error.response.status === 401) {
             localStorage.removeItem('token');
-            // Force a reload to the login page to clear context
-            if (!window.location.pathname.includes('/login')) {
+            // Avoid redirecting if already on Login/Register to prevent loops
+            const publicPages = ['/login', '/register'];
+            if (!publicPages.some(page => window.location.pathname.includes(page))) {
                 window.location.href = '/login';
             }
         }
+
         return Promise.reject(error);
     }
 );
-
 
 export default api;
