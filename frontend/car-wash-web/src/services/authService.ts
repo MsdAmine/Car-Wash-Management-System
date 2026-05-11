@@ -29,8 +29,9 @@ const authService = {
 
     async getProfile(): Promise<User> {
         // This call relies on the axios interceptor to attach the Bearer token
-        const response = await api.get<User>('/users/profile');
-        return response.data;
+        const response = await api.get<any>('/users/profile');
+        // If your API wraps data in a 'data' field, extract it here
+        return response.data.data || response.data;
     },
 
     logout(): void {

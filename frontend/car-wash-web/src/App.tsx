@@ -1,51 +1,73 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { APP_NAME, API_URL } from './config';
+import { APP_NAME } from './config'; // Removed API_URL here
 import { useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import ProtectedRoute from './components/ProtectedRoute'; // Import the new component
+import ProtectedRoute from './components/ProtectedRoute';
+import RoleGuard from './components/RoleGuard';
 
 function App() {
     const { user, logout } = useAuth();
 
     return (
         <Routes>
-            {/* Public Routes: Redirect to home if already logged in */}
+            {/* --- PUBLIC ROUTES --- */}
             <Route path="/login" element={!user ? <Login /> : <Navigate to="/" replace />} />
             <Route path="/register" element={!user ? <Register /> : <Navigate to="/" replace />} />
 
-            {/* Protected Routes: Everything inside here requires login */}
+            {/* --- PROTECTED ROUTES (Layer 1: Must be logged in) --- */}
             <Route element={<ProtectedRoute />}>
+
+                {/* Home Page: Accessible to any logged-in user */}
                 <Route path="/" element={
                     <div className="App p-8">
                         <div className="flex justify-between items-center mb-6">
                             <h1 className="text-2xl font-bold">Welcome to {APP_NAME}</h1>
                             <button
-                                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition"
                                 onClick={logout}
+                                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition"
                             >
                                 Logout
                             </button>
                         </div>
 
-                        <p className="text-gray-600 mb-6">Backend API: {API_URL}</p>
-
-                        <div className="mt-5 p-6 border border-gray-300 rounded-lg shadow-sm bg-white">
-                            <h2 className="text-xl font-semibold mb-4 border-b pb-2">Authentication Status</h2>
-                            <div className="space-y-2">
-                                <p>Logged in as: <span className="font-bold text-gray-800">{user?.firstName} {user?.lastName}</span></p>
-                                <p>Email: <span className="text-gray-600">{user?.email}</span></p>
-                                <p>Role: <span className="inline-block px-2 py-1 bg-blue-100 text-blue-700 rounded text-sm font-medium">{user?.role}</span></p>
-                            </div>
+                        <div className="p-6 border rounded-lg bg-white shadow-sm">
+                            <h2 className="text-xl font-semibold mb-4">User Profile</h2>
+                            <p>Name: <strong>{user?.firstName} {user?.lastName}</strong></p>
+                            <p>Role: <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm">{user?.role}</span></p>
                         </div>
                     </div>
                 } />
 
-                {/* You can add more protected routes here easily! */}
-                {/* <Route path="/vehicles" element={<VehicleList />} /> */}
+                {/* --- ROLE-BASED GUARDS (Layer 2: Specific Permissions) --- */}
+
+                {/* ADMIN ONLY */}
+                <Route element={<RoleGuard allowedRoles={['ADMIN']} />}>
+                    <Route path="/admin/settings" element={<div className="p-8"><h1>Admin Settings</h1></div>} />
+                    <Route path="/test-admin" element={
+                        <div className="p-10 bg-green-100 border-2 border-green-500 rounded">
+                            <h1 className="text-green-700 font-bold">ACCESS GRANTED: You are an ADMIN</h1>
+                        </div>
+                    } />
+                </Route>
+
+                {/* CUSTOMER ONLY */}
+                <Route element={<RoleGuard allowedRoles={['CUSTOMER']} />}>
+                    <Route path="/test-customer" element={
+                        <div className="p-10 bg-blue-100 border-2 border-blue-500 rounded">
+                            <h1 className="text-blue-700 font-bold">ACCESS GRANTED: You are a CUSTOMER</h1>
+                        </div>
+                    } />
+                </Route>
+
+                {/* STAFF & ADMIN */}
+                <Route element={<RoleGuard allowedRoles={['ADMIN', 'STAFF']} />}>
+                    <Route path="/manage-orders" element={<div className="p-8"><h1>Order Management</h1></div>} />
+                </Route>
+
             </Route>
 
-            {/* Fallback */}
+            {/* --- FALLBACK --- */}
             <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
     );
