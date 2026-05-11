@@ -16,10 +16,16 @@ const Login: React.FC = () => {
         setLoading(true);
 
         try {
-            // Wait for the Context to save the user to state
-            await login({ email, password });
-            // Only now navigate to the home page
-            navigate('/');
+            const user = await login({ email, password });
+
+            // Revised Redirect Logic (Task #134)
+            if (user.role === 'ADMIN') {
+                navigate('/admin/settings');
+            } else {
+                // Since we only have ADMIN and CUSTOMER, 
+                // everyone else (Customers) goes to the home page.
+                navigate('/');
+            }
         } catch (err: any) {
             setError(err.response?.data?.message || 'Invalid email or password');
         } finally {

@@ -5,8 +5,8 @@ import type { User, RegisterRequest } from '../types/auth';
 interface AuthContextType {
     user: User | null;
     loading: boolean;
-    login: (credentials: any) => Promise<void>;
-    register: (data: RegisterRequest) => Promise<void>;
+    login: (credentials: any) => Promise<User>; // Returns User now
+    register: (data: RegisterRequest) => Promise<User>; // Returns User now
     logout: () => void;
     refreshProfile: () => Promise<void>;
 }
@@ -31,7 +31,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         } else {
             setUser(null);
         }
-        // Always stop loading regardless of success/fail
         setLoading(false);
     };
 
@@ -39,38 +38,36 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         refreshProfile();
     }, []);
 
-    const login = async (credentials: any) => {
+    const login = async (credentials: any): Promise<User> => {
         try {
             const userData = await authService.login(credentials);
-            if (userData && userData.email) {
-                setUser({
-                    email: userData.email,
-                    role: userData.role,
-                    firstName: userData.firstName,
-                    lastName: userData.lastName
-                } as User);
-            } else {
-                await refreshProfile();
-            }
+            const authenticatedUser = {
+                email: userData.email,
+                role: userData.role,
+                firstName: userData.firstName,
+                lastName: userData.lastName
+            } as User;
+
+            setUser(authenticatedUser);
+            return authenticatedUser;
         } catch (error) {
             setLoading(false);
             throw error;
         }
     };
 
-    const register = async (data: RegisterRequest) => {
+    const register = async (data: RegisterRequest): Promise<User> => {
         try {
             const userData = await authService.register(data);
-            if (userData && userData.email) {
-                setUser({
-                    email: userData.email,
-                    role: userData.role,
-                    firstName: userData.firstName,
-                    lastName: userData.lastName
-                } as User);
-            } else {
-                await refreshProfile();
-            }
+            const authenticatedUser = {
+                email: userData.email,
+                role: userData.role,
+                firstName: userData.firstName,
+                lastName: userData.lastName
+            } as User;
+
+            setUser(authenticatedUser);
+            return authenticatedUser;
         } catch (error) {
             setLoading(false);
             throw error;
@@ -80,7 +77,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const logout = () => {
         authService.logout();
         setUser(null);
-        // Using navigate is usually cleaner, but this works for a hard reset
         window.location.href = '/login';
     };
 
