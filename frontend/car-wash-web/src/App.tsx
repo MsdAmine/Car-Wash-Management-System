@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { APP_NAME, API_URL } from './config';
+import { APP_NAME } from './config'; // Removed API_URL here
 import { useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -12,7 +12,6 @@ function App() {
     return (
         <Routes>
             {/* --- PUBLIC ROUTES --- */}
-            {/* If logged in, these paths redirect to Home (/) */}
             <Route path="/login" element={!user ? <Login /> : <Navigate to="/" replace />} />
             <Route path="/register" element={!user ? <Register /> : <Navigate to="/" replace />} />
 
@@ -69,7 +68,6 @@ function App() {
             </Route>
 
             {/* --- FALLBACK --- */}
-            {/* This MUST be the last route. It catches any undefined URL */}
             <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
     );
