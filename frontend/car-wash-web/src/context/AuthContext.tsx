@@ -75,8 +75,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     const logout = () => {
+        // 1. Clear the localStorage token
         authService.logout();
+
+        // 2. Clear React state (optional but good practice)
         setUser(null);
+
+        // 3. Hard reset to clear memory and redirect
         window.location.href = '/login';
     };
 
