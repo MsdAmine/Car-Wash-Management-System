@@ -31,6 +31,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         } else {
             setUser(null);
         }
+        // Always stop loading regardless of success/fail
         setLoading(false);
     };
 
@@ -39,36 +40,47 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, []);
 
     const login = async (credentials: any) => {
-        const userData = await authService.login(credentials);
-        if (userData) {
-            setUser({
-                email: userData.email,
-                role: userData.role,
-                firstName: userData.firstName,
-                lastName: userData.lastName
-            } as User);
-        } else {
-            await refreshProfile();
+        try {
+            const userData = await authService.login(credentials);
+            if (userData && userData.email) {
+                setUser({
+                    email: userData.email,
+                    role: userData.role,
+                    firstName: userData.firstName,
+                    lastName: userData.lastName
+                } as User);
+            } else {
+                await refreshProfile();
+            }
+        } catch (error) {
+            setLoading(false);
+            throw error;
         }
     };
 
     const register = async (data: RegisterRequest) => {
-        const userData = await authService.register(data);
-        if (userData) {
-            setUser({
-                email: userData.email,
-                role: userData.role,
-                firstName: userData.firstName,
-                lastName: userData.lastName
-            } as User);
-        } else {
-            await refreshProfile();
+        try {
+            const userData = await authService.register(data);
+            if (userData && userData.email) {
+                setUser({
+                    email: userData.email,
+                    role: userData.role,
+                    firstName: userData.firstName,
+                    lastName: userData.lastName
+                } as User);
+            } else {
+                await refreshProfile();
+            }
+        } catch (error) {
+            setLoading(false);
+            throw error;
         }
     };
 
     const logout = () => {
         authService.logout();
         setUser(null);
+        // Using navigate is usually cleaner, but this works for a hard reset
         window.location.href = '/login';
     };
 
