@@ -25,38 +25,51 @@ public class VehicleService {
     private final VehicleMapper vehicleMapper;
 
     /**
-     * Updates an existing vehicle.
-     * Enforces ownership checks and license plate uniqueness.
+     * Deletes a vehicle after verifying ownership.
+     * Respects security boundaries to prevent unauthorized deletions.
      */
     @Transactional
-    public VehicleResponse updateVehicle(UUID vehicleId, VehicleRequest request) {
-        // 1. Identify the current user
+    public void deleteVehicle(UUID vehicleId) {
+        // 1. Identify the current authenticated user
         String currentUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         User currentUser = userRepository.findByEmail(currentUserEmail)
                 .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
 
-        // 2. Find the existing vehicle
+        // 2. Find the vehicle to be deleted
         Vehicle vehicle = vehicleRepository.findById(vehicleId)
                 .orElseThrow(() -> new RuntimeException("Vehicle not found with ID: " + vehicleId));
 
-        // 3. Ownership Check: Prevent users from updating cars they don't own
+        // 3. Ownership Check (Critical Security Rule)
         if (!vehicle.getOwner().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("Access Denied: You cannot update a vehicle you do not own");
+            throw new RuntimeException("Access Denied: You cannot delete a vehicle you do not own");
         }
 
-        // 4. Unique License Plate Check: If the plate is changing, check if the new one is taken
+        // 4. Perform the deletion
+        vehicleRepository.delete(vehicle);
+    }
+
+    public VehicleResponse updateVehicle(UUID vehicleId, VehicleRequest request) {
+        String currentUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findByEmail(currentUserEmail)
+                .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
+
+        Vehicle vehicle = vehicleRepository.findById(vehicleId)
+                .orElseThrow(() -> new RuntimeException("Vehicle not found"));
+
+        if (!vehicle.getOwner().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("Access Denied: Ownership verification failed");
+        }
+
         if (!vehicle.getLicensePlate().equalsIgnoreCase(request.getLicensePlate()) &&
             vehicleRepository.existsByLicensePlate(request.getLicensePlate())) {
-            throw new RuntimeException("Vehicle with this license plate already exists");
+                throw new RuntimeException("Vehicle with this license plate already exists");
         }
 
-        // 5. Update fields
         vehicle.setBrand(request.getBrand());
         vehicle.setModel(request.getModel());
         vehicle.setLicensePlate(request.getLicensePlate());
         vehicle.setType(request.getType());
 
-        // 6. Save and return mapped response
         Vehicle updatedVehicle = vehicleRepository.save(vehicle);
         return vehicleMapper.toResponse(updatedVehicle);
     }
