@@ -25,21 +25,51 @@ public class VehicleService {
     private final VehicleMapper vehicleMapper;
 
     /**
-     * Retrieves a specific vehicle by ID.
-     * Validates that the vehicle belongs to the authenticated user.
+     * Updates an existing vehicle.
+     * Enforces ownership checks and license plate uniqueness.
      */
-    @Transactional(readOnly = true)
-    public VehicleResponse getVehicleById(UUID vehicleId) {
+    @Transactional
+    public VehicleResponse updateVehicle(UUID vehicleId, VehicleRequest request) {
         // 1. Identify the current user
         String currentUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         User currentUser = userRepository.findByEmail(currentUserEmail)
                 .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
 
-        // 2. Find the vehicle
+        // 2. Find the existing vehicle
         Vehicle vehicle = vehicleRepository.findById(vehicleId)
                 .orElseThrow(() -> new RuntimeException("Vehicle not found with ID: " + vehicleId));
 
-        // 3. Ownership Check (Security Rule Enforcement)
+        // 3. Ownership Check: Prevent users from updating cars they don't own
+        if (!vehicle.getOwner().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("Access Denied: You cannot update a vehicle you do not own");
+        }
+
+        // 4. Unique License Plate Check: If the plate is changing, check if the new one is taken
+        if (!vehicle.getLicensePlate().equalsIgnoreCase(request.getLicensePlate()) &&
+            vehicleRepository.existsByLicensePlate(request.getLicensePlate())) {
+            throw new RuntimeException("Vehicle with this license plate already exists");
+        }
+
+        // 5. Update fields
+        vehicle.setBrand(request.getBrand());
+        vehicle.setModel(request.getModel());
+        vehicle.setLicensePlate(request.getLicensePlate());
+        vehicle.setType(request.getType());
+
+        // 6. Save and return mapped response
+        Vehicle updatedVehicle = vehicleRepository.save(vehicle);
+        return vehicleMapper.toResponse(updatedVehicle);
+    }
+
+    @Transactional(readOnly = true)
+    public VehicleResponse getVehicleById(UUID vehicleId) {
+        String currentUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findByEmail(currentUserEmail)
+                .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
+
+        Vehicle vehicle = vehicleRepository.findById(vehicleId)
+                .orElseThrow(() -> new RuntimeException("Vehicle not found"));
+
         if (!vehicle.getOwner().getId().equals(currentUser.getId())) {
             throw new RuntimeException("Access Denied: You do not own this vehicle");
         }
