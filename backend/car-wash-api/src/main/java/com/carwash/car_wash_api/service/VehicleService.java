@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -24,30 +25,41 @@ public class VehicleService {
     private final VehicleMapper vehicleMapper;
 
     /**
-     * Retrieves all vehicles belonging to the currently authenticated user.
-     * Respects ownership boundaries by filtering by the active user's ID.
+     * Retrieves a specific vehicle by ID.
+     * Validates that the vehicle belongs to the authenticated user.
      */
     @Transactional(readOnly = true)
-    public List<VehicleResponse> getMyVehicles() {
-        // 1. Identify the current user from the SecurityContext
+    public VehicleResponse getVehicleById(UUID vehicleId) {
+        // 1. Identify the current user
         String currentUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findByEmail(currentUserEmail)
+                .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
 
+        // 2. Find the vehicle
+        Vehicle vehicle = vehicleRepository.findById(vehicleId)
+                .orElseThrow(() -> new RuntimeException("Vehicle not found with ID: " + vehicleId));
+
+        // 3. Ownership Check (Security Rule Enforcement)
+        if (!vehicle.getOwner().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("Access Denied: You do not own this vehicle");
+        }
+
+        return vehicleMapper.toResponse(vehicle);
+    }
+
+    @Transactional(readOnly = true)
+    public List<VehicleResponse> getMyVehicles() {
+        String currentUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         User owner = userRepository.findByEmail(currentUserEmail)
                 .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
 
-        // 2. Fetch only vehicles owned by this user via the repository
         List<Vehicle> vehicles = vehicleRepository.findByOwnerId(owner.getId());
 
-        // 3. Map entities to Response DTOs
         return vehicles.stream()
                 .map(vehicleMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Creates a new vehicle for the authenticated user.
-     * Enforces unique license plates and ownership rules.
-     */
     @Transactional
     public VehicleResponse createVehicle(VehicleRequest request) {
         if (vehicleRepository.existsByLicensePlate(request.getLicensePlate())) {
@@ -55,7 +67,6 @@ public class VehicleService {
         }
 
         String currentUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
-
         User owner = userRepository.findByEmail(currentUserEmail)
                 .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
 
