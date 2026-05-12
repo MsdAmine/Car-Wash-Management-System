@@ -12,6 +12,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 public class VehicleService {
@@ -21,29 +24,44 @@ public class VehicleService {
     private final VehicleMapper vehicleMapper;
 
     /**
-     * Creates a new vehicle for the authenticated user.
-     * Enforces unique license plates and ownership rules.
+     * Retrieves all vehicles belonging to the currently authenticated user.
+     * Respects ownership boundaries by filtering by the active user's ID.
      */
-    @Transactional
-    public VehicleResponse createVehicle(VehicleRequest request) {
-        // 1. Check if license plate already exists
-        if (vehicleRepository.existsByLicensePlate(request.getLicensePlate())) {
-            throw new RuntimeException("Vehicle with this license plate already exists");
-        }
-
-        // 2. Get the currently authenticated user's email from SecurityContext
+    @Transactional(readOnly = true)
+    public List<VehicleResponse> getMyVehicles() {
+        // 1. Identify the current user from the SecurityContext
         String currentUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
 
         User owner = userRepository.findByEmail(currentUserEmail)
                 .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
 
-        // 3. Map Request DTO to Entity
-        Vehicle vehicle = vehicleMapper.toEntity(request);
+        // 2. Fetch only vehicles owned by this user via the repository
+        List<Vehicle> vehicles = vehicleRepository.findByOwnerId(owner.getId());
 
-        // 4. Set the owner (Access Rule Enforcement)
+        // 3. Map entities to Response DTOs
+        return vehicles.stream()
+                .map(vehicleMapper::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Creates a new vehicle for the authenticated user.
+     * Enforces unique license plates and ownership rules.
+     */
+    @Transactional
+    public VehicleResponse createVehicle(VehicleRequest request) {
+        if (vehicleRepository.existsByLicensePlate(request.getLicensePlate())) {
+            throw new RuntimeException("Vehicle with this license plate already exists");
+        }
+
+        String currentUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        User owner = userRepository.findByEmail(currentUserEmail)
+                .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
+
+        Vehicle vehicle = vehicleMapper.toEntity(request);
         vehicle.setOwner(owner);
 
-        // 5. Save and return the Response DTO
         Vehicle savedVehicle = vehicleRepository.save(vehicle);
         return vehicleMapper.toResponse(savedVehicle);
     }

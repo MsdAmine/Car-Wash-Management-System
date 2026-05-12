@@ -12,7 +12,7 @@ import java.util.UUID;
 public interface VehicleRepository extends JpaRepository<Vehicle, UUID> {
 
     // Find all vehicles belonging to a specific user (Customer)
-    List<Vehicle> findByOwnerId(UUID ownerId);
+    List<Vehicle> findByOwnerId(Long ownerId);
 
     // Find a specific vehicle by its license plate (for validation)
     Optional<Vehicle> findByLicensePlate(String licensePlate);
