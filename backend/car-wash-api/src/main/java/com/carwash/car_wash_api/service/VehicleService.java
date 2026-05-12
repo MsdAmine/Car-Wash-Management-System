@@ -25,82 +25,22 @@ public class VehicleService {
     private final VehicleMapper vehicleMapper;
 
     /**
-     * Deletes a vehicle after verifying ownership.
-     * Respects security boundaries to prevent unauthorized deletions.
+     * Helper method to validate that the current user owns the vehicle.
+     * Centralizes ownership validation logic to prevent code duplication.
      */
-    @Transactional
-    public void deleteVehicle(UUID vehicleId) {
-        // 1. Identify the current authenticated user
+    private Vehicle validateOwnership(UUID vehicleId) {
         String currentUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         User currentUser = userRepository.findByEmail(currentUserEmail)
                 .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
 
-        // 2. Find the vehicle to be deleted
         Vehicle vehicle = vehicleRepository.findById(vehicleId)
                 .orElseThrow(() -> new RuntimeException("Vehicle not found with ID: " + vehicleId));
-
-        // 3. Ownership Check (Critical Security Rule)
-        if (!vehicle.getOwner().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("Access Denied: You cannot delete a vehicle you do not own");
-        }
-
-        // 4. Perform the deletion
-        vehicleRepository.delete(vehicle);
-    }
-
-    public VehicleResponse updateVehicle(UUID vehicleId, VehicleRequest request) {
-        String currentUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
-        User currentUser = userRepository.findByEmail(currentUserEmail)
-                .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
-
-        Vehicle vehicle = vehicleRepository.findById(vehicleId)
-                .orElseThrow(() -> new RuntimeException("Vehicle not found"));
 
         if (!vehicle.getOwner().getId().equals(currentUser.getId())) {
             throw new RuntimeException("Access Denied: Ownership verification failed");
         }
 
-        if (!vehicle.getLicensePlate().equalsIgnoreCase(request.getLicensePlate()) &&
-            vehicleRepository.existsByLicensePlate(request.getLicensePlate())) {
-                throw new RuntimeException("Vehicle with this license plate already exists");
-        }
-
-        vehicle.setBrand(request.getBrand());
-        vehicle.setModel(request.getModel());
-        vehicle.setLicensePlate(request.getLicensePlate());
-        vehicle.setType(request.getType());
-
-        Vehicle updatedVehicle = vehicleRepository.save(vehicle);
-        return vehicleMapper.toResponse(updatedVehicle);
-    }
-
-    @Transactional(readOnly = true)
-    public VehicleResponse getVehicleById(UUID vehicleId) {
-        String currentUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
-        User currentUser = userRepository.findByEmail(currentUserEmail)
-                .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
-
-        Vehicle vehicle = vehicleRepository.findById(vehicleId)
-                .orElseThrow(() -> new RuntimeException("Vehicle not found"));
-
-        if (!vehicle.getOwner().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("Access Denied: You do not own this vehicle");
-        }
-
-        return vehicleMapper.toResponse(vehicle);
-    }
-
-    @Transactional(readOnly = true)
-    public List<VehicleResponse> getMyVehicles() {
-        String currentUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
-        User owner = userRepository.findByEmail(currentUserEmail)
-                .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
-
-        List<Vehicle> vehicles = vehicleRepository.findByOwnerId(owner.getId());
-
-        return vehicles.stream()
-                .map(vehicleMapper::toResponse)
-                .collect(Collectors.toList());
+        return vehicle;
     }
 
     @Transactional
@@ -118,5 +58,48 @@ public class VehicleService {
 
         Vehicle savedVehicle = vehicleRepository.save(vehicle);
         return vehicleMapper.toResponse(savedVehicle);
+    }
+
+    @Transactional(readOnly = true)
+    public List<VehicleResponse> getMyVehicles() {
+        String currentUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+        User owner = userRepository.findByEmail(currentUserEmail)
+                .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
+
+        List<Vehicle> vehicles = vehicleRepository.findByOwnerId(owner.getId());
+
+        return vehicles.stream()
+                .map(vehicleMapper::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public VehicleResponse getVehicleById(UUID vehicleId) {
+        Vehicle vehicle = validateOwnership(vehicleId);
+        return vehicleMapper.toResponse(vehicle);
+    }
+
+    @Transactional
+    public VehicleResponse updateVehicle(UUID vehicleId, VehicleRequest request) {
+        Vehicle vehicle = validateOwnership(vehicleId);
+
+        if (!vehicle.getLicensePlate().equalsIgnoreCase(request.getLicensePlate()) &&
+            vehicleRepository.existsByLicensePlate(request.getLicensePlate())) {
+                throw new RuntimeException("Vehicle with this license plate already exists");
+        }
+
+        vehicle.setBrand(request.getBrand());
+        vehicle.setModel(request.getModel());
+        vehicle.setLicensePlate(request.getLicensePlate());
+        vehicle.setType(request.getType());
+
+        Vehicle updatedVehicle = vehicleRepository.save(vehicle);
+        return vehicleMapper.toResponse(updatedVehicle);
+    }
+
+    @Transactional
+    public void deleteVehicle(UUID vehicleId) {
+        Vehicle vehicle = validateOwnership(vehicleId);
+        vehicleRepository.delete(vehicle);
     }
 }
