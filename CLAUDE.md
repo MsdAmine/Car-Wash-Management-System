@@ -56,3 +56,10 @@ npm run preview   # Preview production build locally
 - Spring Security is on the classpath but not yet configured; all endpoints require a security config before the API can be called.
 - The frontend `App.tsx` is a placeholder. React Router routes, Axios base URL config, and auth context have not been set up yet.
 - Feature branches merge into `main` via PRs — no direct commits to main.
+
+## Test Coverage
+
+### Vehicle Endpoints (Phase 3, Task #152)
+
+- `VehicleControllerTest` — `@WebMvcTest` with inner `@TestConfiguration` that mirrors production authorization rules (no JWT infrastructure needed). Covers all six endpoints: create, list, get-by-id, update, delete, admin-get-by-customer. Tests: 201/400/409 for create; 200/404/403 for reads; 200/400/404/409 for update; 204/403 for delete; role-based access (CUSTOMER vs ADMIN); 401 for all unauthenticated paths.
+- `VehicleServiceTest` — pure Mockito unit tests. Covers ownership validation, duplicate plate detection, not-found paths, and admin lookup. SecurityContext is mocked per-test (not in @BeforeEach) to avoid unnecessary stubbing.
