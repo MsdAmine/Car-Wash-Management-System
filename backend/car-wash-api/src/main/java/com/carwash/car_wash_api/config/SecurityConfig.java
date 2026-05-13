@@ -61,6 +61,10 @@ public class SecurityConfig {
                                                 // Vehicle management for both roles
                                                 .requestMatchers("/api/v1/vehicles/**").hasAnyRole("CUSTOMER", "ADMIN")
 
+                                                // Wash service management: write operations are admin-only, reads are public
+                                                .requestMatchers(HttpMethod.GET, "/api/v1/services/**").permitAll()
+                                                .requestMatchers("/api/v1/services/**").hasRole("ADMIN")
+
                                                 // Profile and User-specific routes
                                                 .requestMatchers("/api/v1/users/**").authenticated()
                                                 .requestMatchers("/api/v1/test/secret").authenticated()
