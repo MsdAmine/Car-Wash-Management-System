@@ -152,6 +152,81 @@ class WashServiceControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
+    void createWashService_withNameTooShort_returns400() throws Exception {
+        WashServiceRequest invalid = WashServiceRequest.builder()
+                .name("X")  // below min length of 2
+                .price(new BigDecimal("9.99"))
+                .durationMinutes(30)
+                .build();
+
+        mockMvc.perform(post("/api/v1/services")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalid)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void createWashService_withZeroPrice_returns400() throws Exception {
+        WashServiceRequest invalid = WashServiceRequest.builder()
+                .name("Basic Wash")
+                .price(new BigDecimal("0.00"))  // fails @DecimalMin("0.01")
+                .durationMinutes(30)
+                .build();
+
+        mockMvc.perform(post("/api/v1/services")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalid)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void createWashService_withNegativePrice_returns400() throws Exception {
+        WashServiceRequest invalid = WashServiceRequest.builder()
+                .name("Basic Wash")
+                .price(new BigDecimal("-5.00"))  // fails @DecimalMin("0.01")
+                .durationMinutes(30)
+                .build();
+
+        mockMvc.perform(post("/api/v1/services")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalid)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void createWashService_withZeroDuration_returns400() throws Exception {
+        WashServiceRequest invalid = WashServiceRequest.builder()
+                .name("Basic Wash")
+                .price(new BigDecimal("9.99"))
+                .durationMinutes(0)  // fails @Min(1)
+                .build();
+
+        mockMvc.perform(post("/api/v1/services")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalid)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void createWashService_withExcessiveDuration_returns400() throws Exception {
+        WashServiceRequest invalid = WashServiceRequest.builder()
+                .name("Basic Wash")
+                .price(new BigDecimal("9.99"))
+                .durationMinutes(481)  // fails @Max(480)
+                .build();
+
+        mockMvc.perform(post("/api/v1/services")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalid)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
     void createWashService_withDuplicateName_returns409() throws Exception {
         when(washServiceService.createWashService(any(WashServiceRequest.class)))
                 .thenThrow(new DuplicateResourceException("A wash service with this name already exists"));
