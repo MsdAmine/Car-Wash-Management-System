@@ -4,11 +4,12 @@ import type { VehicleResponse } from '../types/vehicle';
 interface VehicleTableProps {
     vehicles: VehicleResponse[];
     onEdit: (id: string) => void;
-    onDelete: (id: string) => void;
-    deletingId: string | null;
+    onDelete?: (id: string) => void;
+    deletingId?: string | null;
+    canDelete?: boolean;
 }
 
-const VehicleTable: React.FC<VehicleTableProps> = ({ vehicles, onEdit, onDelete, deletingId }) => {
+const VehicleTable: React.FC<VehicleTableProps> = ({ vehicles, onEdit, onDelete, deletingId, canDelete = false }) => {
     return (
         <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
             <table className="min-w-full divide-y divide-gray-200 bg-white">
@@ -40,13 +41,15 @@ const VehicleTable: React.FC<VehicleTableProps> = ({ vehicles, onEdit, onDelete,
                                     >
                                         Edit
                                     </button>
-                                    <button
-                                        onClick={() => onDelete(v.id)}
-                                        disabled={deletingId === v.id}
-                                        className="px-3 py-1.5 text-sm bg-red-500 text-white rounded-md hover:bg-red-600 transition disabled:opacity-50"
-                                    >
-                                        {deletingId === v.id ? 'Deleting...' : 'Delete'}
-                                    </button>
+                                    {canDelete && onDelete && (
+                                        <button
+                                            onClick={() => onDelete(v.id)}
+                                            disabled={deletingId === v.id}
+                                            className="px-3 py-1.5 text-sm bg-red-500 text-white rounded-md hover:bg-red-600 transition disabled:opacity-50"
+                                        >
+                                            {deletingId === v.id ? 'Deleting...' : 'Delete'}
+                                        </button>
+                                    )}
                                 </div>
                             </td>
                         </tr>
