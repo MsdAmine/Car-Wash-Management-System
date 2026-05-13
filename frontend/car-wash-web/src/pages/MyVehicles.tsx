@@ -9,7 +9,6 @@ const MyVehicles: React.FC = () => {
     const [vehicles, setVehicles] = useState<VehicleResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [deletingId, setDeletingId] = useState<string | null>(null);
 
     const fetchVehicles = async () => {
         setLoading(true);
@@ -27,18 +26,6 @@ const MyVehicles: React.FC = () => {
     useEffect(() => {
         fetchVehicles();
     }, []);
-
-    const handleDelete = async (id: string) => {
-        setDeletingId(id);
-        try {
-            await vehicleService.remove(id);
-            setVehicles(prev => prev.filter(v => v.id !== id));
-        } catch {
-            setError('Failed to delete vehicle. Please try again.');
-        } finally {
-            setDeletingId(null);
-        }
-    };
 
     return (
         <div className="max-w-4xl mx-auto p-8">
@@ -72,8 +59,6 @@ const MyVehicles: React.FC = () => {
                 <VehicleTable
                     vehicles={vehicles}
                     onEdit={id => navigate(`/vehicles/${id}/edit`)}
-                    onDelete={handleDelete}
-                    deletingId={deletingId}
                 />
             )}
         </div>
