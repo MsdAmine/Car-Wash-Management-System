@@ -9,6 +9,8 @@ const MyVehicles: React.FC = () => {
     const [vehicles, setVehicles] = useState<VehicleResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
 
     const fetchVehicles = async () => {
         setLoading(true);
@@ -27,6 +29,27 @@ const MyVehicles: React.FC = () => {
         fetchVehicles();
     }, []);
 
+    const handleDelete = async (id: string) => {
+        setDeletingId(id);
+        setDeleteError(null);
+        try {
+            await vehicleService.remove(id);
+            setVehicles(prev => prev.filter(v => v.id !== id));
+        } catch (err: any) {
+            const status = err.response?.status;
+            if (status === 403) {
+                setDeleteError('You do not have permission to delete this vehicle.');
+            } else if (status === 404) {
+                setDeleteError('Vehicle not found. It may have already been deleted.');
+                setVehicles(prev => prev.filter(v => v.id !== id));
+            } else {
+                setDeleteError('Failed to delete vehicle. Please try again.');
+            }
+        } finally {
+            setDeletingId(null);
+        }
+    };
+
     return (
         <div className="max-w-4xl mx-auto p-8">
             <div className="flex justify-between items-center mb-6">
@@ -40,8 +63,20 @@ const MyVehicles: React.FC = () => {
             </div>
 
             {error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 flex items-center justify-between">
+                    <span>{error}</span>
+                    <button
+                        onClick={fetchVehicles}
+                        className="ml-4 text-sm font-medium underline hover:no-underline"
+                    >
+                        Retry
+                    </button>
+                </div>
+            )}
+
+            {deleteError && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                    {error}
+                    {deleteError}
                 </div>
             )}
 
@@ -59,6 +94,9 @@ const MyVehicles: React.FC = () => {
                 <VehicleTable
                     vehicles={vehicles}
                     onEdit={id => navigate(`/vehicles/${id}/edit`)}
+                    onDelete={handleDelete}
+                    deletingId={deletingId}
+                    canDelete
                 />
             )}
         </div>
