@@ -1,29 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import vehicleService from '../services/vehicleService';
-import type { VehicleRequest, VehicleResponse, VehicleType } from '../types/vehicle';
-
-const VEHICLE_TYPES: VehicleType[] = ['SEDAN', 'SUV', 'TRUCK', 'VAN', 'MOTORCYCLE', 'COUPE'];
-
-const emptyForm = (): VehicleRequest => ({
-    brand: '',
-    model: '',
-    licensePlate: '',
-    type: 'SEDAN',
-});
+import type { VehicleResponse } from '../types/vehicle';
 
 const MyVehicles: React.FC = () => {
     const navigate = useNavigate();
     const [vehicles, setVehicles] = useState<VehicleResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-
-    const [showModal, setShowModal] = useState(false);
-    const [editingId, setEditingId] = useState<string | null>(null);
-    const [form, setForm] = useState<VehicleRequest>(emptyForm());
-    const [formError, setFormError] = useState<string | null>(null);
-    const [submitting, setSubmitting] = useState(false);
-
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
     const fetchVehicles = async () => {
@@ -42,44 +26,6 @@ const MyVehicles: React.FC = () => {
     useEffect(() => {
         fetchVehicles();
     }, []);
-
-    const openEdit = (v: VehicleResponse) => {
-        setEditingId(v.id);
-        setForm({ brand: v.brand, model: v.model, licensePlate: v.licensePlate, type: v.type });
-        setFormError(null);
-        setShowModal(true);
-    };
-
-    const closeModal = () => {
-        setShowModal(false);
-        setEditingId(null);
-        setForm(emptyForm());
-        setFormError(null);
-    };
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setFormError(null);
-        setSubmitting(true);
-        try {
-            if (editingId) {
-                await vehicleService.update(editingId, form);
-            } else {
-                await vehicleService.create(form);
-            }
-            closeModal();
-            await fetchVehicles();
-        } catch (err: any) {
-            const msg = err.response?.data?.message || (editingId ? 'Failed to update vehicle.' : 'Failed to add vehicle.');
-            setFormError(msg);
-        } finally {
-            setSubmitting(false);
-        }
-    };
 
     const handleDelete = async (id: string) => {
         setDeletingId(id);
@@ -134,7 +80,7 @@ const MyVehicles: React.FC = () => {
                             </div>
                             <div className="flex gap-2">
                                 <button
-                                    onClick={() => openEdit(v)}
+                                    onClick={() => navigate(`/vehicles/${v.id}/edit`)}
                                     className="px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition"
                                 >
                                     Edit
@@ -149,94 +95,6 @@ const MyVehicles: React.FC = () => {
                             </div>
                         </div>
                     ))}
-                </div>
-            )}
-
-            {showModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-                        <h2 className="text-xl font-bold text-gray-800 mb-4">
-                            {editingId ? 'Edit Vehicle' : 'Add Vehicle'}
-                        </h2>
-
-                        {formError && (
-                            <div className="bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded mb-4 text-sm">
-                                {formError}
-                            </div>
-                        )}
-
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Brand</label>
-                                <input
-                                    type="text"
-                                    name="brand"
-                                    required
-                                    value={form.brand}
-                                    onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder="e.g. Toyota"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Model</label>
-                                <input
-                                    type="text"
-                                    name="model"
-                                    required
-                                    value={form.model}
-                                    onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder="e.g. Corolla"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">License Plate</label>
-                                <input
-                                    type="text"
-                                    name="licensePlate"
-                                    required
-                                    value={form.licensePlate}
-                                    onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder="e.g. ABC-1234"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle Type</label>
-                                <select
-                                    name="type"
-                                    value={form.type}
-                                    onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                >
-                                    {VEHICLE_TYPES.map(t => (
-                                        <option key={t} value={t}>{t}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div className="flex gap-3 pt-2">
-                                <button
-                                    type="submit"
-                                    disabled={submitting}
-                                    className="flex-1 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition disabled:opacity-50 font-medium"
-                                >
-                                    {submitting ? 'Saving...' : editingId ? 'Save Changes' : 'Add Vehicle'}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={closeModal}
-                                    className="flex-1 border border-gray-300 py-2 rounded-md hover:bg-gray-50 transition font-medium"
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        </form>
-                    </div>
                 </div>
             )}
         </div>
