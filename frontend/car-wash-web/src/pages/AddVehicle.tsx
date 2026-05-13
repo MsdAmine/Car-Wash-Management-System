@@ -29,7 +29,14 @@ const AddVehicle: React.FC = () => {
             await vehicleService.create(form);
             navigate('/my-vehicles');
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to add vehicle. Please try again.');
+            const status = err.response?.status;
+            if (status === 409) {
+                setError('A vehicle with this license plate already exists.');
+            } else if (status === 400) {
+                setError(err.response?.data?.message || 'Invalid vehicle data. Please check your input.');
+            } else {
+                setError(err.response?.data?.message || 'Failed to add vehicle. Please try again.');
+            }
         } finally {
             setSubmitting(false);
         }

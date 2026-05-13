@@ -14,8 +14,10 @@ const EditVehicle: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
 
-    useEffect(() => {
+    const loadVehicle = () => {
         if (!id) return;
+        setLoading(true);
+        setLoadError(null);
         vehicleService.getById(id)
             .then(v => {
                 setForm({ brand: v.brand, model: v.model, licensePlate: v.licensePlate, type: v.type });
@@ -27,6 +29,10 @@ const EditVehicle: React.FC = () => {
                 else setLoadError('Failed to load vehicle. Please try again.');
             })
             .finally(() => setLoading(false));
+    };
+
+    useEffect(() => {
+        loadVehicle();
     }, [id]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -43,8 +49,15 @@ const EditVehicle: React.FC = () => {
             navigate('/my-vehicles');
         } catch (err: any) {
             const status = err.response?.status;
-            if (status === 403) setFormError('You do not have permission to edit this vehicle.');
-            else setFormError(err.response?.data?.message || 'Failed to update vehicle. Please try again.');
+            if (status === 403) {
+                setFormError('You do not have permission to edit this vehicle.');
+            } else if (status === 409) {
+                setFormError('A vehicle with this license plate already exists.');
+            } else if (status === 400) {
+                setFormError(err.response?.data?.message || 'Invalid vehicle data. Please check your input.');
+            } else {
+                setFormError(err.response?.data?.message || 'Failed to update vehicle. Please try again.');
+            }
         } finally {
             setSubmitting(false);
         }
@@ -72,12 +85,22 @@ const EditVehicle: React.FC = () => {
                 ) : loadError ? (
                     <div className="text-center py-8">
                         <p className="text-red-600 mb-4">{loadError}</p>
-                        <button
-                            onClick={() => navigate('/my-vehicles')}
-                            className="text-blue-600 hover:underline text-sm"
-                        >
-                            Back to My Vehicles
-                        </button>
+                        <div className="flex justify-center gap-4">
+                            {loadError === 'Failed to load vehicle. Please try again.' && (
+                                <button
+                                    onClick={loadVehicle}
+                                    className="text-blue-600 hover:underline text-sm font-medium"
+                                >
+                                    Retry
+                                </button>
+                            )}
+                            <button
+                                onClick={() => navigate('/my-vehicles')}
+                                className="text-blue-600 hover:underline text-sm"
+                            >
+                                Back to My Vehicles
+                            </button>
+                        </div>
                     </div>
                 ) : (
                     <VehicleForm
