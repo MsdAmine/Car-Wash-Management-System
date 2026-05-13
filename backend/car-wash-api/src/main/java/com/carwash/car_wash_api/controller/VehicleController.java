@@ -20,9 +20,19 @@ public class VehicleController {
     private final VehicleService vehicleService;
 
     /**
+     * GET /api/v1/vehicles/customer/{customerId}
+     * Admin endpoint to view all vehicles belonging to a specific customer.
+     */
+    @GetMapping("/customer/{customerId}")
+    public ResponseEntity<List<VehicleResponse>> getVehiclesByCustomer(@PathVariable Long customerId) {
+        return ResponseEntity.ok(vehicleService.getVehiclesByCustomerId(customerId));
+    }
+
+    /**
      * POST /api/v1/vehicles
      * Registers a new vehicle for the authenticated user.
      */
+    
     @PostMapping
     public ResponseEntity<VehicleResponse> createVehicle(@Valid @RequestBody VehicleRequest request) {
         return new ResponseEntity<>(vehicleService.createVehicle(request), HttpStatus.CREATED);

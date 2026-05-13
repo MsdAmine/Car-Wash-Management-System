@@ -28,6 +28,19 @@ public class VehicleService {
      * Helper method to validate that the current user owns the vehicle.
      * Centralizes ownership validation logic to prevent code duplication.
      */
+
+    @Transactional(readOnly = true)
+    public List<VehicleResponse> getVehiclesByCustomerId(Long customerId) {
+        // Verify the customer exists
+        if (!userRepository.existsById(customerId)) {
+            throw new RuntimeException("Customer not found with ID: " + customerId);
+        }
+
+        return vehicleRepository.findByOwnerId(customerId).stream()
+                .map(vehicleMapper::toResponse)
+                .collect(Collectors.toList());
+    }
+
     private Vehicle validateOwnership(UUID vehicleId) {
         String currentUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         User currentUser = userRepository.findByEmail(currentUserEmail)
@@ -84,8 +97,8 @@ public class VehicleService {
         Vehicle vehicle = validateOwnership(vehicleId);
 
         if (!vehicle.getLicensePlate().equalsIgnoreCase(request.getLicensePlate()) &&
-            vehicleRepository.existsByLicensePlate(request.getLicensePlate())) {
-                throw new RuntimeException("Vehicle with this license plate already exists");
+                vehicleRepository.existsByLicensePlate(request.getLicensePlate())) {
+            throw new RuntimeException("Vehicle with this license plate already exists");
         }
 
         vehicle.setBrand(request.getBrand());
