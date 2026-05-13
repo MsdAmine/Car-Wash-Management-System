@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import vehicleService from '../services/vehicleService';
 import type { VehicleRequest, VehicleResponse, VehicleType } from '../types/vehicle';
 
@@ -12,6 +13,7 @@ const emptyForm = (): VehicleRequest => ({
 });
 
 const MyVehicles: React.FC = () => {
+    const navigate = useNavigate();
     const [vehicles, setVehicles] = useState<VehicleResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -40,13 +42,6 @@ const MyVehicles: React.FC = () => {
     useEffect(() => {
         fetchVehicles();
     }, []);
-
-    const openAdd = () => {
-        setEditingId(null);
-        setForm(emptyForm());
-        setFormError(null);
-        setShowModal(true);
-    };
 
     const openEdit = (v: VehicleResponse) => {
         setEditingId(v.id);
@@ -103,7 +98,7 @@ const MyVehicles: React.FC = () => {
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-gray-800">My Vehicles</h1>
                 <button
-                    onClick={openAdd}
+                    onClick={() => navigate('/add-vehicle')}
                     className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition text-sm font-medium"
                 >
                     + Add Vehicle

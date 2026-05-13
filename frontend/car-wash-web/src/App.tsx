@@ -6,6 +6,7 @@ import Register from './pages/Register';
 import ProtectedRoute from './components/ProtectedRoute';
 import RoleGuard from './components/RoleGuard';
 import MyVehicles from './pages/MyVehicles';
+import AddVehicle from './pages/AddVehicle';
 
 function App() {
     const { user, logout } = useAuth();
@@ -72,6 +73,7 @@ function App() {
                         </div>
                     } />
                     <Route path="/my-vehicles" element={<MyVehicles />} />
+                    <Route path="/add-vehicle" element={<AddVehicle />} />
                 </Route>
 
                 {/* STAFF & ADMIN */}
