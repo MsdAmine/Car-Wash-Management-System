@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import vehicleService from '../services/vehicleService';
 import type { VehicleResponse } from '../types/vehicle';
+import VehicleTable from '../components/VehicleTable';
 
 const MyVehicles: React.FC = () => {
     const navigate = useNavigate();
@@ -68,34 +69,12 @@ const MyVehicles: React.FC = () => {
                     <p className="text-sm mt-1">Click <strong>+ Add Vehicle</strong> to get started.</p>
                 </div>
             ) : (
-                <div className="grid gap-4">
-                    {vehicles.map(v => (
-                        <div key={v.id} className="bg-white border border-gray-200 rounded-lg shadow-sm p-5 flex justify-between items-center">
-                            <div>
-                                <p className="text-lg font-semibold text-gray-800">{v.brand} {v.model}</p>
-                                <p className="text-sm text-gray-500 mt-1">
-                                    <span className="mr-3">Plate: <strong>{v.licensePlate}</strong></span>
-                                    <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium">{v.type}</span>
-                                </p>
-                            </div>
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => navigate(`/vehicles/${v.id}/edit`)}
-                                    className="px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition"
-                                >
-                                    Edit
-                                </button>
-                                <button
-                                    onClick={() => handleDelete(v.id)}
-                                    disabled={deletingId === v.id}
-                                    className="px-3 py-1.5 text-sm bg-red-500 text-white rounded-md hover:bg-red-600 transition disabled:opacity-50"
-                                >
-                                    {deletingId === v.id ? 'Deleting...' : 'Delete'}
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
+                <VehicleTable
+                    vehicles={vehicles}
+                    onEdit={id => navigate(`/vehicles/${id}/edit`)}
+                    onDelete={handleDelete}
+                    deletingId={deletingId}
+                />
             )}
         </div>
     );
