@@ -20,6 +20,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -49,13 +50,22 @@ public class BookingService {
 
         validateAppointmentDateTime(request.getAppointmentDateTime());
 
-        validateNoConflictingBooking(vehicle, request.getAppointmentDateTime());
+        // #220 — calculate end time from service duration
+        LocalDateTime endDateTime = request.getAppointmentDateTime()
+                .plusMinutes(washService.getDurationMinutes());
+
+        validateNoConflictingBooking(vehicle, request.getAppointmentDateTime(), endDateTime);
+
+        // #221 — snapshot the service price as the booking total
+        BigDecimal totalPrice = washService.getPrice();
 
         Booking booking = Booking.builder()
                 .customer(customer)
                 .vehicle(vehicle)
                 .washService(washService)
                 .appointmentDateTime(request.getAppointmentDateTime())
+                .endDateTime(endDateTime)
+                .totalPrice(totalPrice)
                 .notes(request.getNotes())
                 .build();
 
@@ -90,15 +100,17 @@ public class BookingService {
         }
     }
 
-    private void validateNoConflictingBooking(Vehicle vehicle, LocalDateTime appointmentDateTime) {
-        boolean conflict = bookingRepository.existsByVehicleIdAndAppointmentDateTimeAndStatusIn(
+    // #220 — detect time-range overlaps instead of exact-time matches
+    private void validateNoConflictingBooking(Vehicle vehicle, LocalDateTime appointmentDateTime, LocalDateTime endDateTime) {
+        boolean conflict = bookingRepository.existsOverlappingBooking(
                 vehicle.getId(),
                 appointmentDateTime,
+                endDateTime,
                 List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED)
         );
         if (conflict) {
             throw new InvalidBookingException(
-                    "This vehicle already has a booking at the requested date and time");
+                    "This vehicle already has a booking that overlaps the requested time slot");
         }
     }
 

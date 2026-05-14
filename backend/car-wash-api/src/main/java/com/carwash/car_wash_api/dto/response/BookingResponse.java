@@ -29,8 +29,11 @@ public class BookingResponse {
     private BigDecimal washServicePrice;
     private Integer durationMinutes;
 
+    private BigDecimal totalPrice;
+
     private BookingStatus status;
     private LocalDateTime appointmentDateTime;
+    private LocalDateTime endDateTime;
     private String notes;
 
     private LocalDateTime createdAt;
