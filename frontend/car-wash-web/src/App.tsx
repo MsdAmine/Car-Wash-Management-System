@@ -17,6 +17,8 @@ import MyBookings from './pages/MyBookings';
 import BookingDetails from './pages/BookingDetails';
 import AdminBookings from './pages/AdminBookings';
 import EmployeeBookings from './pages/EmployeeBookings';
+import AdminPayments from './pages/AdminPayments';
+import MyPayments from './pages/MyPayments';
 
 function App() {
     const { user, logout } = useAuth();
@@ -74,6 +76,12 @@ function App() {
                                             My Bookings
                                         </Link>
                                         <Link
+                                            to="/my-payments"
+                                            className="inline-block bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition text-sm font-medium"
+                                        >
+                                            My Payments
+                                        </Link>
+                                        <Link
                                             to="/book-appointment"
                                             className="inline-block bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition text-sm font-medium"
                                         >
@@ -94,6 +102,12 @@ function App() {
                                             className="inline-block bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition text-sm font-medium"
                                         >
                                             Manage Bookings
+                                        </Link>
+                                        <Link
+                                            to="/admin/payments"
+                                            className="inline-block bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition text-sm font-medium"
+                                        >
+                                            Manage Payments
                                         </Link>
                                     </>
                                 )}
@@ -143,6 +157,16 @@ function App() {
                 {/* ADMIN ONLY — bookings management */}
                 <Route element={<RoleGuard allowedRoles={['ADMIN']} />}>
                     <Route path="/admin/bookings" element={<AdminBookings />} />
+                </Route>
+
+                {/* ADMIN ONLY — payments management */}
+                <Route element={<RoleGuard allowedRoles={['ADMIN']} />}>
+                    <Route path="/admin/payments" element={<AdminPayments />} />
+                </Route>
+
+                {/* CUSTOMER ONLY — payment history */}
+                <Route element={<RoleGuard allowedRoles={['CUSTOMER']} />}>
+                    <Route path="/my-payments" element={<MyPayments />} />
                 </Route>
 
                 {/* STAFF & ADMIN */}
