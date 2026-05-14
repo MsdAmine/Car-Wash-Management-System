@@ -1,12 +1,12 @@
-import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import authService from '../services/authService';
-import type { User, RegisterRequest } from '../types/auth';
+import type { User, RegisterRequest, LoginRequest } from '../types/auth';
 
 interface AuthContextType {
     user: User | null;
     loading: boolean;
-    login: (credentials: any) => Promise<User>; // Returns User now
-    register: (data: RegisterRequest) => Promise<User>; // Returns User now
+    login: (credentials: LoginRequest) => Promise<User>;
+    register: (data: RegisterRequest) => Promise<User>;
     logout: () => void;
     refreshProfile: () => Promise<void>;
 }
@@ -17,71 +17,49 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
 
-    const refreshProfile = async () => {
+    const refreshProfile = useCallback(async () => {
         const token = authService.getToken();
-        if (token) {
-            try {
-                const profile = await authService.getProfile();
-                setUser(profile);
-            } catch (error) {
-                console.error('Failed to fetch profile:', error);
-                authService.logout();
-                setUser(null);
-            }
-        } else {
+        if (!token) {
             setUser(null);
+            setLoading(false);
+            return;
         }
-        setLoading(false);
-    };
+
+        try {
+            const profile = await authService.getProfile();
+            setUser(profile);
+        } catch {
+            // Token is invalid or expired — clear it silently.
+            authService.clearSession();
+            setUser(null);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
 
     useEffect(() => {
         refreshProfile();
-    }, []);
+    }, [refreshProfile]);
 
-    const login = async (credentials: any): Promise<User> => {
-        try {
-            const userData = await authService.login(credentials);
-            const authenticatedUser = {
-                email: userData.email,
-                role: userData.role,
-                firstName: userData.firstName,
-                lastName: userData.lastName
-            } as User;
-
-            setUser(authenticatedUser);
-            return authenticatedUser;
-        } catch (error) {
-            setLoading(false);
-            throw error;
-        }
+    const login = async (credentials: LoginRequest): Promise<User> => {
+        await authService.login(credentials);
+        // Fetch the full profile so we always have the complete User (including id).
+        const profile = await authService.getProfile();
+        setUser(profile);
+        return profile;
     };
 
     const register = async (data: RegisterRequest): Promise<User> => {
-        try {
-            const userData = await authService.register(data);
-            const authenticatedUser = {
-                email: userData.email,
-                role: userData.role,
-                firstName: userData.firstName,
-                lastName: userData.lastName
-            } as User;
-
-            setUser(authenticatedUser);
-            return authenticatedUser;
-        } catch (error) {
-            setLoading(false);
-            throw error;
-        }
+        await authService.register(data);
+        const profile = await authService.getProfile();
+        setUser(profile);
+        return profile;
     };
 
     const logout = () => {
-        // 1. Clear the localStorage token
-        authService.logout();
-
-        // 2. Clear React state (optional but good practice)
+        authService.clearSession();
         setUser(null);
-
-        // 3. Hard reset to clear memory and redirect
+        // Single, authoritative redirect to login.
         window.location.href = '/login';
     };
 

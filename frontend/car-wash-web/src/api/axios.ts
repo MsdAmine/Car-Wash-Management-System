@@ -1,7 +1,9 @@
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api/v1',
+    baseURL: API_BASE_URL,
+    timeout: 30_000,
     headers: {
         'Content-Type': 'application/json',
     },
@@ -15,26 +17,29 @@ api.interceptors.request.use(
         }
         return config;
     },
-    (error) => {
-        return Promise.reject(error);
-    }
+    (error) => Promise.reject(error)
 );
+
+// Prevent multiple concurrent 401s from triggering duplicate redirects.
+let isRedirectingToLogin = false;
 
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        // 1. Handle Network Errors (Server down, no internet)
         if (!error.response) {
-            console.error('Network error or server is unreachable');
+            console.error('[API] Network error or server unreachable');
             return Promise.reject(error);
         }
 
-        // 2. Handle 401 Unauthorized (Expired/Invalid JWT)
-        if (error.response.status === 401) {
-            localStorage.removeItem('token');
-            // Avoid redirecting if already on Login/Register to prevent loops
-            const publicPages = ['/login', '/register'];
-            if (!publicPages.some(page => window.location.pathname.includes(page))) {
+        if (error.response.status === 401 && !isRedirectingToLogin) {
+            const publicPaths = ['/login', '/register'];
+            const isPublicPath = publicPaths.some((p) =>
+                window.location.pathname.startsWith(p)
+            );
+
+            if (!isPublicPath) {
+                isRedirectingToLogin = true;
+                localStorage.removeItem('token');
                 window.location.href = '/login';
             }
         }
