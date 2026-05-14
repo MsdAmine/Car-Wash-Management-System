@@ -1,13 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import bookingService from '../services/bookingService';
 import type { BookingResponse, BookingStatus } from '../types/booking';
-
-const statusColors: Record<string, string> = {
-    PENDING: 'bg-yellow-100 text-yellow-800',
-    CONFIRMED: 'bg-blue-100 text-blue-800',
-    COMPLETED: 'bg-green-100 text-green-800',
-    CANCELLED: 'bg-gray-100 text-gray-500',
-};
+import BookingStatusBadge from '../components/BookingStatusBadge';
+import { BookingEmployeeSkeleton } from '../components/BookingSkeletons';
 
 const UPDATABLE_STATUSES: BookingStatus[] = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'];
 
@@ -92,10 +87,7 @@ const EmployeeBookings: React.FC = () => {
             )}
 
             {loading ? (
-                <div className="flex items-center justify-center py-16">
-                    <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500" />
-                    <p className="ml-3 text-gray-500">Loading schedule...</p>
-                </div>
+                <BookingEmployeeSkeleton rows={4} />
             ) : bookings.length === 0 ? (
                 <div className="text-center py-16 text-gray-500">
                     <p className="text-lg">No bookings scheduled for today.</p>
@@ -121,9 +113,7 @@ const EmployeeBookings: React.FC = () => {
                                 </div>
                             </div>
                             <div className="flex items-center gap-3">
-                                <span className={`px-2 py-1 rounded text-xs font-medium ${statusColors[booking.status] ?? ''}`}>
-                                    {booking.status}
-                                </span>
+                                <BookingStatusBadge status={booking.status} />
                                 <select
                                     value={booking.status}
                                     disabled={updatingId === booking.id || booking.status === 'CANCELLED'}

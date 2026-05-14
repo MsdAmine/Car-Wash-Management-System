@@ -3,13 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import bookingService from '../services/bookingService';
 import type { BookingResponse } from '../types/booking';
 import ConfirmDialog from '../components/ConfirmDialog';
-
-const statusColors: Record<string, string> = {
-    PENDING: 'bg-yellow-100 text-yellow-800',
-    CONFIRMED: 'bg-blue-100 text-blue-800',
-    COMPLETED: 'bg-green-100 text-green-800',
-    CANCELLED: 'bg-gray-100 text-gray-500',
-};
+import BookingStatusBadge from '../components/BookingStatusBadge';
 
 const formatDateTime = (dt: string) =>
     new Date(dt).toLocaleString(undefined, { dateStyle: 'long', timeStyle: 'short' });
@@ -91,9 +85,7 @@ const BookingDetails: React.FC = () => {
                 <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 space-y-4">
                     <div className="flex justify-between items-start">
                         <h2 className="text-lg font-semibold text-gray-800">{booking.washServiceName}</h2>
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${statusColors[booking.status] ?? ''}`}>
-                            {booking.status}
-                        </span>
+                        <BookingStatusBadge status={booking.status} />
                     </div>
 
                     <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
