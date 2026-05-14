@@ -19,4 +19,7 @@ public interface VehicleRepository extends JpaRepository<Vehicle, UUID> {
 
     // Check if a license plate already exists before saving
     boolean existsByLicensePlate(String licensePlate);
+
+    // #331 — count registered vehicles for a customer
+    long countByOwnerId(Long ownerId);
 }

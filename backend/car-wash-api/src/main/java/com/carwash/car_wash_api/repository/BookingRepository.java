@@ -2,6 +2,7 @@ package com.carwash.car_wash_api.repository;
 
 import com.carwash.car_wash_api.model.entity.Booking;
 import com.carwash.car_wash_api.model.enums.BookingStatus;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -44,4 +45,28 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
             @Param("endDateTime") LocalDateTime endDateTime,
             @Param("statuses") Collection<BookingStatus> statuses
     );
+
+    // #322 — total bookings by status
+    long countByStatus(BookingStatus status);
+
+    // #323 — today's booking count
+    @Query("SELECT COUNT(b) FROM Booking b WHERE b.appointmentDateTime >= :startOfDay AND b.appointmentDateTime < :endOfDay")
+    long countTodaysBookings(
+            @Param("startOfDay") LocalDateTime startOfDay,
+            @Param("endOfDay") LocalDateTime endOfDay
+    );
+
+    // #329 — customer upcoming bookings (PENDING or CONFIRMED, appointment in the future)
+    long countByCustomerIdAndStatusInAndAppointmentDateTimeAfter(
+            Long customerId,
+            Collection<BookingStatus> statuses,
+            LocalDateTime after
+    );
+
+    // #330 — customer previous completed bookings
+    long countByCustomerIdAndStatus(Long customerId, BookingStatus status);
+
+    // #328 — most requested services: returns [serviceName, count] pairs ordered by count desc
+    @Query("SELECT b.washService.name, COUNT(b) FROM Booking b GROUP BY b.washService.name ORDER BY COUNT(b) DESC")
+    List<Object[]> findTopRequestedServices(Pageable pageable);
 }
