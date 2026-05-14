@@ -11,6 +11,7 @@ import com.carwash.car_wash_api.model.entity.User;
 import com.carwash.car_wash_api.repository.EmployeeRepository;
 import com.carwash.car_wash_api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -71,6 +72,16 @@ public class EmployeeService {
     @Transactional(readOnly = true)
     public EmployeeResponse getEmployeeById(UUID id) {
         return employeeMapper.toResponse(findEmployeeOrThrow(id));
+    }
+
+    @Transactional(readOnly = true)
+    public EmployeeResponse getMyEmployeeProfile() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Authenticated user not found"));
+        Employee employee = employeeRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("No employee profile found for the current user"));
+        return employeeMapper.toResponse(employee);
     }
 
     private Employee findEmployeeOrThrow(UUID id) {

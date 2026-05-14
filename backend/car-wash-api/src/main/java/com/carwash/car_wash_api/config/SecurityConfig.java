@@ -80,6 +80,16 @@ public class SecurityConfig {
                                                 // All other payment operations require authentication (service enforces ownership)
                                                 .requestMatchers("/api/v1/payments/**").authenticated()
 
+                                                // Employee management: admin manages all employees; employees can only read their own profile and assignments
+                                                .requestMatchers(HttpMethod.GET, "/api/v1/employees/me").hasAnyRole("ADMIN", "EMPLOYEE")
+                                                .requestMatchers(HttpMethod.GET, "/api/v1/employees/me/bookings/today").hasAnyRole("ADMIN", "EMPLOYEE")
+                                                .requestMatchers(HttpMethod.GET, "/api/v1/employees/*/bookings").hasAnyRole("ADMIN", "EMPLOYEE")
+                                                .requestMatchers("/api/v1/employees/**").hasRole("ADMIN")
+
+                                                // Booking assignment endpoints
+                                                .requestMatchers("/api/v1/bookings/*/assign**").hasRole("ADMIN")
+                                                .requestMatchers("/api/v1/bookings/*/assignments").hasAnyRole("ADMIN", "EMPLOYEE")
+
                                                 // Wash service management: write operations are admin-only, reads are public
                                                 .requestMatchers(HttpMethod.GET, "/api/v1/services/**").permitAll()
                                                 .requestMatchers("/api/v1/services/**").hasRole("ADMIN")
