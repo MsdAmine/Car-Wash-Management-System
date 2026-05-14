@@ -61,7 +61,9 @@ const AdminDashboard: React.FC = () => {
                         <StatsCard label="Pending" value={stats.pendingBookings} colorClass="text-yellow-600" />
                         <StatsCard label="Completed" value={stats.completedBookings} colorClass="text-green-600" />
                     </div>
-                ) : null}
+                ) : (
+                    <p className="text-gray-500 text-sm italic">No booking data available.</p>
+                )}
             </section>
 
             {/* Revenue */}
@@ -71,7 +73,9 @@ const AdminDashboard: React.FC = () => {
                     <div className="h-20 bg-gray-100 rounded-lg animate-pulse" />
                 ) : stats ? (
                     <RevenueSummary dailyRevenue={stats.dailyRevenue} monthlyRevenue={stats.monthlyRevenue} />
-                ) : null}
+                ) : (
+                    <p className="text-gray-500 text-sm italic">No revenue data available.</p>
+                )}
             </section>
 
             {/* Service popularity */}
@@ -85,7 +89,9 @@ const AdminDashboard: React.FC = () => {
                     </div>
                 ) : stats ? (
                     <ServicePopularity services={stats.mostRequestedServices} />
-                ) : null}
+                ) : (
+                    <p className="text-gray-500 text-sm italic">No service data available.</p>
+                )}
             </section>
 
             {/* Recent bookings */}

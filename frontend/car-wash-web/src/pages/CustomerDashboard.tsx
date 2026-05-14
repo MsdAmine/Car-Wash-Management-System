@@ -58,7 +58,9 @@ const CustomerDashboard: React.FC = () => {
                         <StatsCard label="Past Bookings" value={stats.previousBookings} colorClass="text-gray-600" />
                         <StatsCard label="Registered Vehicles" value={stats.registeredVehicles} colorClass="text-green-600" />
                     </div>
-                ) : null}
+                ) : (
+                    <p className="text-gray-500 text-sm italic">No dashboard data available.</p>
+                )}
             </section>
 
             {/* Recent bookings */}
