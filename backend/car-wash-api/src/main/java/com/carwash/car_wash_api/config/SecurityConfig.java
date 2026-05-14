@@ -61,6 +61,15 @@ public class SecurityConfig {
                                                 // Vehicle management for both roles
                                                 .requestMatchers("/api/v1/vehicles/**").hasAnyRole("CUSTOMER", "ADMIN")
 
+                                                // Booking management
+                                                // Admin / employee only: all bookings list and today's bookings
+                                                .requestMatchers(HttpMethod.GET, "/api/v1/bookings/today").hasAnyRole("ADMIN", "EMPLOYEE")
+                                                .requestMatchers(HttpMethod.GET, "/api/v1/bookings").hasRole("ADMIN")
+                                                // Admin / employee only: status updates
+                                                .requestMatchers(HttpMethod.PATCH, "/api/v1/bookings/*/status").hasAnyRole("ADMIN", "EMPLOYEE")
+                                                // All other booking operations require authentication (service enforces ownership)
+                                                .requestMatchers("/api/v1/bookings/**").authenticated()
+
                                                 // Wash service management: write operations are admin-only, reads are public
                                                 .requestMatchers(HttpMethod.GET, "/api/v1/services/**").permitAll()
                                                 .requestMatchers("/api/v1/services/**").hasRole("ADMIN")

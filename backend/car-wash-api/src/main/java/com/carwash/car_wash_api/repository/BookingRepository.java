@@ -17,6 +17,12 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
 
     List<Booking> findByCustomerId(Long customerId);
 
+    @Query("SELECT b FROM Booking b WHERE b.appointmentDateTime >= :startOfDay AND b.appointmentDateTime < :endOfDay ORDER BY b.appointmentDateTime ASC")
+    List<Booking> findTodaysBookings(
+            @Param("startOfDay") LocalDateTime startOfDay,
+            @Param("endOfDay") LocalDateTime endOfDay
+    );
+
     List<Booking> findByVehicleId(UUID vehicleId);
 
     List<Booking> findByCustomerIdAndStatus(Long customerId, BookingStatus status);

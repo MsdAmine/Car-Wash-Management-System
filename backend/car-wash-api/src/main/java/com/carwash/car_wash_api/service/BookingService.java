@@ -1,6 +1,7 @@
 package com.carwash.car_wash_api.service;
 
 import com.carwash.car_wash_api.dto.request.BookingRequest;
+import com.carwash.car_wash_api.dto.request.UpdateBookingStatusRequest;
 import com.carwash.car_wash_api.dto.response.BookingResponse;
 import com.carwash.car_wash_api.exception.AccessDeniedException;
 import com.carwash.car_wash_api.exception.InvalidBookingException;
@@ -11,6 +12,7 @@ import com.carwash.car_wash_api.model.entity.User;
 import com.carwash.car_wash_api.model.entity.Vehicle;
 import com.carwash.car_wash_api.model.entity.WashService;
 import com.carwash.car_wash_api.model.enums.BookingStatus;
+import com.carwash.car_wash_api.model.enums.Role;
 import com.carwash.car_wash_api.repository.BookingRepository;
 import com.carwash.car_wash_api.repository.UserRepository;
 import com.carwash.car_wash_api.repository.VehicleRepository;
@@ -21,8 +23,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -72,6 +76,72 @@ public class BookingService {
         return bookingMapper.toResponse(bookingRepository.save(booking));
     }
 
+    // #223 — return all bookings for the authenticated customer
+    @Transactional(readOnly = true)
+    public List<BookingResponse> getMyBookings() {
+        User customer = resolveCurrentUser();
+        return bookingRepository.findByCustomerId(customer.getId())
+                .stream()
+                .map(bookingMapper::toResponse)
+                .toList();
+    }
+
+    // #224 — return a single booking; customers can only access their own
+    @Transactional(readOnly = true)
+    public BookingResponse getBookingById(UUID id) {
+        Booking booking = findBookingOrThrow(id);
+        User currentUser = resolveCurrentUser();
+        if (!isAdmin(currentUser) && !booking.getCustomer().getId().equals(currentUser.getId())) {
+            throw new AccessDeniedException("You do not have permission to view this booking");
+        }
+        return bookingMapper.toResponse(booking);
+    }
+
+    // #225 — return all bookings whose appointment falls on today (admin / employee)
+    @Transactional(readOnly = true)
+    public List<BookingResponse> getTodaysBookings() {
+        LocalDate today = LocalDate.now();
+        LocalDateTime startOfDay = today.atStartOfDay();
+        LocalDateTime endOfDay = today.plusDays(1).atStartOfDay();
+        return bookingRepository.findTodaysBookings(startOfDay, endOfDay)
+                .stream()
+                .map(bookingMapper::toResponse)
+                .toList();
+    }
+
+    // #226 — return every booking in the system (admin only)
+    @Transactional(readOnly = true)
+    public List<BookingResponse> getAllBookings() {
+        return bookingRepository.findAll()
+                .stream()
+                .map(bookingMapper::toResponse)
+                .toList();
+    }
+
+    // #227 — update booking status (admin / employee)
+    @Transactional
+    public BookingResponse updateBookingStatus(UUID id, UpdateBookingStatusRequest request) {
+        Booking booking = findBookingOrThrow(id);
+        booking.setStatus(request.getStatus());
+        return bookingMapper.toResponse(bookingRepository.save(booking));
+    }
+
+    // #228 — allow a customer to cancel their own PENDING booking
+    @Transactional
+    public BookingResponse cancelBooking(UUID id) {
+        Booking booking = findBookingOrThrow(id);
+        User currentUser = resolveCurrentUser();
+        if (!booking.getCustomer().getId().equals(currentUser.getId())) {
+            throw new AccessDeniedException("You do not have permission to cancel this booking");
+        }
+        if (booking.getStatus() != BookingStatus.PENDING) {
+            throw new InvalidBookingException(
+                    "Only PENDING bookings can be cancelled; current status is " + booking.getStatus());
+        }
+        booking.setStatus(BookingStatus.CANCELLED);
+        return bookingMapper.toResponse(bookingRepository.save(booking));
+    }
+
     // #217 — validate the vehicle belongs to the authenticated customer
     private void validateVehicleOwnership(Vehicle vehicle, User customer) {
         if (!vehicle.getOwner().getId().equals(customer.getId())) {
@@ -118,5 +188,14 @@ public class BookingService {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Authenticated user not found"));
+    }
+
+    private Booking findBookingOrThrow(UUID id) {
+        return bookingRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found with ID: " + id));
+    }
+
+    private boolean isAdmin(User user) {
+        return user.getRole() == Role.ADMIN;
     }
 }
