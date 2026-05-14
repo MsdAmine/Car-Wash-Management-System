@@ -8,6 +8,10 @@ import RoleGuard from './components/RoleGuard';
 import MyVehicles from './pages/MyVehicles';
 import AddVehicle from './pages/AddVehicle';
 import EditVehicle from './pages/EditVehicle';
+import Services from './pages/Services';
+import AdminServices from './pages/AdminServices';
+import AddWashService from './pages/AddWashService';
+import EditWashService from './pages/EditWashService';
 
 function App() {
     const { user, logout } = useAuth();
@@ -17,6 +21,7 @@ function App() {
             {/* --- PUBLIC ROUTES --- */}
             <Route path="/login" element={!user ? <Login /> : <Navigate to="/" replace />} />
             <Route path="/register" element={!user ? <Register /> : <Navigate to="/" replace />} />
+            <Route path="/services" element={<Services />} />
 
             {/* --- PROTECTED ROUTES (Layer 1: Must be logged in) --- */}
             <Route element={<ProtectedRoute />}>
@@ -40,17 +45,33 @@ function App() {
                             <p>Role: <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm">{user?.role}</span></p>
                         </div>
 
-                        {user?.role === 'CUSTOMER' && (
-                            <div className="p-6 border rounded-lg bg-white shadow-sm">
-                                <h2 className="text-xl font-semibold mb-3">Quick Links</h2>
+                        <div className="p-6 border rounded-lg bg-white shadow-sm">
+                            <h2 className="text-xl font-semibold mb-3">Quick Links</h2>
+                            <div className="flex flex-wrap gap-2">
                                 <Link
-                                    to="/my-vehicles"
+                                    to="/services"
                                     className="inline-block bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition text-sm font-medium"
                                 >
-                                    My Vehicles
+                                    Our Services
                                 </Link>
+                                {user?.role === 'CUSTOMER' && (
+                                    <Link
+                                        to="/my-vehicles"
+                                        className="inline-block bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition text-sm font-medium"
+                                    >
+                                        My Vehicles
+                                    </Link>
+                                )}
+                                {user?.role === 'ADMIN' && (
+                                    <Link
+                                        to="/admin/services"
+                                        className="inline-block bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition text-sm font-medium"
+                                    >
+                                        Manage Services
+                                    </Link>
+                                )}
                             </div>
-                        )}
+                        </div>
                     </div>
                 } />
 
@@ -64,6 +85,9 @@ function App() {
                             <h1 className="text-green-700 font-bold">ACCESS GRANTED: You are an ADMIN</h1>
                         </div>
                     } />
+                    <Route path="/admin/services" element={<AdminServices />} />
+                    <Route path="/admin/services/add" element={<AddWashService />} />
+                    <Route path="/admin/services/:id/edit" element={<EditWashService />} />
                 </Route>
 
                 {/* CUSTOMER ONLY */}
