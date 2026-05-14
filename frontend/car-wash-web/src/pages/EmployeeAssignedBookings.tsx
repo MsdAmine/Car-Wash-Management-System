@@ -10,7 +10,6 @@ const EmployeeAssignedBookings: React.FC = () => {
     const [assignments, setAssignments] = useState<BookingAssignmentResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [employeeId, setEmployeeId] = useState<string | null>(null);
 
     const fetchAssignments = async () => {
         setLoading(true);
@@ -18,7 +17,6 @@ const EmployeeAssignedBookings: React.FC = () => {
         try {
             // First get own profile to know our employee ID, then fetch all assignments
             const profile = await employeeService.getMe();
-            setEmployeeId(profile.id);
             const data = await employeeService.getAssignedBookings(profile.id);
             // Sort newest first by assignedAt
             const sorted = [...data].sort(
