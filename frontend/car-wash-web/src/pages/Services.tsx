@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import washServiceService from '../services/washServiceService';
 import type { WashServiceResponse } from '../types/washService';
+import { ServiceCardSkeleton } from '../components/WashServiceSkeletons';
 
 const Services: React.FC = () => {
     const [services, setServices] = useState<WashServiceResponse[]>([]);
@@ -44,9 +45,10 @@ const Services: React.FC = () => {
             )}
 
             {loading ? (
-                <div className="flex items-center justify-center py-20">
-                    <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500" />
-                    <p className="ml-3 text-gray-500">Loading services...</p>
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                        <ServiceCardSkeleton key={i} />
+                    ))}
                 </div>
             ) : services.length === 0 ? (
                 <div className="text-center py-20 text-gray-500">

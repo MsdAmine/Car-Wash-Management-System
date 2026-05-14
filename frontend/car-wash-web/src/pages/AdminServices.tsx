@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import washServiceService from '../services/washServiceService';
 import type { WashServiceResponse } from '../types/washService';
 import WashServiceTable from '../components/WashServiceTable';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { ServiceTableSkeleton } from '../components/WashServiceSkeletons';
 
 const AdminServices: React.FC = () => {
     const navigate = useNavigate();
@@ -12,6 +14,7 @@ const AdminServices: React.FC = () => {
     const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [actionError, setActionError] = useState<string | null>(null);
+    const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
     const fetchServices = async () => {
         setLoading(true);
@@ -50,7 +53,14 @@ const AdminServices: React.FC = () => {
         }
     };
 
-    const handleDelete = async (id: string) => {
+    const handleDeleteRequest = (id: string) => {
+        setPendingDeleteId(id);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!pendingDeleteId) return;
+        const id = pendingDeleteId;
+        setPendingDeleteId(null);
         setDeletingId(id);
         setActionError(null);
         try {
@@ -102,10 +112,7 @@ const AdminServices: React.FC = () => {
             )}
 
             {loading ? (
-                <div className="flex items-center justify-center py-16">
-                    <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500" />
-                    <p className="ml-3 text-gray-500">Loading services...</p>
-                </div>
+                <ServiceTableSkeleton rows={5} />
             ) : services.length === 0 ? (
                 <div className="text-center py-16 text-gray-500">
                     <p className="text-lg">No wash services found.</p>
@@ -116,12 +123,22 @@ const AdminServices: React.FC = () => {
                     services={services}
                     onEdit={id => navigate(`/admin/services/${id}/edit`)}
                     onDeactivate={handleDeactivate}
-                    onDelete={handleDelete}
+                    onDelete={handleDeleteRequest}
                     deactivatingId={deactivatingId}
                     deletingId={deletingId}
                     canManage
                 />
             )}
+
+            <ConfirmDialog
+                open={pendingDeleteId !== null}
+                title="Delete Wash Service"
+                message="Are you sure you want to permanently delete this service? This action cannot be undone."
+                confirmLabel="Delete"
+                cancelLabel="Cancel"
+                onConfirm={handleDeleteConfirm}
+                onCancel={() => setPendingDeleteId(null)}
+            />
         </div>
     );
 };
