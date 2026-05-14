@@ -12,8 +12,10 @@ const EmployeeDashboard: React.FC = () => {
     const [workload, setWorkload] = useState<EmployeeDashboardResponse | null>(null);
     const [loadingProfile, setLoadingProfile] = useState(true);
     const [loadingAssignments, setLoadingAssignments] = useState(true);
+    const [loadingWorkload, setLoadingWorkload] = useState(true);
     const [profileError, setProfileError] = useState<string | null>(null);
     const [assignmentsError, setAssignmentsError] = useState<string | null>(null);
+    const [workloadError, setWorkloadError] = useState<string | null>(null);
 
     useEffect(() => {
         employeeService.getMe()
@@ -32,7 +34,8 @@ const EmployeeDashboard: React.FC = () => {
 
         dashboardService.getEmployeeDashboard()
             .then(setWorkload)
-            .catch(() => {/* non-critical */});
+            .catch(() => setWorkloadError('Failed to load workload data.'))
+            .finally(() => setLoadingWorkload(false));
     }, []);
 
     const today = new Date().toLocaleDateString(undefined, {
@@ -45,15 +48,25 @@ const EmployeeDashboard: React.FC = () => {
             <p className="text-sm text-gray-500 -mt-4">{today}</p>
 
             {/* Workload summary */}
-            {workload && (
-                <section>
-                    <h2 className="text-base font-semibold text-gray-700 mb-3">My Workload</h2>
+            <section>
+                <h2 className="text-base font-semibold text-gray-700 mb-3">My Workload</h2>
+                {loadingWorkload ? (
+                    <div className="grid grid-cols-2 gap-4">
+                        {[...Array(2)].map((_, i) => (
+                            <div key={i} className="h-20 bg-gray-100 rounded-lg animate-pulse" />
+                        ))}
+                    </div>
+                ) : workloadError ? (
+                    <p className="text-red-600 text-sm">{workloadError}</p>
+                ) : workload ? (
                     <EmployeeWorkloadSummary
                         assignedBookings={workload.assignedBookings}
                         bookingsInProgress={workload.bookingsInProgress}
                     />
-                </section>
-            )}
+                ) : (
+                    <p className="text-gray-500 text-sm italic">No workload data available.</p>
+                )}
+            </section>
 
             {/* Profile card */}
             <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
