@@ -17,6 +17,12 @@ import MyBookings from './pages/MyBookings';
 import BookingDetails from './pages/BookingDetails';
 import AdminBookings from './pages/AdminBookings';
 import EmployeeBookings from './pages/EmployeeBookings';
+import AdminEmployees from './pages/AdminEmployees';
+import AddEmployee from './pages/AddEmployee';
+import EditEmployee from './pages/EditEmployee';
+import EmployeeDashboard from './pages/EmployeeDashboard';
+import EmployeeAssignedBookings from './pages/EmployeeAssignedBookings';
+import EmployeeBookingWork from './pages/EmployeeBookingWork';
 
 function App() {
     const { user, logout } = useAuth();
@@ -95,15 +101,29 @@ function App() {
                                         >
                                             Manage Bookings
                                         </Link>
+                                        <Link
+                                            to="/admin/employees"
+                                            className="inline-block bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition text-sm font-medium"
+                                        >
+                                            Manage Employees
+                                        </Link>
                                     </>
                                 )}
                                 {(user?.role === 'STAFF' || user?.role === 'ADMIN') && (
-                                    <Link
-                                        to="/employee/daily-bookings"
-                                        className="inline-block bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition text-sm font-medium"
-                                    >
-                                        Daily Schedule
-                                    </Link>
+                                    <>
+                                        <Link
+                                            to="/employee/dashboard"
+                                            className="inline-block bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition text-sm font-medium"
+                                        >
+                                            Employee Dashboard
+                                        </Link>
+                                        <Link
+                                            to="/employee/daily-bookings"
+                                            className="inline-block bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition text-sm font-medium"
+                                        >
+                                            Daily Schedule
+                                        </Link>
+                                    </>
                                 )}
                             </div>
                         </div>
@@ -123,6 +143,9 @@ function App() {
                     <Route path="/admin/services" element={<AdminServices />} />
                     <Route path="/admin/services/add" element={<AddWashService />} />
                     <Route path="/admin/services/:id/edit" element={<EditWashService />} />
+                    <Route path="/admin/employees" element={<AdminEmployees />} />
+                    <Route path="/admin/employees/add" element={<AddEmployee />} />
+                    <Route path="/admin/employees/:id/edit" element={<EditEmployee />} />
                 </Route>
 
                 {/* CUSTOMER ONLY */}
@@ -149,6 +172,9 @@ function App() {
                 <Route element={<RoleGuard allowedRoles={['ADMIN', 'STAFF']} />}>
                     <Route path="/manage-orders" element={<div className="p-8"><h1>Order Management</h1></div>} />
                     <Route path="/employee/daily-bookings" element={<EmployeeBookings />} />
+                    <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
+                    <Route path="/employee/assigned-bookings" element={<EmployeeAssignedBookings />} />
+                    <Route path="/employee/bookings/:bookingId/work" element={<EmployeeBookingWork />} />
                 </Route>
 
             </Route>

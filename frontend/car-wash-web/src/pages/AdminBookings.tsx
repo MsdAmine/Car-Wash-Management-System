@@ -3,6 +3,7 @@ import bookingService from '../services/bookingService';
 import type { BookingResponse, BookingStatus } from '../types/booking';
 import BookingStatusBadge from '../components/BookingStatusBadge';
 import { BookingTableSkeleton } from '../components/BookingSkeletons';
+import AssignEmployeeModal from '../components/AssignEmployeeModal';
 
 const STATUSES: BookingStatus[] = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'];
 
@@ -16,6 +17,7 @@ const AdminBookings: React.FC = () => {
     const [updatingId, setUpdatingId] = useState<string | null>(null);
     const [actionError, setActionError] = useState<string | null>(null);
     const [filterStatus, setFilterStatus] = useState<BookingStatus | 'ALL'>('ALL');
+    const [assignModalBookingId, setAssignModalBookingId] = useState<string | null>(null);
 
     const fetchBookings = async () => {
         setLoading(true);
@@ -106,6 +108,7 @@ const AdminBookings: React.FC = () => {
                                 <th className="text-left px-4 py-3 font-medium text-gray-600">Appointment</th>
                                 <th className="text-left px-4 py-3 font-medium text-gray-600">Total</th>
                                 <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
+                                <th className="text-left px-4 py-3 font-medium text-gray-600">Employees</th>
                                 <th className="text-left px-4 py-3 font-medium text-gray-600">Actions</th>
                             </tr>
                         </thead>
@@ -119,6 +122,14 @@ const AdminBookings: React.FC = () => {
                                     <td className="px-4 py-3 text-gray-700">${Number(booking.totalPrice).toFixed(2)}</td>
                                     <td className="px-4 py-3">
                                         <BookingStatusBadge status={booking.status} />
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        <button
+                                            onClick={() => setAssignModalBookingId(booking.id)}
+                                            className="text-purple-600 hover:underline text-xs font-medium"
+                                        >
+                                            Assign
+                                        </button>
                                     </td>
                                     <td className="px-4 py-3">
                                         <select
@@ -137,6 +148,13 @@ const AdminBookings: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
+            )}
+
+            {assignModalBookingId && (
+                <AssignEmployeeModal
+                    bookingId={assignModalBookingId}
+                    onClose={() => setAssignModalBookingId(null)}
+                />
             )}
         </div>
     );
