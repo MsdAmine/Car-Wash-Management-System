@@ -4,6 +4,7 @@ import bookingService from '../services/bookingService';
 import type { BookingResponse } from '../types/booking';
 import ConfirmDialog from '../components/ConfirmDialog';
 import BookingStatusBadge from '../components/BookingStatusBadge';
+import PaymentDetails from '../components/PaymentDetails';
 
 const formatDateTime = (dt: string) =>
     new Date(dt).toLocaleString(undefined, { dateStyle: 'long', timeStyle: 'short' });
@@ -121,6 +122,8 @@ const BookingDetails: React.FC = () => {
                             <p className="text-sm text-gray-800 mt-1">{booking.notes}</p>
                         </div>
                     )}
+
+                    <PaymentDetails bookingId={booking.id} />
 
                     {cancelError && (
                         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded text-sm">
