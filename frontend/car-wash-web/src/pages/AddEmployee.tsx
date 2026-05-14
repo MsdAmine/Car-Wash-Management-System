@@ -53,19 +53,23 @@ const AddEmployee: React.FC = () => {
     };
 
     return (
-        <div className="max-w-lg mx-auto p-8">
-            <div className="flex items-center mb-6 gap-3">
-                <button
-                    onClick={() => navigate('/admin/employees')}
-                    className="text-gray-500 hover:text-gray-700 transition"
-                    aria-label="Back to Manage Employees"
-                >
-                    &#8592;
-                </button>
+        <div className="max-w-lg mx-auto p-6 sm:p-8">
+            <button
+                onClick={() => navigate('/admin/employees')}
+                className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-6 transition"
+            >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                </svg>
+                Back to Manage Employees
+            </button>
+
+            <div className="mb-6">
                 <h1 className="text-2xl font-bold text-gray-800">Add Employee</h1>
+                <p className="text-sm text-gray-500 mt-0.5">Link an existing user account as an employee</p>
             </div>
 
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
                 <EmployeeForm
                     form={form}
                     onChange={handleChange}
