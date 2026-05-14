@@ -4,6 +4,7 @@ import com.carwash.car_wash_api.model.enums.BookingStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -39,6 +40,12 @@ public class Booking {
 
     @Column(nullable = false)
     private LocalDateTime appointmentDateTime;
+
+    @Column(nullable = false)
+    private LocalDateTime endDateTime;
+
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal totalPrice;
 
     @Column(length = 500)
     private String notes;
