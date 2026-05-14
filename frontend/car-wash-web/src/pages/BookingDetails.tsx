@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import bookingService from '../services/bookingService';
 import type { BookingResponse } from '../types/booking';
-import ConfirmDialog from '../components/ConfirmDialog';
+import ConfirmationDialog from '../components/ConfirmationDialog';
 import BookingStatusBadge from '../components/BookingStatusBadge';
 
 const formatDateTime = (dt: string) =>
@@ -198,12 +198,13 @@ const BookingDetails: React.FC = () => {
                 </div>
             )}
 
-            <ConfirmDialog
+            <ConfirmationDialog
                 open={showConfirm}
                 title="Cancel Booking"
                 message="Are you sure you want to cancel this booking? This action cannot be undone."
                 confirmLabel="Yes, Cancel"
                 cancelLabel="Keep Booking"
+                variant="warning"
                 onConfirm={handleCancel}
                 onCancel={() => setShowConfirm(false)}
             />

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import washServiceService from '../services/washServiceService';
 import type { WashServiceResponse } from '../types/washService';
-import ConfirmDialog from '../components/ConfirmDialog';
+import ConfirmationDialog from '../components/ConfirmationDialog';
 import { ServiceTableSkeleton } from '../components/WashServiceSkeletons';
 
 const AdminServices: React.FC = () => {
@@ -220,12 +220,13 @@ const AdminServices: React.FC = () => {
                 </div>
             )}
 
-            <ConfirmDialog
+            <ConfirmationDialog
                 open={pendingDeleteId !== null}
                 title="Delete Wash Service"
                 message="Are you sure you want to permanently delete this service? This action cannot be undone."
                 confirmLabel="Delete"
                 cancelLabel="Cancel"
+                variant="danger"
                 onConfirm={handleDeleteConfirm}
                 onCancel={() => setPendingDeleteId(null)}
             />
