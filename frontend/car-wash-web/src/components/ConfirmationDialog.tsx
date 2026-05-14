@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 
 type ConfirmationVariant = 'danger' | 'warning' | 'info';
 
@@ -14,9 +14,9 @@ interface ConfirmationDialogProps {
 }
 
 const confirmButtonClass: Record<ConfirmationVariant, string> = {
-    danger: 'bg-red-600 hover:bg-red-700 text-white',
-    warning: 'bg-yellow-500 hover:bg-yellow-600 text-white',
-    info: 'bg-blue-600 hover:bg-blue-700 text-white',
+    danger: 'bg-red-600 hover:bg-red-700 focus:ring-red-500 text-white',
+    warning: 'bg-yellow-500 hover:bg-yellow-600 focus:ring-yellow-500 text-white',
+    info: 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500 text-white',
 };
 
 const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
@@ -29,17 +29,27 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
     onConfirm,
     onCancel,
 }) => {
+    const cancelRef = useRef<HTMLButtonElement>(null);
+
+    useEffect(() => {
+        if (!open) return;
+        cancelRef.current?.focus();
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+    }, [open, onCancel]);
+
     if (!open) return null;
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
             role="alertdialog"
             aria-modal="true"
             aria-labelledby="confirmation-dialog-title"
             aria-describedby="confirmation-dialog-message"
         >
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-sm mx-4 p-6">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
                 <h2 id="confirmation-dialog-title" className="text-lg font-semibold text-gray-800 mb-2">
                     {title}
                 </h2>
@@ -48,14 +58,15 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
                 </p>
                 <div className="flex justify-end gap-3">
                     <button
+                        ref={cancelRef}
                         onClick={onCancel}
-                        className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition font-medium"
+                        className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition font-medium focus:outline-none focus:ring-2 focus:ring-gray-400"
                     >
                         {cancelLabel}
                     </button>
                     <button
                         onClick={onConfirm}
-                        className={`px-4 py-2 text-sm rounded-md transition font-medium ${confirmButtonClass[variant]}`}
+                        className={`px-4 py-2 text-sm rounded-lg transition font-medium focus:outline-none focus:ring-2 focus:ring-offset-1 ${confirmButtonClass[variant]}`}
                     >
                         {confirmLabel}
                     </button>

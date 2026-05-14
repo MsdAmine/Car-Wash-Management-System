@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import bookingService from '../services/bookingService';
 import type { BookingResponse } from '../types/booking';
-import ConfirmDialog from '../components/ConfirmDialog';
+import ConfirmationDialog from '../components/ConfirmationDialog';
 import BookingStatusBadge from '../components/BookingStatusBadge';
 import { BookingCardSkeleton } from '../components/BookingSkeletons';
 
@@ -184,12 +184,13 @@ const MyBookings: React.FC = () => {
                 </div>
             )}
 
-            <ConfirmDialog
+            <ConfirmationDialog
                 open={pendingCancelId !== null}
                 title="Cancel Booking"
                 message="Are you sure you want to cancel this booking? This action cannot be undone."
                 confirmLabel="Yes, Cancel"
                 cancelLabel="Keep Booking"
+                variant="warning"
                 onConfirm={handleCancelConfirm}
                 onCancel={() => setPendingCancelId(null)}
             />
