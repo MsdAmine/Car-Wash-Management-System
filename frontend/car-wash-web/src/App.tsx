@@ -12,6 +12,11 @@ import Services from './pages/Services';
 import AdminServices from './pages/AdminServices';
 import AddWashService from './pages/AddWashService';
 import EditWashService from './pages/EditWashService';
+import BookAppointment from './pages/BookAppointment';
+import MyBookings from './pages/MyBookings';
+import BookingDetails from './pages/BookingDetails';
+import AdminBookings from './pages/AdminBookings';
+import EmployeeBookings from './pages/EmployeeBookings';
 
 function App() {
     const { user, logout } = useAuth();
@@ -55,19 +60,49 @@ function App() {
                                     Our Services
                                 </Link>
                                 {user?.role === 'CUSTOMER' && (
-                                    <Link
-                                        to="/my-vehicles"
-                                        className="inline-block bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition text-sm font-medium"
-                                    >
-                                        My Vehicles
-                                    </Link>
+                                    <>
+                                        <Link
+                                            to="/my-vehicles"
+                                            className="inline-block bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition text-sm font-medium"
+                                        >
+                                            My Vehicles
+                                        </Link>
+                                        <Link
+                                            to="/my-bookings"
+                                            className="inline-block bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition text-sm font-medium"
+                                        >
+                                            My Bookings
+                                        </Link>
+                                        <Link
+                                            to="/book-appointment"
+                                            className="inline-block bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition text-sm font-medium"
+                                        >
+                                            Book Appointment
+                                        </Link>
+                                    </>
                                 )}
                                 {user?.role === 'ADMIN' && (
+                                    <>
+                                        <Link
+                                            to="/admin/services"
+                                            className="inline-block bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition text-sm font-medium"
+                                        >
+                                            Manage Services
+                                        </Link>
+                                        <Link
+                                            to="/admin/bookings"
+                                            className="inline-block bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition text-sm font-medium"
+                                        >
+                                            Manage Bookings
+                                        </Link>
+                                    </>
+                                )}
+                                {(user?.role === 'STAFF' || user?.role === 'ADMIN') && (
                                     <Link
-                                        to="/admin/services"
-                                        className="inline-block bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition text-sm font-medium"
+                                        to="/employee/daily-bookings"
+                                        className="inline-block bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition text-sm font-medium"
                                     >
-                                        Manage Services
+                                        Daily Schedule
                                     </Link>
                                 )}
                             </div>
@@ -100,11 +135,20 @@ function App() {
                     <Route path="/my-vehicles" element={<MyVehicles />} />
                     <Route path="/add-vehicle" element={<AddVehicle />} />
                     <Route path="/vehicles/:id/edit" element={<EditVehicle />} />
+                    <Route path="/book-appointment" element={<BookAppointment />} />
+                    <Route path="/my-bookings" element={<MyBookings />} />
+                    <Route path="/bookings/:id" element={<BookingDetails />} />
+                </Route>
+
+                {/* ADMIN ONLY — bookings management */}
+                <Route element={<RoleGuard allowedRoles={['ADMIN']} />}>
+                    <Route path="/admin/bookings" element={<AdminBookings />} />
                 </Route>
 
                 {/* STAFF & ADMIN */}
                 <Route element={<RoleGuard allowedRoles={['ADMIN', 'STAFF']} />}>
                     <Route path="/manage-orders" element={<div className="p-8"><h1>Order Management</h1></div>} />
+                    <Route path="/employee/daily-bookings" element={<EmployeeBookings />} />
                 </Route>
 
             </Route>
