@@ -70,6 +70,16 @@ public class SecurityConfig {
                                                 // All other booking operations require authentication (service enforces ownership)
                                                 .requestMatchers("/api/v1/bookings/**").authenticated()
 
+                                                // Payment management
+                                                // Admin only: list all payments and update any status
+                                                .requestMatchers(HttpMethod.GET, "/api/v1/payments").hasRole("ADMIN")
+                                                .requestMatchers(HttpMethod.PATCH, "/api/v1/payments/*/status").hasRole("ADMIN")
+                                                // Admin / employee: record payments and confirm them
+                                                .requestMatchers(HttpMethod.POST, "/api/v1/payments").hasAnyRole("ADMIN", "EMPLOYEE")
+                                                .requestMatchers(HttpMethod.PATCH, "/api/v1/payments/*/confirm").hasAnyRole("ADMIN", "EMPLOYEE")
+                                                // All other payment operations require authentication (service enforces ownership)
+                                                .requestMatchers("/api/v1/payments/**").authenticated()
+
                                                 // Wash service management: write operations are admin-only, reads are public
                                                 .requestMatchers(HttpMethod.GET, "/api/v1/services/**").permitAll()
                                                 .requestMatchers("/api/v1/services/**").hasRole("ADMIN")
