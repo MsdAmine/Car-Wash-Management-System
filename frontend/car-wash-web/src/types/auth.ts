@@ -11,7 +11,7 @@ export interface User {
     email: string;
     firstName: string;
     lastName: string;
-    role: 'ADMIN' | 'CUSTOMER';
+    role: 'ADMIN' | 'CUSTOMER' | 'STAFF';
 }
 
 export interface LoginRequest {
