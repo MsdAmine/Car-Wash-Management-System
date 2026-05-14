@@ -22,16 +22,28 @@ const BookAppointment: React.FC = () => {
     const [services, setServices] = useState<WashServiceResponse[]>([]);
     const [loadingVehicles, setLoadingVehicles] = useState(true);
     const [loadingServices, setLoadingServices] = useState(true);
+    const [dataError, setDataError] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
 
-    useEffect(() => {
+    const loadData = () => {
+        setDataError(null);
+        setLoadingVehicles(true);
+        setLoadingServices(true);
+
         vehicleService.list()
             .then(setVehicles)
+            .catch(() => setDataError('Failed to load your vehicles. Please try again.'))
             .finally(() => setLoadingVehicles(false));
+
         washServiceService.listActive()
             .then(setServices)
+            .catch(() => setDataError(prev => prev ?? 'Failed to load wash services. Please try again.'))
             .finally(() => setLoadingServices(false));
+    };
+
+    useEffect(() => {
+        loadData();
     }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -74,6 +86,15 @@ const BookAppointment: React.FC = () => {
                 </button>
                 <h1 className="text-2xl font-bold text-gray-800">Book Appointment</h1>
             </div>
+
+            {dataError && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 flex items-center justify-between">
+                    <span>{dataError}</span>
+                    <button onClick={loadData} className="ml-4 text-sm font-medium underline hover:no-underline">
+                        Retry
+                    </button>
+                </div>
+            )}
 
             <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
                 <BookingForm
