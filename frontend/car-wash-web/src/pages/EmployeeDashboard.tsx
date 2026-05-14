@@ -4,6 +4,13 @@ import employeeService from '../services/employeeService';
 import dashboardService from '../services/dashboardService';
 import type { BookingAssignmentResponse, EmployeeResponse } from '../types/employee';
 import type { EmployeeDashboardResponse } from '../types/dashboard';
+import StatsCard from '../components/StatsCard';
+
+const ChevronRight = () => (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+    </svg>
+);
 
 const EmployeeDashboard: React.FC = () => {
     const [profile, setProfile] = useState<EmployeeResponse | null>(null);
@@ -58,7 +65,7 @@ const EmployeeDashboard: React.FC = () => {
 
             {/* Workload summary */}
             <section>
-                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">My Workload</h2>
+                <h2 className="text-base font-semibold text-gray-700 mb-3">My Workload</h2>
                 {loadingWorkload ? (
                     <div className="grid grid-cols-2 gap-4">
                         {[...Array(2)].map((_, i) => (
@@ -69,29 +76,92 @@ const EmployeeDashboard: React.FC = () => {
                     <p className="text-red-600 text-sm">{workloadError}</p>
                 ) : workload ? (
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-purple-50 rounded-xl p-5 flex items-center gap-4">
-                            <svg className="w-7 h-7 text-purple-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-                            </svg>
-                            <div>
-                                <p className="text-xs text-purple-600 font-medium">Assigned Bookings</p>
-                                <p className="text-2xl font-bold text-purple-800">{workload.assignedBookings}</p>
-                            </div>
-                        </div>
-                        <div className="bg-blue-50 rounded-xl p-5 flex items-center gap-4">
-                            <svg className="w-7 h-7 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
-                            </svg>
-                            <div>
-                                <p className="text-xs text-blue-600 font-medium">In Progress</p>
-                                <p className="text-2xl font-bold text-blue-800">{workload.bookingsInProgress}</p>
-                            </div>
-                        </div>
+                        <StatsCard
+                            label="Assigned Bookings"
+                            value={workload.assignedBookings}
+                            icon={
+                                <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                                </svg>
+                            }
+                            bg="bg-purple-50"
+                            iconColor="text-purple-500"
+                            valueColor="text-purple-800"
+                        />
+                        <StatsCard
+                            label="In Progress"
+                            value={workload.bookingsInProgress}
+                            icon={
+                                <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                </svg>
+                            }
+                            bg="bg-blue-50"
+                            iconColor="text-blue-500"
+                            valueColor="text-blue-800"
+                        />
                     </div>
                 ) : (
                     <p className="text-gray-500 text-sm italic">No workload data available.</p>
                 )}
             </section>
+
+            {/* Today's assignments */}
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100">
+                    <h2 className="font-semibold text-gray-800">Today's Schedule</h2>
+                    <Link
+                        to="/employee/assigned-bookings"
+                        className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                        View all <ChevronRight />
+                    </Link>
+                </div>
+                <div>
+                    {loadingAssignments ? (
+                        <div className="p-6 space-y-2">
+                            {[...Array(3)].map((_, i) => (
+                                <div key={i} className="h-10 bg-gray-100 rounded animate-pulse" />
+                            ))}
+                        </div>
+                    ) : assignmentsError ? (
+                        <p className="px-6 py-4 text-red-600 text-sm">{assignmentsError}</p>
+                    ) : todayAssignments.length === 0 ? (
+                        <div className="px-6 py-10 text-center text-gray-500">
+                            <svg className="w-10 h-10 mx-auto text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                            </svg>
+                            <p className="text-sm">No bookings assigned for today.</p>
+                        </div>
+                    ) : (
+                        <ul className="divide-y divide-gray-50">
+                            {todayAssignments.map(a => (
+                                <li key={a.id} className="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-2 h-2 rounded-full bg-purple-500 shrink-0" />
+                                        <div className="flex flex-col">
+                                            <span className="text-sm font-medium text-gray-800">
+                                                {a.washServiceName ?? 'Service'}
+                                            </span>
+                                            <span className="text-xs text-gray-500">
+                                                {a.appointmentDateTime
+                                                    ? new Date(a.appointmentDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                                    : 'Time TBD'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <Link
+                                        to={`/employee/bookings/${a.bookingId}/work`}
+                                        className="flex items-center gap-1 text-sm text-purple-600 hover:text-purple-700 font-medium"
+                                    >
+                                        Work on this <ChevronRight />
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+            </div>
 
             {/* Profile card */}
             <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
@@ -150,63 +220,13 @@ const EmployeeDashboard: React.FC = () => {
                 </div>
             </div>
 
-            {/* Today's assignments */}
-            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100">
-                    <h2 className="font-semibold text-gray-800">Today's Schedule</h2>
-                    <Link
-                        to="/employee/assigned-bookings"
-                        className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-                    >
-                        View all →
-                    </Link>
-                </div>
-                <div>
-                    {loadingAssignments ? (
-                        <div className="p-6 space-y-2">
-                            {[...Array(3)].map((_, i) => (
-                                <div key={i} className="h-10 bg-gray-100 rounded animate-pulse" />
-                            ))}
-                        </div>
-                    ) : assignmentsError ? (
-                        <p className="px-6 py-4 text-red-600 text-sm">{assignmentsError}</p>
-                    ) : todayAssignments.length === 0 ? (
-                        <div className="px-6 py-10 text-center text-gray-500">
-                            <svg className="w-10 h-10 mx-auto text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-                            </svg>
-                            <p className="text-sm">No bookings assigned for today.</p>
-                        </div>
-                    ) : (
-                        <ul className="divide-y divide-gray-50">
-                            {todayAssignments.map(a => (
-                                <li key={a.id} className="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-2 h-2 rounded-full bg-purple-500" />
-                                        <span className="text-sm font-medium text-gray-700">
-                                            Booking <span className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">{a.bookingId.slice(0, 8)}</span>
-                                        </span>
-                                    </div>
-                                    <Link
-                                        to={`/employee/bookings/${a.bookingId}/work`}
-                                        className="text-sm text-purple-600 hover:text-purple-700 font-medium"
-                                    >
-                                        Work on this →
-                                    </Link>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </div>
-            </div>
-
             {/* Quick links */}
             <section>
-                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Quick Actions</h2>
+                <h2 className="text-base font-semibold text-gray-700 mb-3">Quick Actions</h2>
                 <div className="grid grid-cols-2 gap-4">
                     <Link
                         to="/employee/daily-bookings"
-                        className="flex items-center gap-3 p-4 bg-purple-50 border border-purple-200 rounded-xl hover:border-purple-400 hover:shadow-md transition"
+                        className="flex items-center gap-3 p-4 bg-purple-50 border border-purple-200 rounded-xl hover:border-purple-400 hover:bg-purple-100 hover:shadow-md transition"
                     >
                         <svg className="w-5 h-5 text-purple-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
@@ -218,7 +238,7 @@ const EmployeeDashboard: React.FC = () => {
                     </Link>
                     <Link
                         to="/employee/assigned-bookings"
-                        className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl hover:border-blue-400 hover:shadow-md transition"
+                        className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl hover:border-blue-400 hover:bg-blue-100 hover:shadow-md transition"
                     >
                         <svg className="w-5 h-5 text-blue-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />

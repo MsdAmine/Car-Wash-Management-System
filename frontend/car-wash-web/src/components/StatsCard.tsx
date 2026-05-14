@@ -3,13 +3,26 @@ import React from 'react';
 interface StatsCardProps {
     label: string;
     value: string | number;
-    colorClass?: string;
+    icon: React.ReactNode;
+    bg?: string;
+    iconColor?: string;
+    valueColor?: string;
 }
 
-const StatsCard: React.FC<StatsCardProps> = ({ label, value, colorClass = 'text-blue-600' }) => (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 flex flex-col gap-1">
-        <span className="text-sm text-gray-500">{label}</span>
-        <span className={`text-3xl font-bold ${colorClass}`}>{value}</span>
+const StatsCard: React.FC<StatsCardProps> = ({
+    label,
+    value,
+    icon,
+    bg = 'bg-white',
+    iconColor = 'text-blue-600',
+    valueColor = 'text-gray-800',
+}) => (
+    <div className={`${bg} rounded-xl p-5 flex items-center gap-4`}>
+        <div className={`${iconColor} shrink-0`}>{icon}</div>
+        <div>
+            <p className="text-xs text-gray-500 font-medium">{label}</p>
+            <p className={`text-2xl font-bold ${valueColor} mt-0.5`}>{value}</p>
+        </div>
     </div>
 );
 
