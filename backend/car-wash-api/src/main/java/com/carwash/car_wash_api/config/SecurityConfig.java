@@ -90,6 +90,11 @@ public class SecurityConfig {
                                                 .requestMatchers("/api/v1/bookings/*/assign**").hasRole("ADMIN")
                                                 .requestMatchers("/api/v1/bookings/*/assignments").hasAnyRole("ADMIN", "EMPLOYEE")
 
+                                                // Dashboard endpoints: each role sees only its own summary
+                                                .requestMatchers(HttpMethod.GET, "/api/v1/dashboard/admin").hasRole("ADMIN")
+                                                .requestMatchers(HttpMethod.GET, "/api/v1/dashboard/customer").hasRole("CUSTOMER")
+                                                .requestMatchers(HttpMethod.GET, "/api/v1/dashboard/employee").hasRole("EMPLOYEE")
+
                                                 // Wash service management: write operations are admin-only, reads are public
                                                 .requestMatchers(HttpMethod.GET, "/api/v1/services/**").permitAll()
                                                 .requestMatchers("/api/v1/services/**").hasRole("ADMIN")

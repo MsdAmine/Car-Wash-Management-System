@@ -34,4 +34,11 @@ public interface BookingAssignmentRepository extends JpaRepository<BookingAssign
             @Param("startOfDay") LocalDateTime startOfDay,
             @Param("endOfDay") LocalDateTime endOfDay
     );
+
+    // #332 — total assignments for an employee
+    long countByEmployeeId(UUID employeeId);
+
+    // #333 — assignments where the booking is currently in progress (CONFIRMED status)
+    @Query("SELECT COUNT(ba) FROM BookingAssignment ba WHERE ba.employee.id = :employeeId AND ba.booking.status = com.carwash.car_wash_api.model.enums.BookingStatus.CONFIRMED")
+    long countInProgressByEmployeeId(@Param("employeeId") UUID employeeId);
 }
