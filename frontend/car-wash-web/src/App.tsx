@@ -23,6 +23,8 @@ import EditEmployee from './pages/EditEmployee';
 import EmployeeDashboard from './pages/EmployeeDashboard';
 import EmployeeAssignedBookings from './pages/EmployeeAssignedBookings';
 import EmployeeBookingWork from './pages/EmployeeBookingWork';
+import AdminDashboard from './pages/AdminDashboard';
+import CustomerDashboard from './pages/CustomerDashboard';
 
 function App() {
     const { user, logout } = useAuth();
@@ -68,6 +70,12 @@ function App() {
                                 {user?.role === 'CUSTOMER' && (
                                     <>
                                         <Link
+                                            to="/dashboard"
+                                            className="inline-block bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition text-sm font-medium"
+                                        >
+                                            My Dashboard
+                                        </Link>
+                                        <Link
                                             to="/my-vehicles"
                                             className="inline-block bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition text-sm font-medium"
                                         >
@@ -89,6 +97,12 @@ function App() {
                                 )}
                                 {user?.role === 'ADMIN' && (
                                     <>
+                                        <Link
+                                            to="/admin/dashboard"
+                                            className="inline-block bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition text-sm font-medium"
+                                        >
+                                            Admin Dashboard
+                                        </Link>
                                         <Link
                                             to="/admin/services"
                                             className="inline-block bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition text-sm font-medium"
@@ -134,6 +148,7 @@ function App() {
 
                 {/* ADMIN ONLY */}
                 <Route element={<RoleGuard allowedRoles={['ADMIN']} />}>
+                    <Route path="/admin/dashboard" element={<AdminDashboard />} />
                     <Route path="/admin/settings" element={<div className="p-8"><h1>Admin Settings</h1></div>} />
                     <Route path="/test-admin" element={
                         <div className="p-10 bg-green-100 border-2 border-green-500 rounded">
@@ -150,6 +165,7 @@ function App() {
 
                 {/* CUSTOMER ONLY */}
                 <Route element={<RoleGuard allowedRoles={['CUSTOMER']} />}>
+                    <Route path="/dashboard" element={<CustomerDashboard />} />
                     <Route path="/test-customer" element={
                         <div className="p-10 bg-blue-100 border-2 border-blue-500 rounded">
                             <h1 className="text-blue-700 font-bold">ACCESS GRANTED: You are a CUSTOMER</h1>
