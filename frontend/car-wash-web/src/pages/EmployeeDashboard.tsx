@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import employeeService from '../services/employeeService';
+import dashboardService from '../services/dashboardService';
 import type { BookingAssignmentResponse, EmployeeResponse } from '../types/employee';
+import type { EmployeeDashboardResponse } from '../types/dashboard';
+import EmployeeWorkloadSummary from '../components/EmployeeWorkloadSummary';
 
 const EmployeeDashboard: React.FC = () => {
     const [profile, setProfile] = useState<EmployeeResponse | null>(null);
     const [todayAssignments, setTodayAssignments] = useState<BookingAssignmentResponse[]>([]);
+    const [workload, setWorkload] = useState<EmployeeDashboardResponse | null>(null);
     const [loadingProfile, setLoadingProfile] = useState(true);
     const [loadingAssignments, setLoadingAssignments] = useState(true);
     const [profileError, setProfileError] = useState<string | null>(null);
@@ -25,6 +29,10 @@ const EmployeeDashboard: React.FC = () => {
             .then(data => setTodayAssignments(data))
             .catch(() => setAssignmentsError("Failed to load today's assignments."))
             .finally(() => setLoadingAssignments(false));
+
+        dashboardService.getEmployeeDashboard()
+            .then(setWorkload)
+            .catch(() => {/* non-critical */});
     }, []);
 
     const today = new Date().toLocaleDateString(undefined, {
@@ -35,6 +43,17 @@ const EmployeeDashboard: React.FC = () => {
         <div className="max-w-4xl mx-auto p-8 space-y-6">
             <h1 className="text-2xl font-bold text-gray-800">Employee Dashboard</h1>
             <p className="text-sm text-gray-500 -mt-4">{today}</p>
+
+            {/* Workload summary */}
+            {workload && (
+                <section>
+                    <h2 className="text-base font-semibold text-gray-700 mb-3">My Workload</h2>
+                    <EmployeeWorkloadSummary
+                        assignedBookings={workload.assignedBookings}
+                        bookingsInProgress={workload.bookingsInProgress}
+                    />
+                </section>
+            )}
 
             {/* Profile card */}
             <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
