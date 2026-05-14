@@ -7,12 +7,19 @@ import type { BookingResponse } from '../types/booking';
 import { useAuth } from '../context/AuthContext';
 import BookingStatusBadge from '../components/BookingStatusBadge';
 import ServicePopularity from '../components/ServicePopularity';
+import StatsCard from '../components/StatsCard';
 
 const formatCurrency = (amount: number) =>
     new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(amount);
 
 const formatDateTime = (dt: string) =>
     new Date(dt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+
+const ChevronRight = () => (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+    </svg>
+);
 
 const AdminDashboard: React.FC = () => {
     const { user } = useAuth();
@@ -145,7 +152,7 @@ const AdminDashboard: React.FC = () => {
 
             {/* Booking stats */}
             <section>
-                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Booking Overview</h2>
+                <h2 className="text-base font-semibold text-gray-700 mb-3">Booking Overview</h2>
                 {loadingStats ? (
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                         {[...Array(4)].map((_, i) => (
@@ -155,13 +162,15 @@ const AdminDashboard: React.FC = () => {
                 ) : stats ? (
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                         {bookingStatCards.map(card => (
-                            <div key={card.label} className={`${card.bg} rounded-xl p-4 flex flex-col gap-2`}>
-                                <div className={card.iconColor}>{card.icon}</div>
-                                <div>
-                                    <p className="text-xs text-gray-500 font-medium">{card.label}</p>
-                                    <p className={`text-2xl font-bold ${card.valueColor}`}>{card.value}</p>
-                                </div>
-                            </div>
+                            <StatsCard
+                                key={card.label}
+                                label={card.label}
+                                value={card.value}
+                                icon={card.icon}
+                                bg={card.bg}
+                                iconColor={card.iconColor}
+                                valueColor={card.valueColor}
+                            />
                         ))}
                     </div>
                 ) : (
@@ -171,7 +180,7 @@ const AdminDashboard: React.FC = () => {
 
             {/* Revenue */}
             <section>
-                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Revenue</h2>
+                <h2 className="text-base font-semibold text-gray-700 mb-3">Revenue</h2>
                 {loadingStats ? (
                     <div className="grid grid-cols-2 gap-4">
                         <div className="h-20 bg-gray-100 rounded-xl animate-pulse" />
@@ -179,14 +188,14 @@ const AdminDashboard: React.FC = () => {
                     </div>
                 ) : stats ? (
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-5">
+                        <div className="bg-emerald-50 border border-emerald-400 rounded-xl p-5">
                             <div className="flex items-center gap-2 mb-1">
                                 <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                                 </svg>
                                 <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wide">Today's Revenue</p>
                             </div>
-                            <p className="text-2xl font-bold text-emerald-800">{formatCurrency(stats.dailyRevenue)}</p>
+                            <p className="text-3xl font-bold text-emerald-800">{formatCurrency(stats.dailyRevenue)}</p>
                         </div>
                         <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-5">
                             <div className="flex items-center gap-2 mb-1">
@@ -229,8 +238,8 @@ const AdminDashboard: React.FC = () => {
                 <section className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
                     <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100">
                         <h2 className="font-semibold text-gray-800">Recent Bookings</h2>
-                        <Link to="/admin/bookings" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-                            View all →
+                        <Link to="/admin/bookings" className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium">
+                            View all <ChevronRight />
                         </Link>
                     </div>
                     <div className="divide-y divide-gray-50">
@@ -261,13 +270,13 @@ const AdminDashboard: React.FC = () => {
 
             {/* Quick actions */}
             <section>
-                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Quick Actions</h2>
+                <h2 className="text-base font-semibold text-gray-700 mb-3">Quick Actions</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {quickActions.map(action => (
                         <Link
                             key={action.to}
                             to={action.to}
-                            className="flex items-start gap-4 p-5 bg-white border border-gray-200 rounded-xl hover:border-green-300 hover:shadow-md transition group"
+                            className="flex items-start gap-4 p-5 bg-white border border-gray-200 rounded-xl hover:border-green-300 hover:bg-gray-50 hover:shadow-md transition group"
                         >
                             <div className="text-green-600 group-hover:text-green-700 transition shrink-0 mt-0.5">
                                 {action.icon}

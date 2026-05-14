@@ -39,4 +39,6 @@ export interface BookingAssignmentResponse {
     assignedByUserId: number;
     assignedByEmail: string;
     assignedAt: string;
+    washServiceName?: string;
+    appointmentDateTime?: string;
 }

@@ -15,7 +15,7 @@ interface BookingStatusBadgeProps {
 const BookingStatusBadge: React.FC<BookingStatusBadgeProps> = ({ status }) => {
     const config = statusConfig[status] ?? { label: status, className: 'bg-gray-100 text-gray-500' };
     return (
-        <span className={`px-2 py-1 rounded text-xs font-medium ${config.className}`}>
+        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${config.className}`}>
             {config.label}
         </span>
     );

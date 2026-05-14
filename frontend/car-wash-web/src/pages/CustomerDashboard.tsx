@@ -6,9 +6,16 @@ import type { CustomerDashboardResponse } from '../types/dashboard';
 import type { BookingResponse } from '../types/booking';
 import { useAuth } from '../context/AuthContext';
 import BookingStatusBadge from '../components/BookingStatusBadge';
+import StatsCard from '../components/StatsCard';
 
 const formatDateTime = (dt: string) =>
     new Date(dt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+
+const ChevronRight = () => (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+    </svg>
+);
 
 const CustomerDashboard: React.FC = () => {
     const { user } = useAuth();
@@ -38,7 +45,6 @@ const CustomerDashboard: React.FC = () => {
         {
             label: 'Upcoming Bookings',
             value: stats?.upcomingBookings ?? 0,
-            color: 'blue',
             icon: (
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
@@ -51,7 +57,6 @@ const CustomerDashboard: React.FC = () => {
         {
             label: 'Past Bookings',
             value: stats?.previousBookings ?? 0,
-            color: 'gray',
             icon: (
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
@@ -64,7 +69,6 @@ const CustomerDashboard: React.FC = () => {
         {
             label: 'Registered Vehicles',
             value: stats?.registeredVehicles ?? 0,
-            color: 'green',
             icon: (
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
@@ -82,7 +86,7 @@ const CustomerDashboard: React.FC = () => {
             label: 'Book Appointment',
             description: 'Schedule a new car wash',
             icon: (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                 </svg>
             ),
@@ -93,29 +97,29 @@ const CustomerDashboard: React.FC = () => {
             label: 'My Bookings',
             description: 'View all your appointments',
             icon: (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 5.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
                 </svg>
             ),
-            primary: true,
+            primary: false,
         },
         {
             to: '/my-vehicles',
             label: 'My Vehicles',
             description: 'Manage your registered cars',
             icon: (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
                 </svg>
             ),
-            primary: true,
+            primary: false,
         },
         {
             to: '/services',
             label: 'Browse Services',
             description: 'Explore our wash packages',
             icon: (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" />
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6Z" />
                 </svg>
@@ -146,7 +150,7 @@ const CustomerDashboard: React.FC = () => {
 
             {/* Stats */}
             <section>
-                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Overview</h2>
+                <h2 className="text-base font-semibold text-gray-700 mb-3">Overview</h2>
                 {loadingStats ? (
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         {[...Array(3)].map((_, i) => (
@@ -156,13 +160,15 @@ const CustomerDashboard: React.FC = () => {
                 ) : stats ? (
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         {statCards.map(card => (
-                            <div key={card.label} className={`${card.bg} rounded-xl p-5 flex items-center gap-4`}>
-                                <div className={`${card.iconColor} shrink-0`}>{card.icon}</div>
-                                <div>
-                                    <p className="text-xs text-gray-500 font-medium">{card.label}</p>
-                                    <p className={`text-3xl font-bold ${card.valueColor} mt-0.5`}>{card.value}</p>
-                                </div>
-                            </div>
+                            <StatsCard
+                                key={card.label}
+                                label={card.label}
+                                value={card.value}
+                                icon={card.icon}
+                                bg={card.bg}
+                                iconColor={card.iconColor}
+                                valueColor={card.valueColor}
+                            />
                         ))}
                     </div>
                 ) : (
@@ -174,8 +180,8 @@ const CustomerDashboard: React.FC = () => {
             <section className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
                 <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100">
                     <h2 className="font-semibold text-gray-800">Recent Bookings</h2>
-                    <Link to="/my-bookings" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-                        View all →
+                    <Link to="/my-bookings" className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium">
+                        View all <ChevronRight />
                     </Link>
                 </div>
                 <div className="divide-y divide-gray-50">
@@ -191,8 +197,8 @@ const CustomerDashboard: React.FC = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
                             </svg>
                             <p className="text-sm">No bookings yet.</p>
-                            <Link to="/book-appointment" className="mt-2 inline-block text-sm text-blue-600 hover:underline font-medium">
-                                Book your first appointment →
+                            <Link to="/book-appointment" className="mt-2 inline-flex items-center gap-1 text-sm text-blue-600 hover:underline font-medium">
+                                Book your first appointment <ChevronRight />
                             </Link>
                         </div>
                     ) : (
@@ -217,23 +223,27 @@ const CustomerDashboard: React.FC = () => {
 
             {/* Quick links */}
             <section>
-                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Quick Actions</h2>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <h2 className="text-base font-semibold text-gray-700 mb-3">Quick Actions</h2>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                     {quickLinks.map(link => (
                         <Link
                             key={link.to}
                             to={link.to}
-                            className={`flex flex-col items-center text-center p-4 rounded-xl border transition hover:shadow-md ${
+                            className={`flex items-center text-left gap-3 p-4 rounded-xl border transition ${
                                 link.primary
-                                    ? 'bg-white border-blue-200 hover:border-blue-400 text-blue-700'
-                                    : 'bg-white border-gray-200 hover:border-gray-300 text-gray-700'
+                                    ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700 shadow-sm'
+                                    : 'bg-white border-gray-200 hover:border-blue-300 hover:bg-gray-50 text-gray-700'
                             }`}
                         >
-                            <div className={`mb-2 ${link.primary ? 'text-blue-600' : 'text-gray-500'}`}>
+                            <div className={link.primary ? 'text-white' : 'text-gray-500'}>
                                 {link.icon}
                             </div>
-                            <p className="text-xs font-semibold">{link.label}</p>
-                            <p className="text-xs text-gray-400 mt-0.5 leading-tight">{link.description}</p>
+                            <div>
+                                <p className="text-xs font-semibold">{link.label}</p>
+                                <p className={`text-xs mt-0.5 leading-tight ${link.primary ? 'text-blue-100' : 'text-gray-600'}`}>
+                                    {link.description}
+                                </p>
+                            </div>
                         </Link>
                     ))}
                 </div>
