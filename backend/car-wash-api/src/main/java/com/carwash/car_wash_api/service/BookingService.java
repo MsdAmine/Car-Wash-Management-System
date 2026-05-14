@@ -8,12 +8,15 @@ import com.carwash.car_wash_api.exception.InvalidBookingException;
 import com.carwash.car_wash_api.exception.ResourceNotFoundException;
 import com.carwash.car_wash_api.mapper.BookingMapper;
 import com.carwash.car_wash_api.model.entity.Booking;
+import com.carwash.car_wash_api.model.entity.Employee;
 import com.carwash.car_wash_api.model.entity.User;
 import com.carwash.car_wash_api.model.entity.Vehicle;
 import com.carwash.car_wash_api.model.entity.WashService;
 import com.carwash.car_wash_api.model.enums.BookingStatus;
 import com.carwash.car_wash_api.model.enums.Role;
+import com.carwash.car_wash_api.repository.BookingAssignmentRepository;
 import com.carwash.car_wash_api.repository.BookingRepository;
+import com.carwash.car_wash_api.repository.EmployeeRepository;
 import com.carwash.car_wash_api.repository.UserRepository;
 import com.carwash.car_wash_api.repository.VehicleRepository;
 import com.carwash.car_wash_api.repository.WashServiceRepository;
@@ -26,16 +29,22 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class BookingService {
 
+    private static final Set<BookingStatus> EMPLOYEE_ALLOWED_STATUSES =
+            Set.of(BookingStatus.CONFIRMED, BookingStatus.COMPLETED);
+
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final VehicleRepository vehicleRepository;
     private final WashServiceRepository washServiceRepository;
+    private final EmployeeRepository employeeRepository;
+    private final BookingAssignmentRepository bookingAssignmentRepository;
     private final BookingMapper bookingMapper;
 
     @Transactional
@@ -118,10 +127,28 @@ public class BookingService {
                 .toList();
     }
 
-    // #227 — update booking status (admin / employee)
+    // #227, #298, #299 — update booking status (admin / employee); employees restricted to assigned bookings and allowed statuses
     @Transactional
     public BookingResponse updateBookingStatus(UUID id, UpdateBookingStatusRequest request) {
         Booking booking = findBookingOrThrow(id);
+        User currentUser = resolveCurrentUser();
+
+        if (currentUser.getRole() == Role.EMPLOYEE) {
+            Employee employee = employeeRepository.findByUserId(currentUser.getId())
+                    .orElseThrow(() -> new AccessDeniedException(
+                            "No employee profile found for the current user"));
+
+            if (!bookingAssignmentRepository.existsByBookingIdAndEmployeeId(booking.getId(), employee.getId())) {
+                throw new AccessDeniedException(
+                        "You can only update the status of bookings you are assigned to");
+            }
+
+            if (!EMPLOYEE_ALLOWED_STATUSES.contains(request.getStatus())) {
+                throw new InvalidBookingException(
+                        "Employees can only set booking status to CONFIRMED or COMPLETED");
+            }
+        }
+
         booking.setStatus(request.getStatus());
         return bookingMapper.toResponse(bookingRepository.save(booking));
     }
