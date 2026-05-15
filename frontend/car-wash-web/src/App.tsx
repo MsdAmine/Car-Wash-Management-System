@@ -32,12 +32,17 @@ import CustomerDashboard from './pages/CustomerDashboard';
 function App() {
     const { user } = useAuth();
 
+    const dashboardPath =
+        user?.role === 'ADMIN' ? '/admin/dashboard' :
+        user?.role === 'STAFF' ? '/employee/dashboard' :
+        '/dashboard';
+
     return (
         <Routes>
             {/* --- PUBLIC ROUTES --- */}
             <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={!user ? <Login /> : <Navigate to="/" replace />} />
-            <Route path="/register" element={!user ? <Register /> : <Navigate to="/" replace />} />
+            <Route path="/login" element={!user ? <Login /> : <Navigate to={dashboardPath} replace />} />
+            <Route path="/register" element={!user ? <Register /> : <Navigate to={dashboardPath} replace />} />
             <Route path="/services" element={<Services />} />
 
             {/* --- PROTECTED ROUTES (Layer 1: Must be logged in) --- */}

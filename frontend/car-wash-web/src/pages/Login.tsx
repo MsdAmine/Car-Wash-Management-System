@@ -1,6 +1,46 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { APP_NAME } from '../config';
+
+const inputClass =
+    'block w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition';
+
+const AuthVisualPanel: React.FC = () => (
+    <div className="hidden lg:flex relative overflow-hidden bg-gradient-to-br from-slate-100 via-blue-50 to-slate-200 p-10 items-center justify-center">
+        <div className="absolute -top-16 -left-16 w-72 h-72 rounded-full bg-white/40 blur-3xl" aria-hidden="true" />
+        <div className="absolute -bottom-20 -right-10 w-80 h-80 rounded-full bg-white/30 blur-3xl" aria-hidden="true" />
+
+        <div className="relative w-full max-w-sm">
+            <svg viewBox="0 0 320 200" className="w-full h-auto" aria-hidden="true">
+                <ellipse cx="160" cy="170" rx="120" ry="10" fill="#0f172a" opacity="0.08" />
+                <path d="M60 140 L90 95 Q100 85 115 85 L210 85 Q225 85 235 95 L260 140 Z" fill="#1f2937" />
+                <path d="M100 95 L115 95 L120 130 L100 130 Z" fill="#cbd5e1" opacity="0.85" />
+                <path d="M130 95 L200 95 L205 130 L125 130 Z" fill="#cbd5e1" opacity="0.85" />
+                <path d="M215 95 L225 95 L235 130 L215 130 Z" fill="#cbd5e1" opacity="0.85" />
+                <rect x="50" y="138" width="220" height="8" rx="4" fill="#111827" />
+                <circle cx="95" cy="150" r="14" fill="#111827" />
+                <circle cx="95" cy="150" r="6" fill="#374151" />
+                <circle cx="225" cy="150" r="14" fill="#111827" />
+                <circle cx="225" cy="150" r="6" fill="#374151" />
+                {[
+                    [40, 70, 10], [55, 50, 7], [75, 35, 9], [110, 25, 6],
+                    [250, 30, 8], [275, 50, 10], [290, 75, 7], [60, 110, 5],
+                    [270, 110, 6], [30, 90, 6],
+                ].map(([cx, cy, r], i) => (
+                    <circle key={i} cx={cx} cy={cy} r={r} fill="#ffffff" opacity="0.9" />
+                ))}
+            </svg>
+
+            <div className="absolute -top-2 -left-2 bg-white rounded-2xl shadow-md px-4 py-2 text-sm font-medium text-gray-900">
+                Fast booking
+            </div>
+            <div className="absolute -bottom-2 -right-2 bg-white rounded-2xl shadow-md px-4 py-2 text-sm font-medium text-gray-900">
+                Secure access
+            </div>
+        </div>
+    </div>
+);
 
 const Login: React.FC = () => {
     const [email, setEmail] = useState('');
@@ -19,118 +59,106 @@ const Login: React.FC = () => {
             const user = await login({ email, password });
 
             if (user.role === 'ADMIN') {
-                navigate('/admin/settings');
+                navigate('/admin/dashboard');
+            } else if (user.role === 'STAFF') {
+                navigate('/employee/dashboard');
             } else {
-                navigate('/');
+                navigate('/dashboard');
             }
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Invalid email or password');
+        } catch (err) {
+            const message =
+                (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+            setError(message || 'Invalid email or password');
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 to-indigo-700 px-4 py-12">
-            <div className="max-w-md w-full">
-                {/* Brand header */}
-                <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl shadow-lg mb-4">
-                        <svg className="w-9 h-9 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
-                        </svg>
+        <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4 py-8">
+            <div className="w-full max-w-5xl bg-white rounded-3xl shadow-xl overflow-hidden grid grid-cols-1 lg:grid-cols-2">
+                <div className="p-8 sm:p-10 lg:p-12 flex flex-col justify-center">
+                    <div className="flex items-center justify-between mb-8">
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-gray-900" aria-hidden="true" />
+                            <span className="font-semibold text-gray-900">{APP_NAME}</span>
+                        </div>
+                        <Link to="/" className="text-sm text-gray-500 hover:text-gray-900 transition">
+                            Back to home
+                        </Link>
                     </div>
-                    <h1 className="text-3xl font-bold text-white">SparkleWash</h1>
-                    <p className="text-blue-200 mt-1 text-sm">Car Wash Management System</p>
-                </div>
 
-                {/* Login card */}
-                <div className="bg-white rounded-2xl shadow-xl p-8">
-                    <h2 className="text-xl font-semibold text-gray-800 mb-1">Welcome back</h2>
-                    <p className="text-sm text-gray-500 mb-6">Sign in to your account to continue</p>
+                    <h1 className="text-3xl font-semibold text-gray-900">Welcome back</h1>
+                    <p className="mt-2 text-gray-500">Sign in to manage your car wash bookings.</p>
 
                     {error && (
-                        <div className="flex items-start gap-3 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-5">
-                            <svg className="w-5 h-5 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
-                            </svg>
-                            <span className="text-sm">{error}</span>
+                        <div role="alert" className="mt-6 flex items-start gap-3 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3">
+                            <span className="mt-1.5 w-2 h-2 rounded-full bg-red-500 shrink-0" aria-hidden="true" />
+                            <span className="text-sm text-gray-900">{error}</span>
                         </div>
                     )}
 
-                    <form onSubmit={handleSubmit} className="space-y-5">
+                    <form onSubmit={handleSubmit} className="mt-6 space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                Email Address
+                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
+                                Email
                             </label>
-                            <div className="relative">
-                                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                                    <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
-                                    </svg>
-                                </div>
-                                <input
-                                    type="email"
-                                    required
-                                    autoComplete="email"
-                                    placeholder="you@example.com"
-                                    className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-400 transition"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                />
-                            </div>
+                            <input
+                                id="email"
+                                type="email"
+                                required
+                                autoComplete="email"
+                                placeholder="you@example.com"
+                                className={inputClass}
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                            />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">
                                 Password
                             </label>
-                            <div className="relative">
-                                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                                    <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
-                                    </svg>
-                                </div>
-                                <input
-                                    type="password"
-                                    required
-                                    autoComplete="current-password"
-                                    placeholder="••••••••"
-                                    className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-400 transition"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                />
-                            </div>
+                            <input
+                                id="password"
+                                type="password"
+                                required
+                                autoComplete="current-password"
+                                placeholder="••••••••"
+                                className={inputClass}
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                            />
                         </div>
 
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-sm font-medium rounded-lg transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                            className="w-full flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-800 disabled:bg-gray-400 text-white font-medium rounded-2xl px-4 py-3 transition"
                         >
                             {loading ? (
                                 <>
-                                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                                     </svg>
                                     Signing in...
                                 </>
                             ) : (
-                                'Sign In'
+                                'Sign in'
                             )}
                         </button>
                     </form>
 
-                    <div className="mt-6 pt-5 border-t border-gray-100 text-center">
-                        <p className="text-sm text-gray-500">
-                            Don't have an account?{' '}
-                            <Link to="/register" className="font-medium text-blue-600 hover:text-blue-700">
-                                Create one
-                            </Link>
-                        </p>
-                    </div>
+                    <p className="mt-6 text-sm text-gray-500">
+                        Don't have an account?{' '}
+                        <Link to="/register" className="font-medium text-gray-900 underline underline-offset-4 hover:no-underline">
+                            Create one
+                        </Link>
+                    </p>
                 </div>
+
+                <AuthVisualPanel />
             </div>
         </div>
     );

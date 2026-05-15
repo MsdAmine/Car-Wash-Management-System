@@ -58,7 +58,7 @@ export default function NavMenu({ role, orientation = 'horizontal' }: NavMenuPro
                     to={item.to}
                     className={({ isActive }) =>
                         `${linkBase} ${isActive
-                            ? 'bg-blue-100 text-blue-700'
+                            ? 'bg-gray-900 text-white'
                             : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                         }`
                     }
