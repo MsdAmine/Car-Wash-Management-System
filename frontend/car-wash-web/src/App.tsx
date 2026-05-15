@@ -4,11 +4,10 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import ProtectedRoute from './components/ProtectedRoute';
 import RoleGuard from './components/RoleGuard';
-import AppLayout from './layouts/AppLayout';
 import AdminLayout from './layouts/AdminLayout';
 import CustomerLayout from './layouts/CustomerLayout';
 import EmployeeLayout from './layouts/EmployeeLayout';
-import HomePage from './pages/HomePage';
+import LandingPage from './pages/LandingPage';
 import MyVehicles from './pages/MyVehicles';
 import AddVehicle from './pages/AddVehicle';
 import EditVehicle from './pages/EditVehicle';
@@ -36,17 +35,13 @@ function App() {
     return (
         <Routes>
             {/* --- PUBLIC ROUTES --- */}
+            <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={!user ? <Login /> : <Navigate to="/" replace />} />
             <Route path="/register" element={!user ? <Register /> : <Navigate to="/" replace />} />
             <Route path="/services" element={<Services />} />
 
             {/* --- PROTECTED ROUTES (Layer 1: Must be logged in) --- */}
             <Route element={<ProtectedRoute />}>
-
-                {/* Shared authenticated routes — top navbar with role-based nav */}
-                <Route element={<AppLayout />}>
-                    <Route path="/" element={<HomePage />} />
-                </Route>
 
                 {/* ADMIN ONLY — sidebar layout */}
                 <Route element={<RoleGuard allowedRoles={['ADMIN']} />}>
