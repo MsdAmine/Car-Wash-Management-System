@@ -37,5 +37,8 @@ frontend/.env
 *.db
 *.sqlite
 
+# Claude Code local tooling
+.claude/
+
 # Misc
 coverage/
