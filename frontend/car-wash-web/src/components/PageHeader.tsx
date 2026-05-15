@@ -24,8 +24,8 @@ const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, action }) => {
                     onClick={action.onClick}
                     className={
                         action.variant === 'secondary'
-                            ? 'px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition font-medium'
-                            : 'px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition font-medium'
+                            ? 'rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50'
+                            : 'rounded-lg bg-gray-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800'
                     }
                 >
                     {action.label}

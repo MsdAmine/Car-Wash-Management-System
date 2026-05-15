@@ -11,8 +11,8 @@ interface VehicleSelectorProps {
 const VehicleSelector: React.FC<VehicleSelectorProps> = ({ vehicles, selectedId, onChange, loading }) => {
     if (loading) {
         return (
-            <div className="flex items-center gap-2 py-2">
-                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-blue-500" />
+            <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2">
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-200 border-t-gray-900" />
                 <span className="text-sm text-gray-500">Loading vehicles...</span>
             </div>
         );
@@ -20,7 +20,7 @@ const VehicleSelector: React.FC<VehicleSelectorProps> = ({ vehicles, selectedId,
 
     if (vehicles.length === 0) {
         return (
-            <p className="text-sm text-gray-500 py-2">
+            <p className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-3 py-3 text-sm text-gray-500">
                 No vehicles registered. Please add a vehicle before booking.
             </p>
         );
@@ -33,17 +33,17 @@ const VehicleSelector: React.FC<VehicleSelectorProps> = ({ vehicles, selectedId,
                     key={vehicle.id}
                     type="button"
                     onClick={() => onChange(vehicle.id)}
-                    className={`flex flex-col text-left px-4 py-3 border rounded-lg transition ${
+                    className={`flex min-h-24 flex-col justify-between rounded-lg border px-4 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-gray-900/10 ${
                         selectedId === vehicle.id
-                            ? 'border-blue-600 bg-blue-50 ring-2 ring-blue-300'
-                            : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
+                            ? 'border-gray-900 bg-gray-50 shadow-sm'
+                            : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
                     }`}
                 >
-                    <span className="font-medium text-gray-800">
+                    <span className="font-medium text-gray-900">
                         {vehicle.brand} {vehicle.model}
                     </span>
-                    <span className="text-sm text-gray-500 mt-0.5">
-                        {vehicle.licensePlate} &bull; {vehicle.type}
+                    <span className="mt-2 text-sm text-gray-500">
+                        {vehicle.licensePlate} / {vehicle.type}
                     </span>
                 </button>
             ))}

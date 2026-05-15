@@ -46,13 +46,13 @@ const BookingForm: React.FC<BookingFormProps> = ({
     return (
         <form onSubmit={onSubmit} className="space-y-6">
             {error && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded text-sm">
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                     {error}
                 </div>
             )}
 
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="mb-2 block text-sm font-medium text-gray-700">
                     Select Vehicle <span className="text-red-500">*</span>
                 </label>
                 <VehicleSelector
@@ -64,7 +64,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
             </div>
 
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="mb-2 block text-sm font-medium text-gray-700">
                     Select Wash Service <span className="text-red-500">*</span>
                 </label>
                 <ServiceSelector
@@ -76,20 +76,20 @@ const BookingForm: React.FC<BookingFormProps> = ({
             </div>
 
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="mb-2 block text-sm font-medium text-gray-700">
                     Appointment Date &amp; Time <span className="text-red-500">*</span>
                 </label>
                 <DateTimeSelector
                     value={form.appointmentDateTime}
                     onChange={onDateTimeChange}
                 />
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="mt-1.5 text-xs text-gray-500">
                     Must be at least 30 minutes from now and within the next 90 days.
                 </p>
             </div>
 
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="mb-2 block text-sm font-medium text-gray-700">
                     Notes <span className="text-gray-400 font-normal">(optional, max 500 chars)</span>
                 </label>
                 <textarea
@@ -98,22 +98,22 @@ const BookingForm: React.FC<BookingFormProps> = ({
                     maxLength={500}
                     rows={3}
                     placeholder="Any special instructions or requests..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
+                    className="w-full resize-none rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm transition placeholder:text-gray-400 focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
                 />
             </div>
 
-            <div className="flex gap-3 pt-2">
+            <div className="flex flex-col gap-3 pt-2 sm:flex-row">
                 <button
                     type="submit"
                     disabled={!canSubmit}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                    className="rounded-lg bg-gray-950 px-6 py-2 text-sm font-medium text-white transition hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                     {submitting ? 'Booking...' : 'Book Appointment'}
                 </button>
                 <button
                     type="button"
                     onClick={onCancel}
-                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition text-sm font-medium"
+                    className="rounded-lg border border-gray-200 bg-white px-6 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
                 >
                     Cancel
                 </button>

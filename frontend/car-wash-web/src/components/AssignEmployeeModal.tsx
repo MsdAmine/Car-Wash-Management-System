@@ -82,13 +82,13 @@ const AssignEmployeeModal: React.FC<AssignEmployeeModalProps> = ({ bookingId, on
     const isLoading = loadingEmployees || loadingAssignments;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4 overflow-hidden">
-                <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200">
-                    <h2 className="text-lg font-semibold text-gray-800">Assign Employees</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/40">
+            <div className="mx-4 w-full max-w-lg overflow-hidden rounded-xl bg-white shadow-xl">
+                <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+                    <h2 className="text-lg font-semibold text-gray-950">Assign Employees</h2>
                     <button
                         onClick={onClose}
-                        className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+                        className="text-xl leading-none text-gray-400 hover:text-gray-700"
                         aria-label="Close"
                     >
                         &times;
@@ -97,12 +97,11 @@ const AssignEmployeeModal: React.FC<AssignEmployeeModalProps> = ({ bookingId, on
 
                 <div className="px-6 py-4 space-y-4">
                     {error && (
-                        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded text-sm">
+                        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
                             {error}
                         </div>
                     )}
 
-                    {/* Current assignments */}
                     <div>
                         <h3 className="text-sm font-medium text-gray-700 mb-2">Assigned Employees</h3>
                         {isLoading ? (
@@ -112,9 +111,9 @@ const AssignEmployeeModal: React.FC<AssignEmployeeModalProps> = ({ bookingId, on
                         ) : (
                             <ul className="space-y-2">
                                 {assignments.map(a => (
-                                    <li key={a.id} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md">
+                                    <li key={a.id} className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
                                         <div>
-                                            <span className="text-sm font-medium text-gray-800">
+                                            <span className="text-sm font-medium text-gray-900">
                                                 {a.employeeFirstName} {a.employeeLastName}
                                             </span>
                                             <span className="ml-2 text-xs text-gray-500">{a.employeePosition}</span>
@@ -122,7 +121,7 @@ const AssignEmployeeModal: React.FC<AssignEmployeeModalProps> = ({ bookingId, on
                                         <button
                                             onClick={() => handleRemove(a.employeeId)}
                                             disabled={removingId === a.employeeId}
-                                            className="text-red-600 hover:underline text-xs disabled:opacity-50"
+                                            className="text-xs font-medium text-red-700 underline-offset-4 hover:underline disabled:opacity-50"
                                         >
                                             {removingId === a.employeeId ? 'Removing...' : 'Remove'}
                                         </button>
@@ -132,7 +131,6 @@ const AssignEmployeeModal: React.FC<AssignEmployeeModalProps> = ({ bookingId, on
                         )}
                     </div>
 
-                    {/* Assign new employee */}
                     <div>
                         <h3 className="text-sm font-medium text-gray-700 mb-2">Add Employee</h3>
                         {isLoading ? (
@@ -144,7 +142,7 @@ const AssignEmployeeModal: React.FC<AssignEmployeeModalProps> = ({ bookingId, on
                                 <select
                                     value={selectedEmployeeId}
                                     onChange={e => setSelectedEmployeeId(e.target.value)}
-                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
                                 >
                                     <option value="">Select employee...</option>
                                     {availableEmployees.map(e => (
@@ -156,7 +154,7 @@ const AssignEmployeeModal: React.FC<AssignEmployeeModalProps> = ({ bookingId, on
                                 <button
                                     onClick={handleAssign}
                                     disabled={!selectedEmployeeId || assigning}
-                                    className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="rounded-lg bg-gray-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                     {assigning ? 'Assigning...' : 'Assign'}
                                 </button>
@@ -165,10 +163,10 @@ const AssignEmployeeModal: React.FC<AssignEmployeeModalProps> = ({ bookingId, on
                     </div>
                 </div>
 
-                <div className="px-6 py-4 border-t border-gray-200 flex justify-end">
+                <div className="flex justify-end border-t border-gray-200 px-6 py-4">
                     <button
                         onClick={onClose}
-                        className="bg-gray-100 text-gray-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-200 transition"
+                        className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
                     >
                         Done
                     </button>
