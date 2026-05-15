@@ -14,10 +14,10 @@ const StatsCard: React.FC<StatsCardProps> = ({
     value,
     icon,
     bg = 'bg-white',
-    iconColor = 'text-blue-600',
-    valueColor = 'text-gray-800',
+    iconColor = 'text-gray-500',
+    valueColor = 'text-gray-900',
 }) => (
-    <div className={`${bg} rounded-2xl p-5 flex items-center gap-4 border border-gray-200 shadow-sm`}>
+    <div className={`${bg} rounded-lg p-5 flex items-center gap-4 border border-gray-100 border-l-2 border-l-gray-300`}>
         <div className={`${iconColor} shrink-0`}>{icon}</div>
         <div>
             <p className="text-xs text-gray-500 font-medium">{label}</p>

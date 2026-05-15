@@ -1,17 +1,16 @@
 import { Link } from 'react-router-dom';
 import Navbar from './Navbar';
 import BookingPreviewCard from './BookingPreviewCard';
-
-const BRAND = 'CarWash Pro';
+import { APP_NAME } from '../../config';
 
 export default function HeroSection() {
     return (
-        <div className="w-full max-w-7xl bg-white rounded-3xl shadow-xl relative">
+        <div className="w-full max-w-7xl bg-white rounded-xl shadow-lg relative">
             <div className="grid lg:grid-cols-2 lg:gap-2 p-3 lg:p-4">
                 {/* Left section — brand, headline, description, booking form */}
                 <section className="px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10 flex flex-col">
                     <Link to="/" className="text-xl font-bold text-gray-900 tracking-tight self-start">
-                        {BRAND}
+                        {APP_NAME}
                     </Link>
 
                     <h1 className="mt-6 lg:mt-8 text-4xl sm:text-5xl lg:text-5xl xl:text-6xl font-bold leading-[1.05] tracking-tight">
@@ -32,41 +31,14 @@ export default function HeroSection() {
                 {/* Right section — visual panel */}
                 <section
                     id="about"
-                    className="relative rounded-3xl bg-gradient-to-br from-slate-100 via-blue-50 to-slate-200 overflow-hidden min-h-[320px] sm:min-h-[380px] lg:h-[560px] xl:h-[600px] flex items-center justify-center"
+                    className="relative rounded-lg bg-gray-900 overflow-hidden min-h-[320px] sm:min-h-[380px] lg:h-[560px] xl:h-[600px] flex items-center justify-center"
                 >
-                    {/* Soft background blobs */}
-                    <div className="absolute -top-16 -left-16 w-72 h-72 bg-blue-200/40 rounded-full blur-3xl" />
-                    <div className="absolute -bottom-20 -right-10 w-80 h-80 bg-slate-300/40 rounded-full blur-3xl" />
-                    <div className="absolute top-1/3 right-1/4 w-40 h-40 bg-white/50 rounded-full blur-2xl" />
-
                     {/* Decorative bubbles */}
                     <Bubbles />
 
                     {/* Car illustration */}
                     <div className="relative z-10 w-full px-6 sm:px-10">
                         <CarIllustration />
-                    </div>
-
-                    {/* Floating badge — Premium Wash */}
-                    <div className="absolute top-20 left-5 lg:top-20 lg:left-6 z-20 bg-white rounded-full pl-2.5 pr-3.5 py-1.5 shadow-md flex items-center gap-2">
-                        <span className="w-7 h-7 rounded-full bg-gray-900 text-white flex items-center justify-center">
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z" />
-                            </svg>
-                        </span>
-                        <div className="flex flex-col leading-tight">
-                            <span className="text-xs text-gray-500">Featured</span>
-                            <span className="text-sm font-semibold text-gray-900">Premium Wash</span>
-                        </div>
-                    </div>
-
-                    {/* Floating badge — Available today */}
-                    <div id="contact" className="absolute bottom-5 right-5 lg:bottom-6 lg:right-6 z-20 bg-white rounded-full pl-3 pr-4 py-1.5 shadow-md flex items-center gap-2">
-                        <span className="relative flex w-2.5 h-2.5">
-                            <span className="absolute inset-0 rounded-full bg-green-400 opacity-75 animate-ping" />
-                            <span className="relative inline-flex w-2.5 h-2.5 rounded-full bg-green-500" />
-                        </span>
-                        <span className="text-sm font-medium text-gray-900">Available today</span>
                     </div>
                 </section>
             </div>
@@ -88,8 +60,8 @@ function CarIllustration() {
         >
             <defs>
                 <linearGradient id="bodyGrad" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="#334155" />
-                    <stop offset="100%" stopColor="#0f172a" />
+                    <stop offset="0%" stopColor="#475569" />
+                    <stop offset="100%" stopColor="#1e293b" />
                 </linearGradient>
                 <linearGradient id="windowGrad" x1="0" x2="0" y1="0" y2="1">
                     <stop offset="0%" stopColor="#dbeafe" />
@@ -98,7 +70,7 @@ function CarIllustration() {
             </defs>
 
             {/* Ground shadow */}
-            <ellipse cx="240" cy="240" rx="190" ry="14" fill="#0f172a" fillOpacity="0.08" />
+            <ellipse cx="240" cy="240" rx="190" ry="14" fill="#0f172a" fillOpacity="0.04" />
 
             {/* Foam puddle */}
             <ellipse cx="240" cy="232" rx="170" ry="10" fill="white" fillOpacity="0.7" />
@@ -175,9 +147,9 @@ function CarIllustration() {
             </g>
 
             {/* Water streams */}
-            <path d="M180 30 Q185 60 200 90" stroke="#60a5fa" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" fill="none" />
-            <path d="M240 20 Q240 55 240 88" stroke="#60a5fa" strokeOpacity="0.55" strokeWidth="2" strokeLinecap="round" fill="none" />
-            <path d="M300 28 Q295 58 285 90" stroke="#60a5fa" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" fill="none" />
+            <path d="M180 30 Q185 60 200 90" stroke="rgba(255,255,255,0.35)" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" fill="none" />
+            <path d="M240 20 Q240 55 240 88" stroke="rgba(255,255,255,0.35)" strokeOpacity="0.55" strokeWidth="2" strokeLinecap="round" fill="none" />
+            <path d="M300 28 Q295 58 285 90" stroke="rgba(255,255,255,0.35)" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" fill="none" />
         </svg>
     );
 }
