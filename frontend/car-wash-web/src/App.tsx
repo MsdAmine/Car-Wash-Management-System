@@ -28,68 +28,57 @@ import EmployeeAssignedBookings from './pages/EmployeeAssignedBookings';
 import EmployeeBookingWork from './pages/EmployeeBookingWork';
 import AdminDashboard from './pages/AdminDashboard';
 import CustomerDashboard from './pages/CustomerDashboard';
+import { getDashboardPath } from './lib/authRoutes';
 
 function App() {
     const { user } = useAuth();
-
-    const dashboardPath =
-        user?.role === 'ADMIN' ? '/admin/dashboard' :
-        user?.role === 'STAFF' ? '/employee/dashboard' :
-        '/dashboard';
+    const dashboardPath = getDashboardPath(user?.role);
 
     return (
         <Routes>
-            {/* --- PUBLIC ROUTES --- */}
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={!user ? <Login /> : <Navigate to={dashboardPath} replace />} />
             <Route path="/register" element={!user ? <Register /> : <Navigate to={dashboardPath} replace />} />
             <Route path="/services" element={<Services />} />
 
-            {/* --- PROTECTED ROUTES (Layer 1: Must be logged in) --- */}
             <Route element={<ProtectedRoute />}>
-
-                {/* ADMIN ONLY — sidebar layout */}
                 <Route element={<RoleGuard allowedRoles={['ADMIN']} />}>
                     <Route element={<AdminLayout />}>
                         <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                        <Route path="/admin/settings" element={<div className="p-8"><h1>Admin Settings</h1></div>} />
+                        <Route path="/admin/bookings" element={<AdminBookings />} />
                         <Route path="/admin/services" element={<AdminServices />} />
                         <Route path="/admin/services/add" element={<AddWashService />} />
                         <Route path="/admin/services/:id/edit" element={<EditWashService />} />
+                        <Route path="/admin/payments" element={<div className="p-8"><h1>Admin Payments</h1></div>} />
                         <Route path="/admin/employees" element={<AdminEmployees />} />
                         <Route path="/admin/employees/add" element={<AddEmployee />} />
                         <Route path="/admin/employees/:id/edit" element={<EditEmployee />} />
-                        <Route path="/admin/bookings" element={<AdminBookings />} />
+                        <Route path="/admin/settings" element={<div className="p-8"><h1>Admin Settings</h1></div>} />
                     </Route>
                 </Route>
 
-                {/* CUSTOMER ONLY — sidebar layout */}
                 <Route element={<RoleGuard allowedRoles={['CUSTOMER']} />}>
                     <Route element={<CustomerLayout />}>
                         <Route path="/dashboard" element={<CustomerDashboard />} />
-                        <Route path="/my-vehicles" element={<MyVehicles />} />
-                        <Route path="/add-vehicle" element={<AddVehicle />} />
-                        <Route path="/vehicles/:id/edit" element={<EditVehicle />} />
                         <Route path="/book-appointment" element={<BookAppointment />} />
                         <Route path="/my-bookings" element={<MyBookings />} />
                         <Route path="/bookings/:id" element={<BookingDetails />} />
+                        <Route path="/my-vehicles" element={<MyVehicles />} />
+                        <Route path="/add-vehicle" element={<AddVehicle />} />
+                        <Route path="/vehicles/:id/edit" element={<EditVehicle />} />
                     </Route>
                 </Route>
 
-                {/* STAFF & ADMIN — employee sidebar layout */}
-                <Route element={<RoleGuard allowedRoles={['ADMIN', 'STAFF']} />}>
+                <Route element={<RoleGuard allowedRoles={['EMPLOYEE']} />}>
                     <Route element={<EmployeeLayout />}>
-                        <Route path="/manage-orders" element={<div className="p-8"><h1>Order Management</h1></div>} />
-                        <Route path="/employee/daily-bookings" element={<EmployeeBookings />} />
                         <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
+                        <Route path="/employee/daily-bookings" element={<EmployeeBookings />} />
                         <Route path="/employee/assigned-bookings" element={<EmployeeAssignedBookings />} />
                         <Route path="/employee/bookings/:bookingId/work" element={<EmployeeBookingWork />} />
                     </Route>
                 </Route>
-
             </Route>
 
-            {/* --- FALLBACK --- */}
             <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
     );

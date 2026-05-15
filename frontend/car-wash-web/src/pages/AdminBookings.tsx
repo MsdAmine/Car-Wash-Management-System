@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import bookingService from '../services/bookingService';
-import type { BookingResponse, BookingStatus } from '../types/booking';
+import { BOOKING_STATUSES, type BookingResponse, type BookingStatus } from '../types/booking';
 import BookingStatusBadge from '../components/BookingStatusBadge';
 import { BookingTableSkeleton } from '../components/BookingSkeletons';
 import AssignEmployeeModal from '../components/AssignEmployeeModal';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 import { getApiErrorMessage } from '../lib/apiError';
 
-const STATUSES: BookingStatus[] = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'];
+const STATUSES: BookingStatus[] = [...BOOKING_STATUSES];
 
 const formatDateTime = (dt: string) =>
     new Date(dt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });

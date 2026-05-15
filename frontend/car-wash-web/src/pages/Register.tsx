@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getApiErrorMessage } from '../lib/apiError';
 import { APP_NAME } from '../config';
+import { getDashboardPath } from '../lib/authRoutes';
 
 type PublicRole = 'CUSTOMER' | 'EMPLOYEE';
 
@@ -119,8 +120,8 @@ const Register: React.FC = () => {
         setError(null);
         setLoading(true);
         try {
-            await register(formData);
-            navigate('/');
+            const user = await register({ ...formData, role });
+            navigate(getDashboardPath(user.role));
         } catch (err) {
             setError(getApiErrorMessage(err, {
                 409: 'An account with this email already exists.',

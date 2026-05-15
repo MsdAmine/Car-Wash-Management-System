@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { APP_NAME } from '../config';
+import { getDashboardPath } from '../lib/authRoutes';
 
 const inputClass =
     'block w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition';
@@ -58,13 +59,7 @@ const Login: React.FC = () => {
         try {
             const user = await login({ email, password });
 
-            if (user.role === 'ADMIN') {
-                navigate('/admin/dashboard');
-            } else if (user.role === 'STAFF') {
-                navigate('/employee/dashboard');
-            } else {
-                navigate('/dashboard');
-            }
+            navigate(getDashboardPath(user.role));
         } catch (err) {
             const message =
                 (err as { response?: { data?: { message?: string } } })?.response?.data?.message;

@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import bookingService from '../services/bookingService';
-import type { BookingResponse, BookingStatus } from '../types/booking';
+import { BOOKING_STATUSES, type BookingResponse, type BookingStatus } from '../types/booking';
 import BookingStatusBadge from '../components/BookingStatusBadge';
 import { BookingEmployeeSkeleton } from '../components/BookingSkeletons';
 
-const UPDATABLE_STATUSES: BookingStatus[] = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'];
+const UPDATABLE_STATUSES: BookingStatus[] = [...BOOKING_STATUSES];
 
 const formatTime = (dt: string) =>
     new Date(dt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });

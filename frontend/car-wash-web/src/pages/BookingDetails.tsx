@@ -1,18 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import bookingService from '../services/bookingService';
-import type { BookingResponse } from '../types/booking';
+import type { BookingResponse, BookingStatus } from '../types/booking';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 import BookingStatusBadge from '../components/BookingStatusBadge';
 
 const formatDateTime = (dt: string) =>
     new Date(dt).toLocaleString(undefined, { dateStyle: 'long', timeStyle: 'short' });
 
-const statusBorderClass: Record<string, string> = {
-    PENDING: 'border-t-yellow-400',
-    CONFIRMED: 'border-t-blue-400',
-    COMPLETED: 'border-t-green-400',
+const statusBorderClass: Record<BookingStatus, string> = {
+    PENDING: 'border-t-gray-300',
+    CONFIRMED: 'border-t-gray-900',
+    IN_PROGRESS: 'border-t-neutral-400',
+    COMPLETED: 'border-t-emerald-400',
     CANCELLED: 'border-t-gray-300',
+    NO_SHOW: 'border-t-amber-400',
 };
 
 const BookingDetails: React.FC = () => {

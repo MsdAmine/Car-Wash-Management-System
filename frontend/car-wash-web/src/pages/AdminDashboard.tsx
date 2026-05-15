@@ -1,160 +1,192 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import dashboardService from '../services/dashboardService';
 import bookingService from '../services/bookingService';
-import type { AdminDashboardResponse } from '../types/dashboard';
+import type { AdminDashboardResponse, ServiceStatResponse } from '../types/dashboard';
 import type { BookingResponse } from '../types/booking';
-import { useAuth } from '../context/AuthContext';
 import BookingStatusBadge from '../components/BookingStatusBadge';
 import StatsCard from '../components/StatsCard';
 
 const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(amount);
+    new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(Number(amount));
 
-const formatTime = (dt: string) =>
-    new Date(dt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+const formatDateTime = (dt: string) =>
+    new Date(dt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-const ChevronRight = () => (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+const MiniIcon = () => (
+    <span className="block h-2.5 w-2.5 rounded-full bg-current" aria-hidden="true" />
+);
+
+const ArrowIcon = () => (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
     </svg>
 );
 
-const CalendarIcon = () => (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+const RefreshIcon = ({ spinning = false }: { spinning?: boolean }) => (
+    <svg className={`h-4 w-4 ${spinning ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992m0 0V4.356m0 4.992-3.181-3.183a8.25 8.25 0 1 0 2.227 7.852" />
     </svg>
 );
 
-const RevenueIcon = () => (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-    </svg>
-);
-
-const UsersIcon = () => (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
-    </svg>
-);
-
-const ClockIcon = () => (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-    </svg>
-);
-
-const staticServicePerformance = [
-    { name: 'Basic Wash',        bookings: 0, revenue: '$0' },
-    { name: 'Premium Wash',      bookings: 0, revenue: '$0' },
-    { name: 'Interior Cleaning', bookings: 0, revenue: '$0' },
-    { name: 'Full Detailing',    bookings: 0, revenue: '$0' },
-];
+const serviceShare = (service: ServiceStatResponse, topCount: number) => {
+    if (topCount <= 0) return 0;
+    return Math.round((service.bookingCount / topCount) * 100);
+};
 
 const AdminDashboard: React.FC = () => {
-    const { user } = useAuth();
     const [stats, setStats] = useState<AdminDashboardResponse | null>(null);
     const [recentBookings, setRecentBookings] = useState<BookingResponse[]>([]);
     const [loadingStats, setLoadingStats] = useState(true);
     const [loadingBookings, setLoadingBookings] = useState(true);
     const [statsError, setStatsError] = useState<string | null>(null);
+    const [bookingsError, setBookingsError] = useState<string | null>(null);
+
+    const fetchStats = useCallback(async () => {
+        setLoadingStats(true);
+        setStatsError(null);
+        try {
+            const data = await dashboardService.getAdminDashboard();
+            setStats(data);
+        } catch {
+            setStatsError('Failed to load dashboard data.');
+        } finally {
+            setLoadingStats(false);
+        }
+    }, []);
+
+    const fetchBookings = useCallback(async () => {
+        setLoadingBookings(true);
+        setBookingsError(null);
+        try {
+            const data = await bookingService.getAll();
+            setRecentBookings(
+                [...data]
+                    .sort((a, b) => new Date(b.appointmentDateTime).getTime() - new Date(a.appointmentDateTime).getTime())
+                    .slice(0, 6)
+            );
+        } catch {
+            setBookingsError('Failed to load recent bookings.');
+        } finally {
+            setLoadingBookings(false);
+        }
+    }, []);
 
     useEffect(() => {
+        let active = true;
+
         dashboardService.getAdminDashboard()
-            .then(setStats)
-            .catch(() => setStatsError('Failed to load dashboard data.'))
-            .finally(() => setLoadingStats(false));
+            .then(data => {
+                if (active) setStats(data);
+            })
+            .catch(() => {
+                if (active) setStatsError('Failed to load dashboard data.');
+            })
+            .finally(() => {
+                if (active) setLoadingStats(false);
+            });
 
         bookingService.getAll()
-            .then(bookings => setRecentBookings(bookings.slice(0, 5)))
-            .catch(() => {/* non-critical */})
-            .finally(() => setLoadingBookings(false));
+            .then(data => {
+                if (!active) return;
+                setRecentBookings(
+                    [...data]
+                        .sort((a, b) => new Date(b.appointmentDateTime).getTime() - new Date(a.appointmentDateTime).getTime())
+                        .slice(0, 6)
+                );
+            })
+            .catch(() => {
+                if (active) setBookingsError('Failed to load recent bookings.');
+            })
+            .finally(() => {
+                if (active) setLoadingBookings(false);
+            });
+
+        return () => {
+            active = false;
+        };
     }, []);
+
+    const refreshDashboard = () => {
+        fetchStats();
+        fetchBookings();
+    };
+
+    const servicePerformance = useMemo(() => stats?.mostRequestedServices ?? [], [stats?.mostRequestedServices]);
+    const topServiceCount = useMemo(
+        () => servicePerformance.reduce((max, service) => Math.max(max, service.bookingCount), 0),
+        [servicePerformance]
+    );
 
     const statCards = [
         {
-            label: "Today's Bookings",
-            value: stats?.todaysBookings ?? 18,
-            icon: <CalendarIcon />,
+            label: "Today's bookings",
+            value: stats?.todaysBookings ?? '--',
+            icon: <MiniIcon />,
         },
         {
-            label: 'Monthly Revenue',
-            value: stats ? formatCurrency(stats.monthlyRevenue) : '$4,280',
-            icon: <RevenueIcon />,
+            label: 'Monthly revenue',
+            value: stats ? formatCurrency(stats.monthlyRevenue) : '--',
+            icon: <MiniIcon />,
         },
         {
-            label: 'Active Customers',
-            value: 124,
-            icon: <UsersIcon />,
+            label: 'Active customers',
+            value: '--',
+            icon: <MiniIcon />,
         },
         {
-            label: 'Pending Payments',
-            value: stats?.pendingBookings ?? 5,
-            icon: <ClockIcon />,
+            label: 'Pending payments',
+            value: '--',
+            icon: <MiniIcon />,
         },
     ];
 
-    const bookingOverview = [
-        { label: 'Pending',     value: stats?.pendingBookings ?? 5,   className: 'bg-gray-100 text-gray-700' },
-        { label: 'Confirmed',   value: 8,                              className: 'bg-gray-900 text-white' },
-        { label: 'In Progress', value: 3,                              className: 'bg-slate-100 text-slate-700' },
-        { label: 'Completed',   value: stats?.completedBookings ?? 12, className: 'bg-green-100 text-green-800' },
-    ];
-
-    const servicePerformance = stats?.mostRequestedServices?.length
-        ? stats.mostRequestedServices.slice(0, 4).map(s => ({
-              name: s.serviceName,
-              bookings: s.bookingCount,
-              revenue: '—',
-          }))
-        : staticServicePerformance;
+    const subtitle = stats
+        ? `${stats.todaysBookings} bookings today / ${stats.pendingBookings} pending in queue`
+        : 'Track bookings, revenue, services, and daily operations.';
 
     return (
-        <div className="max-w-5xl mx-auto p-6 sm:p-8 space-y-6">
-            {/* Header */}
-            <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-6 sm:p-8">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">
-                            Business overview{user?.firstName ? ` — ${user.firstName}` : ''}
-                        </h1>
-                        <p className="mt-1 text-sm text-gray-500">
-                            Track bookings, revenue, services, and daily operations.
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                        <Link
-                            to="/admin/bookings"
-                            className="bg-gray-900 text-white rounded-2xl px-4 py-2.5 text-sm font-medium hover:bg-gray-800 transition"
-                        >
-                            Manage Bookings
-                        </Link>
-                        <Link
-                            to="/admin/services/add"
-                            className="bg-white border border-gray-200 text-gray-900 rounded-2xl px-4 py-2.5 text-sm font-medium hover:bg-gray-50 transition"
-                        >
-                            Add Service
-                        </Link>
-                    </div>
+        <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+            <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                    <p className="text-sm font-medium text-gray-500">Admin workspace</p>
+                    <h1 className="mt-2 text-3xl font-semibold text-gray-950">Business overview</h1>
+                    <p className="mt-2 text-sm text-gray-600">{subtitle}</p>
                 </div>
-            </div>
+                <div className="flex flex-wrap gap-3">
+                    <button
+                        type="button"
+                        onClick={refreshDashboard}
+                        disabled={loadingStats || loadingBookings}
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 text-sm font-medium text-gray-800 shadow-sm transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-gray-900"
+                    >
+                        <RefreshIcon spinning={loadingStats || loadingBookings} />
+                        Refresh
+                    </button>
+                    <Link
+                        to="/admin/services/add"
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-gray-950 px-4 text-sm font-medium text-white transition hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-900"
+                    >
+                        Add service
+                        <ArrowIcon />
+                    </Link>
+                </div>
+            </section>
 
             {statsError && (
-                <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-2xl px-4 py-3 text-red-700 text-sm">
-                    <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
                     {statsError}
                 </div>
             )}
 
-            {/* Stats */}
             {loadingStats ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {[...Array(4)].map((_, i) => (
-                        <div key={i} className="h-24 bg-white rounded-2xl border border-gray-200 animate-pulse" />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    {Array.from({ length: 4 }).map((_, index) => (
+                        <div key={index} className="h-24 animate-pulse rounded-lg border border-gray-200 bg-white" />
                     ))}
                 </div>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                     {statCards.map(card => (
                         <StatsCard
                             key={card.label}
@@ -163,135 +195,127 @@ const AdminDashboard: React.FC = () => {
                             icon={card.icon}
                             bg="bg-white"
                             iconColor="text-gray-400"
-                            valueColor="text-gray-900"
+                            valueColor="text-gray-950"
                         />
                     ))}
                 </div>
             )}
 
-            {/* Booking overview */}
-            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100">
-                    <h2 className="text-sm font-semibold text-gray-700">Booking Overview</h2>
-                </div>
-                <div className="p-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    {bookingOverview.map(item => (
-                        <div key={item.label} className="text-center">
-                            <p className="text-3xl font-bold text-gray-900">{item.value}</p>
-                            <span className={`mt-2 inline-block px-3 py-1 rounded-full text-xs font-semibold ${item.className}`}>
-                                {item.label}
-                            </span>
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.4fr_0.6fr]">
+                <section className="rounded-lg border border-gray-200 bg-white shadow-sm">
+                    <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+                        <div>
+                            <h2 className="text-base font-semibold text-gray-950">Recent bookings</h2>
+                            <p className="mt-1 text-xs text-gray-500">Latest appointments across the business.</p>
                         </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Main content grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Recent bookings */}
-                <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                    <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100">
-                        <h2 className="text-sm font-semibold text-gray-700">Recent Bookings</h2>
-                        <Link
-                            to="/admin/bookings"
-                            className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 font-medium transition"
-                        >
-                            View all <ChevronRight />
+                        <Link to="/admin/bookings" className="text-sm font-medium text-gray-600 hover:text-gray-950">
+                            View all
                         </Link>
                     </div>
-                    <div className="overflow-x-auto">
-                        {loadingBookings ? (
-                            <div className="p-6 space-y-3">
-                                {[...Array(3)].map((_, i) => (
-                                    <div key={i} className="h-12 bg-gray-100 rounded-xl animate-pulse" />
-                                ))}
-                            </div>
-                        ) : recentBookings.length === 0 ? (
-                            <div className="px-6 py-8 text-center text-gray-400 text-sm">No bookings yet.</div>
-                        ) : (
-                            <table className="w-full text-sm">
+
+                    {bookingsError && (
+                        <div className="border-b border-red-100 bg-red-50 px-5 py-3 text-sm text-red-700" role="alert">
+                            {bookingsError}
+                        </div>
+                    )}
+
+                    {loadingBookings ? (
+                        <div className="space-y-3 p-5">
+                            {Array.from({ length: 4 }).map((_, index) => (
+                                <div key={index} className="h-14 animate-pulse rounded-lg bg-gray-100" />
+                            ))}
+                        </div>
+                    ) : recentBookings.length === 0 ? (
+                        <div className="px-5 py-12 text-center">
+                            <p className="text-sm font-medium text-gray-700">No bookings yet.</p>
+                            <p className="mt-1 text-sm text-gray-500">New customer appointments will appear here.</p>
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full min-w-[720px] text-sm">
                                 <thead>
-                                    <tr className="border-b border-gray-100">
-                                        <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Customer</th>
-                                        <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden sm:table-cell">Service</th>
-                                        <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
-                                        <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Time</th>
+                                    <tr className="border-b border-gray-100 text-left text-xs font-semibold uppercase text-gray-500">
+                                        <th className="px-5 py-3">Booking</th>
+                                        <th className="px-5 py-3">Customer</th>
+                                        <th className="px-5 py-3">Service</th>
+                                        <th className="px-5 py-3">Time</th>
+                                        <th className="px-5 py-3">Total</th>
+                                        <th className="px-5 py-3">Status</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-50">
+                                <tbody className="divide-y divide-gray-100">
                                     {recentBookings.map(booking => (
-                                        <tr key={booking.id} className="hover:bg-gray-50 transition">
-                                            <td className="px-6 py-4">
-                                                <p className="font-medium text-gray-900 text-sm">{booking.customerEmail}</p>
-                                                <p className="text-xs text-gray-500 mt-0.5">{booking.vehicleLicensePlate}</p>
+                                        <tr key={booking.id} className="hover:bg-gray-50">
+                                            <td className="px-5 py-4 font-mono text-xs text-gray-600">{booking.id.slice(0, 8)}</td>
+                                            <td className="px-5 py-4">
+                                                <p className="font-medium text-gray-950">{booking.customerEmail}</p>
+                                                <p className="mt-1 font-mono text-xs text-gray-500">{booking.vehicleLicensePlate}</p>
                                             </td>
-                                            <td className="px-6 py-4 text-gray-600 hidden sm:table-cell">{booking.washServiceName}</td>
-                                            <td className="px-6 py-4">
-                                                <BookingStatusBadge status={booking.status} />
-                                            </td>
-                                            <td className="px-6 py-4 text-gray-500 hidden md:table-cell">
-                                                {formatTime(booking.appointmentDateTime)}
-                                            </td>
+                                            <td className="px-5 py-4 text-gray-700">{booking.washServiceName}</td>
+                                            <td className="px-5 py-4 font-mono text-xs text-gray-600">{formatDateTime(booking.appointmentDateTime)}</td>
+                                            <td className="px-5 py-4 font-mono font-semibold text-gray-950">{formatCurrency(booking.totalPrice)}</td>
+                                            <td className="px-5 py-4"><BookingStatusBadge status={booking.status} /></td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
-                        )}
-                    </div>
-                </div>
+                        </div>
+                    )}
+                </section>
 
-                {/* Service performance */}
-                <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                    <div className="px-6 py-4 border-b border-gray-100">
-                        <h2 className="text-sm font-semibold text-gray-700">Service Performance</h2>
-                    </div>
-                    <div className="divide-y divide-gray-50">
-                        {servicePerformance.map(service => (
-                            <div key={service.name} className="flex items-center justify-between px-6 py-4">
-                                <div>
-                                    <p className="text-sm font-medium text-gray-900">{service.name}</p>
-                                    <p className="text-xs text-gray-500 mt-0.5">{service.bookings} bookings</p>
-                                </div>
-                                <span className="text-sm font-semibold text-gray-900">{service.revenue}</span>
+                <div className="space-y-6">
+                    <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+                        <h2 className="text-base font-semibold text-gray-950">Service performance</h2>
+                        {loadingStats ? (
+                            <div className="mt-4 space-y-3">
+                                {Array.from({ length: 4 }).map((_, index) => (
+                                    <div key={index} className="h-12 animate-pulse rounded-lg bg-gray-100" />
+                                ))}
                             </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
+                        ) : servicePerformance.length === 0 ? (
+                            <div className="mt-6 rounded-lg border border-dashed border-gray-200 px-4 py-8 text-center">
+                                <p className="text-sm font-medium text-gray-700">No service data yet.</p>
+                                <p className="mt-1 text-sm text-gray-500">Service rankings will appear after bookings are recorded.</p>
+                            </div>
+                        ) : (
+                            <div className="mt-4 space-y-4">
+                                {servicePerformance.slice(0, 5).map(service => (
+                                    <div key={service.serviceName}>
+                                        <div className="mb-2 flex items-center justify-between gap-3">
+                                            <p className="truncate text-sm font-medium text-gray-800">{service.serviceName}</p>
+                                            <p className="font-mono text-sm font-semibold text-gray-950">{service.bookingCount}</p>
+                                        </div>
+                                        <div className="h-2 rounded-full bg-gray-100">
+                                            <div
+                                                className="h-2 rounded-full bg-gray-900"
+                                                style={{ width: `${serviceShare(service, topServiceCount)}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </section>
 
-            {/* Quick actions */}
-            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100">
-                    <h2 className="text-sm font-semibold text-gray-700">Quick Actions</h2>
-                </div>
-                <div className="p-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <Link
-                        to="/admin/bookings"
-                        className="flex items-center gap-3 px-4 py-3 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition"
-                    >
-                        <div>
-                            <p className="text-sm font-semibold text-gray-900">Manage Bookings</p>
-                            <p className="text-xs text-gray-500 mt-0.5">View and update statuses</p>
+                    <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+                        <h2 className="text-base font-semibold text-gray-950">Quick actions</h2>
+                        <div className="mt-4 space-y-3">
+                            {[
+                                { label: 'Review bookings', to: '/admin/bookings' },
+                                { label: 'Manage services', to: '/admin/services' },
+                                { label: 'Manage employees', to: '/admin/employees' },
+                            ].map(action => (
+                                <Link
+                                    key={action.to}
+                                    to={action.to}
+                                    className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3 text-sm font-medium text-gray-800 transition hover:border-gray-300 hover:bg-gray-50"
+                                >
+                                    {action.label}
+                                    <ArrowIcon />
+                                </Link>
+                            ))}
                         </div>
-                    </Link>
-                    <Link
-                        to="/admin/employees"
-                        className="flex items-center gap-3 px-4 py-3 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition"
-                    >
-                        <div>
-                            <p className="text-sm font-semibold text-gray-900">Manage Employees</p>
-                            <p className="text-xs text-gray-500 mt-0.5">Assign staff and profiles</p>
-                        </div>
-                    </Link>
-                    <Link
-                        to="/admin/services"
-                        className="flex items-center gap-3 px-4 py-3 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition"
-                    >
-                        <div>
-                            <p className="text-sm font-semibold text-gray-900">Manage Services</p>
-                            <p className="text-xs text-gray-500 mt-0.5">Create and update packages</p>
-                        </div>
-                    </Link>
+                    </section>
                 </div>
             </div>
         </div>

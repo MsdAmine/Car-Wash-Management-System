@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import bookingService from '../services/bookingService';
-import type { BookingResponse, BookingStatus } from '../types/booking';
+import { BOOKING_STATUSES, type BookingResponse, type BookingStatus } from '../types/booking';
 import BookingStatusBadge from '../components/BookingStatusBadge';
 
-const UPDATABLE_STATUSES: BookingStatus[] = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'];
+const UPDATABLE_STATUSES: BookingStatus[] = [...BOOKING_STATUSES];
 
 const formatDateTime = (dt: string) =>
     new Date(dt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });

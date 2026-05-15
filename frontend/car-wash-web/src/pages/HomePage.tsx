@@ -88,7 +88,7 @@ function HomePage() {
                             </Link>
                         </>
                     )}
-                    {(user?.role === 'STAFF' || user?.role === 'ADMIN') && (
+                    {user?.role === 'EMPLOYEE' && (
                         <>
                             <Link
                                 to="/employee/dashboard"

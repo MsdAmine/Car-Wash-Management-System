@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import dashboardService from '../services/dashboardService';
 import bookingService from '../services/bookingService';
@@ -8,52 +8,40 @@ import { useAuth } from '../context/AuthContext';
 import BookingStatusBadge from '../components/BookingStatusBadge';
 import StatsCard from '../components/StatsCard';
 
-const formatDateTime = (dt: string) =>
-    new Date(dt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+const formatDate = (dt: string) =>
+    new Date(dt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 
-const ChevronRight = () => (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-    </svg>
+const formatTime = (dt: string) =>
+    new Date(dt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+
+const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(Number(amount));
+
+const currentDate = new Intl.DateTimeFormat(undefined, {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+}).format(new Date());
+
+const MiniIcon = () => (
+    <span className="block h-2.5 w-2.5 rounded-full bg-current" aria-hidden="true" />
 );
 
-const CalendarIcon = () => (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+const ArrowIcon = () => (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
     </svg>
 );
-
-const CarIcon = () => (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
-    </svg>
-);
-
-const CheckCircleIcon = () => (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-    </svg>
-);
-
-const DollarIcon = () => (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-    </svg>
-);
-
-const suggestedServices = [
-    { name: 'Premium Wash', description: 'Full exterior wash with wax' },
-    { name: 'Full Detailing', description: 'Interior & exterior deep clean' },
-    { name: 'Interior Cleaning', description: 'Complete interior refresh' },
-];
 
 const CustomerDashboard: React.FC = () => {
     const { user } = useAuth();
     const [stats, setStats] = useState<CustomerDashboardResponse | null>(null);
-    const [recentBookings, setRecentBookings] = useState<BookingResponse[]>([]);
+    const [bookings, setBookings] = useState<BookingResponse[]>([]);
     const [loadingStats, setLoadingStats] = useState(true);
     const [loadingBookings, setLoadingBookings] = useState(true);
     const [statsError, setStatsError] = useState<string | null>(null);
+    const [bookingsError, setBookingsError] = useState<string | null>(null);
+    const [referenceTime] = useState(() => Date.now());
 
     useEffect(() => {
         dashboardService.getCustomerDashboard()
@@ -62,80 +50,84 @@ const CustomerDashboard: React.FC = () => {
             .finally(() => setLoadingStats(false));
 
         bookingService.getMyBookings()
-            .then(bookings => setRecentBookings(bookings.slice(0, 5)))
-            .catch(() => {/* non-critical */})
+            .then(setBookings)
+            .catch(() => setBookingsError('Failed to load recent bookings.'))
             .finally(() => setLoadingBookings(false));
     }, []);
 
+    const upcomingBookings = useMemo(() => {
+        return bookings
+            .filter(booking => {
+                const appointmentTime = new Date(booking.appointmentDateTime).getTime();
+                return appointmentTime >= referenceTime && !['CANCELLED', 'COMPLETED', 'NO_SHOW'].includes(booking.status);
+            })
+            .sort((a, b) => new Date(a.appointmentDateTime).getTime() - new Date(b.appointmentDateTime).getTime());
+    }, [bookings, referenceTime]);
+
+    const recentActivity = useMemo(() => (
+        [...bookings]
+            .sort((a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime())
+            .slice(0, 5)
+    ), [bookings]);
+
+    const completedBookings = bookings.filter(booking => booking.status === 'COMPLETED').length;
+    const upcomingBooking = upcomingBookings[0];
+    const firstName = user?.firstName || 'there';
+
     const statCards = [
         {
-            label: 'Upcoming Bookings',
-            value: stats?.upcomingBookings ?? 1,
-            icon: <CalendarIcon />,
+            label: 'Upcoming bookings',
+            value: stats?.upcomingBookings ?? upcomingBookings.length,
+            icon: <MiniIcon />,
         },
         {
-            label: 'Registered Vehicles',
-            value: stats?.registeredVehicles ?? 2,
-            icon: <CarIcon />,
+            label: 'Registered vehicles',
+            value: stats?.registeredVehicles ?? '--',
+            icon: <MiniIcon />,
         },
         {
-            label: 'Completed Washes',
-            value: stats?.previousBookings ?? 8,
-            icon: <CheckCircleIcon />,
+            label: 'Completed washes',
+            value: stats?.previousBookings ?? completedBookings,
+            icon: <MiniIcon />,
         },
         {
-            label: 'Pending Payments',
-            value: 0,
-            icon: <DollarIcon />,
+            label: 'Pending payments',
+            value: '--',
+            icon: <MiniIcon />,
         },
     ];
 
     return (
-        <div className="max-w-5xl mx-auto p-6 sm:p-8 space-y-6">
-            {/* Header */}
-            <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-6 sm:p-8">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">
-                            Welcome back{user?.firstName ? `, ${user.firstName}` : ''}
-                        </h1>
-                        <p className="mt-1 text-sm text-gray-500">
-                            Manage your vehicles, bookings, and payments from one place.
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                        <Link
-                            to="/book-appointment"
-                            className="bg-gray-900 text-white rounded-2xl px-4 py-2.5 text-sm font-medium hover:bg-gray-800 transition"
-                        >
-                            Book a Wash
-                        </Link>
-                        <Link
-                            to="/add-vehicle"
-                            className="bg-white border border-gray-200 text-gray-900 rounded-2xl px-4 py-2.5 text-sm font-medium hover:bg-gray-50 transition"
-                        >
-                            Add Vehicle
-                        </Link>
-                    </div>
+        <div className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+            <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                    <p className="text-sm font-medium text-gray-500">{currentDate}</p>
+                    <h1 className="mt-2 text-3xl font-semibold text-gray-950">Good morning, {firstName}.</h1>
+                    <p className="mt-2 text-sm text-gray-600">Manage your vehicles, bookings, and payments.</p>
                 </div>
-            </div>
+                <Link
+                    to="/book-appointment"
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-gray-950 px-4 text-sm font-medium text-white transition hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-900"
+                >
+                    Book a wash
+                    <ArrowIcon />
+                </Link>
+            </section>
 
             {statsError && (
-                <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-2xl px-4 py-3 text-red-700 text-sm">
-                    <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
                     {statsError}
                 </div>
             )}
 
-            {/* Stats */}
             {loadingStats ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {[...Array(4)].map((_, i) => (
-                        <div key={i} className="h-24 bg-white rounded-2xl border border-gray-200 animate-pulse" />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    {Array.from({ length: 4 }).map((_, index) => (
+                        <div key={index} className="h-24 animate-pulse rounded-lg border border-gray-200 bg-white" />
                     ))}
                 </div>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                     {statCards.map(card => (
                         <StatsCard
                             key={card.label}
@@ -144,147 +136,140 @@ const CustomerDashboard: React.FC = () => {
                             icon={card.icon}
                             bg="bg-white"
                             iconColor="text-gray-400"
-                            valueColor="text-gray-900"
+                            valueColor="text-gray-950"
                         />
                     ))}
                 </div>
             )}
 
-            {/* Main content */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                {/* Left column */}
-                <div className="xl:col-span-2 space-y-6">
-                    {/* Upcoming booking */}
-                    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                        <div className="px-6 py-4 border-b border-gray-100">
-                            <h2 className="text-sm font-semibold text-gray-700">Upcoming Booking</h2>
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.25fr_0.75fr]">
+                <section className="rounded-lg bg-gray-950 p-5 text-white shadow-sm">
+                    <div className="flex items-center justify-between gap-4">
+                        <div>
+                            <p className="text-sm font-medium text-gray-400">Upcoming booking</p>
+                            <h2 className="mt-2 text-2xl font-semibold">
+                                {upcomingBooking ? upcomingBooking.washServiceName : 'No wash scheduled'}
+                            </h2>
                         </div>
-                        <div className="p-6">
-                            <div className="flex items-start justify-between gap-4">
-                                <div>
-                                    <p className="font-semibold text-gray-900">Premium Wash</p>
-                                    <p className="text-sm text-gray-500 mt-1">BMW 3 Series</p>
-                                    <p className="text-sm text-gray-500">Tomorrow · 10:30 AM</p>
-                                </div>
-                                <BookingStatusBadge status="CONFIRMED" />
+                        {upcomingBooking && <BookingStatusBadge status={upcomingBooking.status} />}
+                    </div>
+
+                    {loadingBookings ? (
+                        <div className="mt-6 h-28 animate-pulse rounded-lg bg-white/10" />
+                    ) : upcomingBooking ? (
+                        <div className="mt-6 grid gap-4 sm:grid-cols-4">
+                            <div>
+                                <p className="text-xs font-medium uppercase text-gray-400">Vehicle</p>
+                                <p className="mt-1 font-mono text-sm text-white">{upcomingBooking.vehicleLicensePlate}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs font-medium uppercase text-gray-400">Date</p>
+                                <p className="mt-1 font-mono text-sm text-white">{formatDate(upcomingBooking.appointmentDateTime)}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs font-medium uppercase text-gray-400">Time</p>
+                                <p className="mt-1 font-mono text-sm text-white">{formatTime(upcomingBooking.appointmentDateTime)}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs font-medium uppercase text-gray-400">Total</p>
+                                <p className="mt-1 font-mono text-sm text-white">{formatCurrency(upcomingBooking.totalPrice)}</p>
                             </div>
                             <Link
-                                to="/my-bookings"
-                                className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-gray-900 hover:text-gray-600 transition"
+                                to={`/bookings/${upcomingBooking.id}`}
+                                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-white px-4 text-sm font-medium text-gray-950 transition hover:bg-gray-100 sm:col-span-4 sm:w-fit"
                             >
-                                View details <ChevronRight />
+                                View booking
+                                <ArrowIcon />
                             </Link>
                         </div>
-                    </div>
-
-                    {/* Recent activity */}
-                    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100">
-                            <h2 className="text-sm font-semibold text-gray-700">Recent Activity</h2>
-                            <Link
-                                to="/my-bookings"
-                                className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 font-medium transition"
-                            >
-                                View all <ChevronRight />
-                            </Link>
-                        </div>
-                        <div className="divide-y divide-gray-50">
-                            {loadingBookings ? (
-                                <div className="p-6 space-y-3">
-                                    {[...Array(3)].map((_, i) => (
-                                        <div key={i} className="h-12 bg-gray-100 rounded-xl animate-pulse" />
-                                    ))}
-                                </div>
-                            ) : recentBookings.length === 0 ? (
-                                <div className="px-6 py-10 text-center text-gray-400 text-sm">
-                                    No bookings yet.{' '}
-                                    <Link
-                                        to="/book-appointment"
-                                        className="font-medium text-gray-900 underline underline-offset-4"
-                                    >
-                                        Book your first wash
-                                    </Link>
-                                </div>
-                            ) : (
-                                recentBookings.map(booking => (
-                                    <Link
-                                        key={booking.id}
-                                        to={`/bookings/${booking.id}`}
-                                        className="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition"
-                                    >
-                                        <div>
-                                            <p className="text-sm font-medium text-gray-900">{booking.washServiceName}</p>
-                                            <p className="text-xs text-gray-500 mt-0.5">
-                                                {booking.vehicleLicensePlate} &bull; {formatDateTime(booking.appointmentDateTime)}
-                                            </p>
-                                        </div>
-                                        <BookingStatusBadge status={booking.status} />
-                                    </Link>
-                                ))
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Right column */}
-                <div className="space-y-6">
-                    {/* Quick actions */}
-                    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                        <div className="px-6 py-4 border-b border-gray-100">
-                            <h2 className="text-sm font-semibold text-gray-700">Quick Actions</h2>
-                        </div>
-                        <div className="p-4 space-y-2">
+                    ) : (
+                        <div className="mt-6">
+                            <p className="text-sm text-gray-300">Your queue is clear. Schedule your next appointment when your car is ready.</p>
                             <Link
                                 to="/book-appointment"
-                                className="flex items-center w-full bg-gray-900 text-white rounded-xl px-4 py-3 text-sm font-medium hover:bg-gray-800 transition"
+                                className="mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-white px-4 text-sm font-medium text-gray-950 transition hover:bg-gray-100"
                             >
-                                Book a Wash
-                            </Link>
-                            <Link
-                                to="/my-bookings"
-                                className="flex items-center w-full bg-white border border-gray-200 text-gray-900 rounded-xl px-4 py-3 text-sm font-medium hover:bg-gray-50 transition"
-                            >
-                                My Bookings
-                            </Link>
-                            <Link
-                                to="/my-vehicles"
-                                className="flex items-center w-full bg-white border border-gray-200 text-gray-900 rounded-xl px-4 py-3 text-sm font-medium hover:bg-gray-50 transition"
-                            >
-                                My Vehicles
-                            </Link>
-                            <Link
-                                to="/services"
-                                className="flex items-center w-full bg-white border border-gray-200 text-gray-900 rounded-xl px-4 py-3 text-sm font-medium hover:bg-gray-50 transition"
-                            >
-                                Browse Services
+                                Book a wash
+                                <ArrowIcon />
                             </Link>
                         </div>
-                    </div>
+                    )}
+                </section>
 
-                    {/* Suggested services */}
-                    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                        <div className="px-6 py-4 border-b border-gray-100">
-                            <h2 className="text-sm font-semibold text-gray-700">Suggested Services</h2>
-                        </div>
-                        <div className="divide-y divide-gray-50">
-                            {suggestedServices.map(service => (
-                                <div key={service.name} className="flex items-center justify-between px-6 py-4">
-                                    <div>
-                                        <p className="text-sm font-medium text-gray-900">{service.name}</p>
-                                        <p className="text-xs text-gray-500 mt-0.5">{service.description}</p>
-                                    </div>
-                                    <Link
-                                        to="/book-appointment"
-                                        className="shrink-0 ml-4 text-xs font-medium text-gray-900 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition"
-                                    >
-                                        Book
-                                    </Link>
-                                </div>
-                            ))}
-                        </div>
+                <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-base font-semibold text-gray-950">Quick actions</h2>
                     </div>
-                </div>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                        {[
+                            { label: 'Book a Wash', to: '/book-appointment' },
+                            { label: 'My Bookings', to: '/my-bookings' },
+                            { label: 'My Vehicles', to: '/my-vehicles' },
+                            { label: 'Browse Services', to: '/services' },
+                        ].map(action => (
+                            <Link
+                                key={action.to}
+                                to={action.to}
+                                className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3 text-sm font-medium text-gray-800 transition hover:border-gray-300 hover:bg-gray-50"
+                            >
+                                {action.label}
+                                <ArrowIcon />
+                            </Link>
+                        ))}
+                    </div>
+                </section>
             </div>
+
+            <section className="rounded-lg border border-gray-200 bg-white shadow-sm">
+                <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+                    <h2 className="text-base font-semibold text-gray-950">Recent activity</h2>
+                    <Link to="/my-bookings" className="text-sm font-medium text-gray-600 hover:text-gray-950">
+                        View all
+                    </Link>
+                </div>
+
+                {bookingsError && (
+                    <div className="border-b border-red-100 bg-red-50 px-5 py-3 text-sm text-red-700" role="alert">
+                        {bookingsError}
+                    </div>
+                )}
+
+                {loadingBookings ? (
+                    <div className="space-y-3 p-5">
+                        {Array.from({ length: 3 }).map((_, index) => (
+                            <div key={index} className="h-14 animate-pulse rounded-lg bg-gray-100" />
+                        ))}
+                    </div>
+                ) : recentActivity.length === 0 ? (
+                    <div className="px-5 py-10 text-center">
+                        <p className="text-sm font-medium text-gray-700">No booking activity yet.</p>
+                        <p className="mt-1 text-sm text-gray-500">Your completed and upcoming appointments will appear here.</p>
+                    </div>
+                ) : (
+                    <div className="divide-y divide-gray-100">
+                        {recentActivity.map(booking => (
+                            <Link
+                                key={booking.id}
+                                to={`/bookings/${booking.id}`}
+                                className="grid gap-3 px-5 py-4 transition hover:bg-gray-50 sm:grid-cols-[1fr_auto]"
+                            >
+                                <div>
+                                    <p className="text-sm font-semibold text-gray-950">{booking.washServiceName}</p>
+                                    <p className="mt-1 text-xs text-gray-500">
+                                        <span className="font-mono">{booking.vehicleLicensePlate}</span>
+                                        {' / '}
+                                        <span className="font-mono">{formatDate(booking.appointmentDateTime)} {formatTime(booking.appointmentDateTime)}</span>
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <span className="font-mono text-sm font-semibold text-gray-800">{formatCurrency(booking.totalPrice)}</span>
+                                    <BookingStatusBadge status={booking.status} />
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
+                )}
+            </section>
         </div>
     );
 };

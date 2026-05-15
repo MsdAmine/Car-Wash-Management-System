@@ -1,4 +1,22 @@
-export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
+export const BOOKING_STATUSES = [
+    'PENDING',
+    'CONFIRMED',
+    'IN_PROGRESS',
+    'COMPLETED',
+    'CANCELLED',
+    'NO_SHOW',
+] as const;
+
+export type BookingStatus = (typeof BOOKING_STATUSES)[number];
+
+export const PAYMENT_STATUSES = [
+    'PENDING',
+    'CONFIRMED',
+    'FAILED',
+    'REFUNDED',
+] as const;
+
+export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 
 export interface BookingRequest {
     vehicleId: string;

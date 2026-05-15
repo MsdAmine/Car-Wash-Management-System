@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import bookingService from '../services/bookingService';
-import type { BookingResponse } from '../types/booking';
+import type { BookingResponse, BookingStatus } from '../types/booking';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 import BookingStatusBadge from '../components/BookingStatusBadge';
 import { BookingCardSkeleton } from '../components/BookingSkeletons';
@@ -12,11 +12,13 @@ const formatDateTime = (dt: string) =>
         timeStyle: 'short',
     });
 
-const statusBorderClass: Record<string, string> = {
-    PENDING: 'border-l-yellow-400',
-    CONFIRMED: 'border-l-blue-400',
-    COMPLETED: 'border-l-green-400',
+const statusBorderClass: Record<BookingStatus, string> = {
+    PENDING: 'border-l-gray-300',
+    CONFIRMED: 'border-l-gray-900',
+    IN_PROGRESS: 'border-l-neutral-400',
+    COMPLETED: 'border-l-emerald-400',
     CANCELLED: 'border-l-gray-300',
+    NO_SHOW: 'border-l-amber-400',
 };
 
 const MyBookings: React.FC = () => {
