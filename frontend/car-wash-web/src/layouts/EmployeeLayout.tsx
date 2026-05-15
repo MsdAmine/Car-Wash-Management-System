@@ -10,7 +10,7 @@ export default function EmployeeLayout() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="min-h-screen bg-gray-100 flex flex-col">
             <a
                 href="#main-content"
                 className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 bg-white px-4 py-2 rounded-lg text-sm font-medium text-blue-600 shadow-lg"
@@ -37,7 +37,7 @@ export default function EmployeeLayout() {
                     >
                         {APP_NAME}
                     </Link>
-                    <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-semibold rounded uppercase tracking-wide shrink-0">
+                    <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-semibold rounded uppercase tracking-wide shrink-0">
                         Staff
                     </span>
 

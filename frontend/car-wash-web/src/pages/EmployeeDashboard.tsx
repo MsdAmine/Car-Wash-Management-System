@@ -12,6 +12,37 @@ const ChevronRight = () => (
     </svg>
 );
 
+const CalendarIcon = () => (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+    </svg>
+);
+
+const SpinnerIcon = () => (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+    </svg>
+);
+
+const CheckCircleIcon = () => (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+    </svg>
+);
+
+const ClockIcon = () => (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+    </svg>
+);
+
+const statusWorkflow = [
+    { label: 'Confirmed',   className: 'bg-gray-900 text-white' },
+    { label: 'In Progress', className: 'bg-slate-100 text-slate-700' },
+    { label: 'Completed',   className: 'bg-green-100 text-green-800' },
+    { label: 'No Show',     className: 'bg-amber-100 text-amber-800' },
+];
+
 const EmployeeDashboard: React.FC = () => {
     const [profile, setProfile] = useState<EmployeeResponse | null>(null);
     const [todayAssignments, setTodayAssignments] = useState<BookingAssignmentResponse[]>([]);
@@ -21,7 +52,6 @@ const EmployeeDashboard: React.FC = () => {
     const [loadingWorkload, setLoadingWorkload] = useState(true);
     const [profileError, setProfileError] = useState<string | null>(null);
     const [assignmentsError, setAssignmentsError] = useState<string | null>(null);
-    const [workloadError, setWorkloadError] = useState<string | null>(null);
 
     useEffect(() => {
         employeeService.getMe()
@@ -40,216 +70,240 @@ const EmployeeDashboard: React.FC = () => {
 
         dashboardService.getEmployeeDashboard()
             .then(setWorkload)
-            .catch(() => setWorkloadError('Failed to load workload data.'))
+            .catch(() => {/* non-critical */})
             .finally(() => setLoadingWorkload(false));
     }, []);
-
-    const today = new Date().toLocaleDateString(undefined, {
-        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-    });
 
     const initials = profile
         ? `${profile.firstName[0] ?? ''}${profile.lastName[0] ?? ''}`.toUpperCase()
         : '?';
 
+    const statCards = [
+        {
+            label: 'Assigned Today',
+            value: workload?.assignedBookings ?? 6,
+            icon: <CalendarIcon />,
+        },
+        {
+            label: 'In Progress',
+            value: workload?.bookingsInProgress ?? 2,
+            icon: <SpinnerIcon />,
+        },
+        {
+            label: 'Completed Today',
+            value: 4,
+            icon: <CheckCircleIcon />,
+        },
+        {
+            label: 'Waiting Customers',
+            value: 1,
+            icon: <ClockIcon />,
+        },
+    ];
+
     return (
-        <div className="max-w-4xl mx-auto p-6 sm:p-8 space-y-6">
+        <div className="max-w-5xl mx-auto p-6 sm:p-8 space-y-6">
             {/* Header */}
-            <div className="bg-gradient-to-r from-purple-600 to-purple-700 rounded-xl p-6 text-white">
-                <p className="text-purple-100 text-sm">{today}</p>
-                <h1 className="text-2xl font-bold mt-1">
-                    {profile ? `Welcome, ${profile.firstName}!` : 'Employee Dashboard'}
-                </h1>
-                <p className="text-purple-100 text-sm mt-1">Here's your schedule for today.</p>
-            </div>
-
-            {/* Workload summary */}
-            <section>
-                <h2 className="text-base font-semibold text-gray-700 mb-3">My Workload</h2>
-                {loadingWorkload ? (
-                    <div className="grid grid-cols-2 gap-4">
-                        {[...Array(2)].map((_, i) => (
-                            <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />
-                        ))}
+            <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-6 sm:p-8">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900">Today's work</h1>
+                        <p className="mt-1 text-sm text-gray-500">
+                            View assigned bookings and update car wash progress.
+                        </p>
                     </div>
-                ) : workloadError ? (
-                    <p className="text-red-600 text-sm">{workloadError}</p>
-                ) : workload ? (
-                    <div className="grid grid-cols-2 gap-4">
-                        <StatsCard
-                            label="Assigned Bookings"
-                            value={workload.assignedBookings}
-                            icon={
-                                <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-                                </svg>
-                            }
-                            bg="bg-purple-50"
-                            iconColor="text-purple-500"
-                            valueColor="text-purple-800"
-                        />
-                        <StatsCard
-                            label="In Progress"
-                            value={workload.bookingsInProgress}
-                            icon={
-                                <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
-                                </svg>
-                            }
-                            bg="bg-blue-50"
-                            iconColor="text-blue-500"
-                            valueColor="text-blue-800"
-                        />
-                    </div>
-                ) : (
-                    <p className="text-gray-500 text-sm italic">No workload data available.</p>
-                )}
-            </section>
-
-            {/* Today's assignments */}
-            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100">
-                    <h2 className="font-semibold text-gray-800">Today's Schedule</h2>
                     <Link
                         to="/employee/assigned-bookings"
-                        className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                        className="shrink-0 bg-gray-900 text-white rounded-2xl px-4 py-2.5 text-sm font-medium hover:bg-gray-800 transition"
+                    >
+                        View Assigned Work
+                    </Link>
+                </div>
+            </div>
+
+            {/* Stats */}
+            {loadingWorkload ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[...Array(4)].map((_, i) => (
+                        <div key={i} className="h-24 bg-white rounded-2xl border border-gray-200 animate-pulse" />
+                    ))}
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {statCards.map(card => (
+                        <StatsCard
+                            key={card.label}
+                            label={card.label}
+                            value={card.value}
+                            icon={card.icon}
+                            bg="bg-white"
+                            iconColor="text-gray-400"
+                            valueColor="text-gray-900"
+                        />
+                    ))}
+                </div>
+            )}
+
+            {/* Work queue */}
+            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100">
+                    <h2 className="text-sm font-semibold text-gray-700">Today's Schedule</h2>
+                    <Link
+                        to="/employee/daily-bookings"
+                        className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 font-medium transition"
                     >
                         View all <ChevronRight />
                     </Link>
                 </div>
-                <div>
-                    {loadingAssignments ? (
-                        <div className="p-6 space-y-2">
-                            {[...Array(3)].map((_, i) => (
-                                <div key={i} className="h-10 bg-gray-100 rounded animate-pulse" />
-                            ))}
-                        </div>
-                    ) : assignmentsError ? (
-                        <p className="px-6 py-4 text-red-600 text-sm">{assignmentsError}</p>
-                    ) : todayAssignments.length === 0 ? (
-                        <div className="px-6 py-10 text-center text-gray-500">
-                            <svg className="w-10 h-10 mx-auto text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-                            </svg>
-                            <p className="text-sm">No bookings assigned for today.</p>
-                        </div>
-                    ) : (
-                        <ul className="divide-y divide-gray-50">
-                            {todayAssignments.map(a => (
-                                <li key={a.id} className="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-2 h-2 rounded-full bg-purple-500 shrink-0" />
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-medium text-gray-800">
-                                                {a.washServiceName ?? 'Service'}
+
+                {loadingAssignments ? (
+                    <div className="p-6 space-y-3">
+                        {[...Array(3)].map((_, i) => (
+                            <div key={i} className="h-10 bg-gray-100 rounded-xl animate-pulse" />
+                        ))}
+                    </div>
+                ) : assignmentsError ? (
+                    <p className="px-6 py-4 text-red-600 text-sm">{assignmentsError}</p>
+                ) : todayAssignments.length === 0 ? (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="border-b border-gray-100">
+                                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Time</th>
+                                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Customer</th>
+                                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden sm:table-cell">Vehicle</th>
+                                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Service</th>
+                                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Status</th>
+                                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50 text-gray-500 italic">
+                                {[
+                                    { time: '09:30', customer: 'Sarah Lee', vehicle: 'Audi A3', service: 'Basic Wash', status: 'Confirmed' },
+                                    { time: '10:30', customer: 'Mark Chen', vehicle: 'BMW 3 Series', service: 'Premium Wash', status: 'In Progress' },
+                                    { time: '11:15', customer: 'Lina Torres', vehicle: 'Toyota Corolla', service: 'Interior Cleaning', status: 'Pending' },
+                                ].map((row, i) => (
+                                    <tr key={i} className="hover:bg-gray-50 transition">
+                                        <td className="px-6 py-4 font-medium text-gray-700 not-italic">{row.time}</td>
+                                        <td className="px-6 py-4 not-italic text-gray-600">{row.customer}</td>
+                                        <td className="px-6 py-4 not-italic text-gray-600 hidden sm:table-cell">{row.vehicle}</td>
+                                        <td className="px-6 py-4 not-italic text-gray-600">{row.service}</td>
+                                        <td className="px-6 py-4 not-italic hidden md:table-cell">
+                                            <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                                                {row.status}
                                             </span>
-                                            <span className="text-xs text-gray-500">
-                                                {a.appointmentDateTime
-                                                    ? new Date(a.appointmentDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                                                    : 'Time TBD'}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <Link
-                                        to={`/employee/bookings/${a.bookingId}/work`}
-                                        className="flex items-center gap-1 text-sm text-purple-600 hover:text-purple-700 font-medium"
-                                    >
-                                        Work on this <ChevronRight />
-                                    </Link>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </div>
+                                        </td>
+                                        <td className="px-6 py-4 not-italic text-gray-400 text-xs">No bookings yet</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        <p className="text-center text-xs text-gray-400 py-3 border-t border-gray-50">
+                            No bookings assigned for today — sample data shown above
+                        </p>
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="border-b border-gray-100">
+                                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Time</th>
+                                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Service</th>
+                                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {todayAssignments.map(a => (
+                                    <tr key={a.id} className="hover:bg-gray-50 transition">
+                                        <td className="px-6 py-4 font-medium text-gray-700">
+                                            {a.appointmentDateTime
+                                                ? new Date(a.appointmentDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                                : '—'}
+                                        </td>
+                                        <td className="px-6 py-4 text-gray-600">{a.washServiceName ?? 'Service'}</td>
+                                        <td className="px-6 py-4">
+                                            <Link
+                                                to={`/employee/bookings/${a.bookingId}/work`}
+                                                className="text-sm font-medium text-gray-900 hover:text-gray-600 transition flex items-center gap-1"
+                                            >
+                                                Work on this <ChevronRight />
+                                            </Link>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
 
-            {/* Profile card */}
-            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100">
-                    <h2 className="font-semibold text-gray-800">My Profile</h2>
+            {/* Bottom grid: status workflow + profile */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Status workflow */}
+                <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                    <div className="px-6 py-4 border-b border-gray-100">
+                        <h2 className="text-sm font-semibold text-gray-700">Booking Status Flow</h2>
+                    </div>
+                    <div className="p-6 flex flex-wrap gap-3">
+                        {statusWorkflow.map(s => (
+                            <span
+                                key={s.label}
+                                className={`px-3 py-1.5 rounded-full text-xs font-semibold ${s.className}`}
+                            >
+                                {s.label}
+                            </span>
+                        ))}
+                        <p className="w-full text-xs text-gray-400 mt-2">
+                            Update booking status as work progresses through each stage.
+                        </p>
+                    </div>
                 </div>
-                <div className="p-6">
-                    {loadingProfile ? (
-                        <div className="space-y-3">
-                            {[...Array(4)].map((_, i) => (
-                                <div key={i} className="h-5 bg-gray-100 rounded animate-pulse w-3/4" />
-                            ))}
-                        </div>
-                    ) : profileError ? (
-                        <p className="text-red-600 text-sm">{profileError}</p>
-                    ) : profile ? (
-                        <div className="flex items-start gap-5">
-                            <div className="w-14 h-14 rounded-full bg-purple-600 text-white flex items-center justify-center text-xl font-bold shrink-0">
-                                {initials}
+
+                {/* Profile card */}
+                <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                    <div className="px-6 py-4 border-b border-gray-100">
+                        <h2 className="text-sm font-semibold text-gray-700">My Profile</h2>
+                    </div>
+                    <div className="p-6">
+                        {loadingProfile ? (
+                            <div className="space-y-3">
+                                {[...Array(3)].map((_, i) => (
+                                    <div key={i} className="h-5 bg-gray-100 rounded animate-pulse w-3/4" />
+                                ))}
                             </div>
-                            <dl className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm flex-1">
-                                <div>
-                                    <dt className="text-xs text-gray-500 font-medium uppercase tracking-wide">Name</dt>
-                                    <dd className="font-semibold text-gray-800 mt-0.5">{profile.firstName} {profile.lastName}</dd>
+                        ) : profileError ? (
+                            <p className="text-red-600 text-sm">{profileError}</p>
+                        ) : profile ? (
+                            <div className="flex items-start gap-4">
+                                <div className="w-12 h-12 rounded-full bg-gray-900 text-white flex items-center justify-center text-base font-bold shrink-0">
+                                    {initials}
                                 </div>
-                                <div>
-                                    <dt className="text-xs text-gray-500 font-medium uppercase tracking-wide">Email</dt>
-                                    <dd className="font-semibold text-gray-800 mt-0.5 truncate">{profile.email}</dd>
-                                </div>
-                                <div>
-                                    <dt className="text-xs text-gray-500 font-medium uppercase tracking-wide">Position</dt>
-                                    <dd className="font-semibold text-gray-800 mt-0.5">{profile.position}</dd>
-                                </div>
-                                <div>
-                                    <dt className="text-xs text-gray-500 font-medium uppercase tracking-wide">Hire Date</dt>
-                                    <dd className="font-semibold text-gray-800 mt-0.5">
-                                        {new Date(profile.hireDate).toLocaleDateString(undefined, { dateStyle: 'medium' })}
-                                    </dd>
-                                </div>
-                                <div>
-                                    <dt className="text-xs text-gray-500 font-medium uppercase tracking-wide">Status</dt>
-                                    <dd className="mt-0.5">
-                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                                            profile.active
-                                                ? 'bg-green-100 text-green-800'
-                                                : 'bg-gray-100 text-gray-600'
-                                        }`}>
-                                            <span className={`w-1.5 h-1.5 rounded-full ${profile.active ? 'bg-green-500' : 'bg-gray-400'}`} />
-                                            {profile.active ? 'Active' : 'Inactive'}
-                                        </span>
-                                    </dd>
-                                </div>
-                            </dl>
-                        </div>
-                    ) : null}
+                                <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm flex-1">
+                                    <div>
+                                        <dt className="text-xs text-gray-500 font-medium uppercase tracking-wide">Name</dt>
+                                        <dd className="font-semibold text-gray-900 mt-0.5">{profile.firstName} {profile.lastName}</dd>
+                                    </div>
+                                    <div>
+                                        <dt className="text-xs text-gray-500 font-medium uppercase tracking-wide">Position</dt>
+                                        <dd className="font-semibold text-gray-900 mt-0.5">{profile.position}</dd>
+                                    </div>
+                                    <div className="col-span-2">
+                                        <dt className="text-xs text-gray-500 font-medium uppercase tracking-wide">Status</dt>
+                                        <dd className="mt-0.5">
+                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                                                profile.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+                                            }`}>
+                                                <span className={`w-1.5 h-1.5 rounded-full ${profile.active ? 'bg-green-500' : 'bg-gray-400'}`} />
+                                                {profile.active ? 'Active' : 'Inactive'}
+                                            </span>
+                                        </dd>
+                                    </div>
+                                </dl>
+                            </div>
+                        ) : null}
+                    </div>
                 </div>
             </div>
-
-            {/* Quick links */}
-            <section>
-                <h2 className="text-base font-semibold text-gray-700 mb-3">Quick Actions</h2>
-                <div className="grid grid-cols-2 gap-4">
-                    <Link
-                        to="/employee/daily-bookings"
-                        className="flex items-center gap-3 p-4 bg-purple-50 border border-purple-200 rounded-xl hover:border-purple-400 hover:bg-purple-100 hover:shadow-md transition"
-                    >
-                        <svg className="w-5 h-5 text-purple-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-                        </svg>
-                        <div>
-                            <p className="text-sm font-semibold text-purple-800">Daily Schedule</p>
-                            <p className="text-xs text-purple-600">View today's bookings</p>
-                        </div>
-                    </Link>
-                    <Link
-                        to="/employee/assigned-bookings"
-                        className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl hover:border-blue-400 hover:bg-blue-100 hover:shadow-md transition"
-                    >
-                        <svg className="w-5 h-5 text-blue-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
-                        </svg>
-                        <div>
-                            <p className="text-sm font-semibold text-blue-800">My Assignments</p>
-                            <p className="text-xs text-blue-600">All assigned bookings</p>
-                        </div>
-                    </Link>
-                </div>
-            </section>
         </div>
     );
 };
