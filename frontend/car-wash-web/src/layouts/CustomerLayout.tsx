@@ -13,15 +13,15 @@ export default function CustomerLayout() {
         <div className="min-h-screen bg-gray-100 flex flex-col">
             <a
                 href="#main-content"
-                className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 bg-white px-4 py-2 rounded-lg text-sm font-medium text-blue-600 shadow-lg"
+                className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 bg-white px-4 py-2 rounded-md text-sm font-medium text-gray-900 shadow-lg"
             >
                 Skip to main content
             </a>
 
-            <header className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-20">
+            <header className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-20" inert={sidebarOpen || undefined}>
                 <div className="px-4 h-14 flex items-center gap-3">
                     <button
-                        className="md:hidden p-1.5 rounded-md text-gray-500 hover:bg-gray-100 transition focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="md:hidden p-1.5 rounded-md text-gray-500 hover:bg-gray-100 transition focus:outline-none focus:ring-2 focus:ring-gray-900"
                         onClick={() => setSidebarOpen(true)}
                         aria-label="Open navigation menu"
                         aria-expanded={sidebarOpen}
@@ -55,23 +55,25 @@ export default function CustomerLayout() {
                 </div>
             </header>
 
-            {/* Mobile sidebar overlay */}
+            {/* Mobile sidebar — backdrop and panel are siblings so the nav is not inside aria-hidden */}
             {sidebarOpen && (
-                <div
-                    className="fixed inset-0 z-30 bg-black/40 md:hidden"
-                    aria-hidden="true"
-                    onClick={() => setSidebarOpen(false)}
-                >
+                <>
+                    <div
+                        className="fixed inset-0 z-30 bg-black/40 md:hidden"
+                        aria-hidden="true"
+                        onClick={() => setSidebarOpen(false)}
+                    />
                     <nav
-                        className="w-64 bg-white h-full shadow-xl p-4 flex flex-col"
-                        onClick={e => e.stopPropagation()}
+                        role="dialog"
+                        aria-modal="true"
                         aria-label="Mobile navigation"
+                        className="fixed inset-y-0 left-0 z-40 w-64 bg-white shadow-xl p-4 flex flex-col md:hidden"
                     >
                         <div className="flex items-center justify-between mb-4">
                             <span className="font-bold text-gray-900">{APP_NAME}</span>
                             <button
                                 onClick={() => setSidebarOpen(false)}
-                                className="p-1.5 rounded-md text-gray-400 hover:bg-gray-100 transition focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="p-1.5 rounded-md text-gray-400 hover:bg-gray-100 transition focus:outline-none focus:ring-2 focus:ring-gray-900"
                                 aria-label="Close navigation menu"
                             >
                                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
@@ -81,10 +83,10 @@ export default function CustomerLayout() {
                         </div>
                         <NavMenu role="CUSTOMER" orientation="vertical" />
                     </nav>
-                </div>
+                </>
             )}
 
-            <div className="flex flex-1">
+            <div className="flex flex-1" inert={sidebarOpen || undefined}>
                 <aside className="hidden md:block w-52 bg-white border-r border-gray-200 shrink-0" aria-label="Sidebar navigation">
                     <div className="p-3 pt-4">
                         <NavMenu role="CUSTOMER" orientation="vertical" />
