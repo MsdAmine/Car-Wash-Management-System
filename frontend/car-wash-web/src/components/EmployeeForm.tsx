@@ -70,7 +70,7 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({
         `w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 transition ${
             touched[name] && fieldErrors[name]
                 ? 'border-red-400 focus:ring-red-300'
-                : 'border-gray-300 focus:ring-blue-500'
+                : 'border-gray-200 focus:border-gray-900 focus:ring-gray-900/10'
         }`;
 
     return (
@@ -167,7 +167,7 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({
                 <button
                     type="submit"
                     disabled={submitting}
-                    className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                    className="flex-1 bg-gray-950 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-1"
                 >
                     {submitting ? submittingLabel : submitLabel}
                 </button>

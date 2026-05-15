@@ -4,6 +4,13 @@ import employeeService from '../services/employeeService';
 import type { EmployeePosition, UpdateEmployeeRequest } from '../types/employee';
 import EmployeeForm from '../components/EmployeeForm';
 
+type ApiError = {
+    response?: {
+        status?: number;
+        data?: { message?: string };
+    };
+};
+
 const EditEmployee: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
@@ -37,7 +44,8 @@ const EditEmployee: React.FC = () => {
     };
 
     useEffect(() => {
-        loadEmployee();
+        void Promise.resolve().then(loadEmployee);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -57,12 +65,13 @@ const EditEmployee: React.FC = () => {
             };
             await employeeService.update(id, request);
             navigate('/admin/employees');
-        } catch (err: any) {
-            const status = err.response?.status;
+        } catch (err) {
+            const apiError = err as ApiError;
+            const status = apiError.response?.status;
             if (status === 404) {
                 setFormError('Employee not found or is inactive.');
             } else if (status === 400) {
-                setFormError(err.response?.data?.message || 'Invalid input. Please check the form fields.');
+                setFormError(apiError.response?.data?.message || 'Invalid input. Please check the form fields.');
             } else {
                 setFormError('Failed to update employee. Please try again.');
             }
@@ -72,7 +81,7 @@ const EditEmployee: React.FC = () => {
     };
 
     return (
-        <div className="max-w-lg mx-auto p-6 sm:p-8">
+        <div className="max-w-xl mx-auto p-4 sm:p-6 lg:p-8">
             <button
                 onClick={() => navigate('/admin/employees')}
                 className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-6 transition"
@@ -84,14 +93,14 @@ const EditEmployee: React.FC = () => {
             </button>
 
             <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-800">Edit Employee</h1>
+                <h1 className="text-2xl font-bold text-gray-950">Edit Employee</h1>
                 <p className="text-sm text-gray-500 mt-0.5">Update the employee's position and hire date</p>
             </div>
 
             <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
                 {loading ? (
                     <div className="flex items-center justify-center py-12">
-                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500" />
+                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-900" />
                         <p className="ml-3 text-gray-500">Loading employee...</p>
                     </div>
                 ) : loadError ? (
@@ -101,14 +110,14 @@ const EditEmployee: React.FC = () => {
                             {loadError !== 'Employee not found.' && (
                                 <button
                                     onClick={loadEmployee}
-                                    className="text-blue-600 hover:underline text-sm font-medium"
+                                    className="text-gray-900 hover:underline text-sm font-medium"
                                 >
                                     Retry
                                 </button>
                             )}
                             <button
                                 onClick={() => navigate('/admin/employees')}
-                                className="text-blue-600 hover:underline text-sm"
+                                className="text-gray-900 hover:underline text-sm"
                             >
                                 Back to Manage Employees
                             </button>

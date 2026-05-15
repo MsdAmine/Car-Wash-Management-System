@@ -4,6 +4,12 @@ import employeeService from '../services/employeeService';
 import type { EmployeeResponse } from '../types/employee';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 
+type ApiError = {
+    response?: {
+        status?: number;
+    };
+};
+
 const getInitials = (first: string, last: string) =>
     `${first[0] ?? ''}${last[0] ?? ''}`.toUpperCase();
 
@@ -31,7 +37,7 @@ const AdminEmployees: React.FC = () => {
     };
 
     useEffect(() => {
-        fetchEmployees();
+        void Promise.resolve().then(fetchEmployees);
     }, []);
 
     const handleDeactivateConfirm = async () => {
@@ -43,8 +49,9 @@ const AdminEmployees: React.FC = () => {
         try {
             await employeeService.deactivate(id);
             setEmployees(prev => prev.map(e => e.id === id ? { ...e, active: false } : e));
-        } catch (err: any) {
-            const status = err.response?.status;
+        } catch (err) {
+            const apiError = err as ApiError;
+            const status = apiError.response?.status;
             if (status === 404) {
                 setActionError('Employee not found.');
             } else {
@@ -60,10 +67,10 @@ const AdminEmployees: React.FC = () => {
     const inactiveCount = employees.length - activeCount;
 
     return (
-        <div className="max-w-6xl mx-auto p-6 sm:p-8">
+        <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800">Manage Employees</h1>
+                    <h1 className="text-2xl font-bold text-gray-950">Manage Employees</h1>
                     <p className="text-sm text-gray-500 mt-0.5">
                         {activeCount} active{inactiveCount > 0 ? `, ${inactiveCount} inactive` : ''}
                     </p>
@@ -74,13 +81,13 @@ const AdminEmployees: React.FC = () => {
                             type="checkbox"
                             checked={showInactive}
                             onChange={e => setShowInactive(e.target.checked)}
-                            className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            className="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
                         />
                         Show inactive
                     </label>
                     <Link
                         to="/admin/employees/add"
-                        className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition shadow-sm"
+                        className="inline-flex items-center gap-2 bg-gray-950 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition shadow-sm"
                     >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -129,7 +136,7 @@ const AdminEmployees: React.FC = () => {
                         <p className="text-sm text-gray-400 mt-1">
                             <button
                                 onClick={() => setShowInactive(true)}
-                                className="text-blue-600 hover:underline"
+                                className="font-medium text-gray-900 underline-offset-4 hover:underline"
                             >
                                 Show {inactiveCount} inactive employee{inactiveCount !== 1 ? 's' : ''}
                             </button>
@@ -153,7 +160,7 @@ const AdminEmployees: React.FC = () => {
                                 <tr key={emp.id} className="hover:bg-gray-50 transition">
                                     <td className="px-5 py-4">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-9 h-9 rounded-full bg-purple-600 text-white flex items-center justify-center text-xs font-bold shrink-0">
+                                            <div className="w-9 h-9 rounded-lg bg-gray-900 text-white flex items-center justify-center text-xs font-bold shrink-0">
                                                 {getInitials(emp.firstName, emp.lastName)}
                                             </div>
                                             <div>
@@ -169,10 +176,10 @@ const AdminEmployees: React.FC = () => {
                                     <td className="px-5 py-4">
                                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
                                             emp.active
-                                                ? 'bg-green-100 text-green-800'
+                                                ? 'bg-gray-900 text-white'
                                                 : 'bg-gray-100 text-gray-500'
                                         }`}>
-                                            <span className={`w-1.5 h-1.5 rounded-full ${emp.active ? 'bg-green-500' : 'bg-gray-400'}`} />
+                                            <span className={`w-1.5 h-1.5 rounded-full ${emp.active ? 'bg-white' : 'bg-gray-400'}`} />
                                             {emp.active ? 'Active' : 'Inactive'}
                                         </span>
                                     </td>
@@ -180,7 +187,7 @@ const AdminEmployees: React.FC = () => {
                                         <div className="flex items-center justify-end gap-3">
                                             <button
                                                 onClick={() => navigate(`/admin/employees/${emp.id}/edit`)}
-                                                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                                                className="text-sm text-gray-700 hover:text-gray-950 font-medium underline-offset-4 hover:underline"
                                             >
                                                 Edit
                                             </button>
@@ -188,7 +195,7 @@ const AdminEmployees: React.FC = () => {
                                                 <button
                                                     onClick={() => setPendingDeactivate({ id: emp.id, name: `${emp.firstName} ${emp.lastName}` })}
                                                     disabled={deactivatingId === emp.id}
-                                                    className="text-sm text-yellow-600 hover:text-yellow-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    className="text-sm text-gray-600 hover:text-gray-950 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >
                                                     {deactivatingId === emp.id ? 'Deactivating...' : 'Deactivate'}
                                                 </button>

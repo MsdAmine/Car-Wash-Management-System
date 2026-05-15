@@ -1,8 +1,9 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import type { UserRole } from '../types/auth';
 
 interface RoleGuardProps {
-    allowedRoles: string[];
+    allowedRoles: UserRole[];
 }
 
 const RoleGuard: React.FC<RoleGuardProps> = ({ allowedRoles }) => {

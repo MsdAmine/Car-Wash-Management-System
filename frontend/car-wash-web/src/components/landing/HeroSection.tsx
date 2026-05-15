@@ -1,50 +1,84 @@
 import { Link } from 'react-router-dom';
 import Navbar from './Navbar';
 import BookingPreviewCard from './BookingPreviewCard';
-import { APP_NAME } from '../../config';
+
+const BRAND = 'CarWash Pro';
 
 export default function HeroSection() {
     return (
-        <div className="w-full max-w-7xl bg-white rounded-xl shadow-lg relative">
-            <div className="grid lg:grid-cols-2 lg:gap-2 p-3 lg:p-4">
-                {/* Left section — brand, headline, description, booking form */}
-                <section className="px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10 flex flex-col">
-                    <Link to="/" className="text-xl font-bold text-gray-900 tracking-tight self-start">
-                        {APP_NAME}
+        <div className="relative w-full max-w-7xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div className="grid min-h-[calc(100vh-2rem)] lg:min-h-[660px] lg:grid-cols-[0.95fr_1.05fr]">
+                <section className="flex flex-col justify-center px-5 py-16 sm:px-8 lg:px-12">
+                    <Link to="/" className="self-start text-xl font-bold tracking-tight text-gray-950">
+                        {BRAND}
                     </Link>
 
-                    <h1 className="mt-6 lg:mt-8 text-4xl sm:text-5xl lg:text-5xl xl:text-6xl font-bold leading-[1.05] tracking-tight">
-                        <span className="text-gray-900">Book your car wash with ease</span>
-                        <br />
-                        <span className="text-gray-400">Manage everything online</span>
+                    <h1 className="mt-8 max-w-2xl text-4xl font-bold leading-tight text-gray-950 sm:text-5xl lg:text-6xl">
+                        Book your car wash with ease
                     </h1>
 
-                    <p className="mt-4 text-gray-600 text-base leading-relaxed max-w-md">
-                        Choose your service, select your vehicle, pick a time, and track your booking from one simple dashboard.
+                    <p className="mt-4 max-w-lg text-base leading-7 text-gray-600">
+                        Choose a service, select a vehicle, pick a time, and keep every booking organized from a calm customer workspace.
                     </p>
 
-                    <div className="mt-5">
+                    <div className="mt-7">
                         <BookingPreviewCard />
+                    </div>
+
+                    <div className="mt-8 grid max-w-md grid-cols-3 gap-3 text-sm">
+                        <Metric value="24/7" label="Booking" />
+                        <Metric value="4" label="Wash tiers" />
+                        <Metric value="1" label="Workspace" />
                     </div>
                 </section>
 
-                {/* Right section — visual panel */}
                 <section
                     id="about"
-                    className="relative rounded-lg bg-gray-900 overflow-hidden min-h-[320px] sm:min-h-[380px] lg:h-[560px] xl:h-[600px] flex items-center justify-center"
+                    className="relative flex min-h-[360px] items-center justify-center border-t border-gray-200 bg-stone-100 px-5 py-10 lg:min-h-0 lg:border-l lg:border-t-0 lg:px-10"
                 >
-                    {/* Decorative bubbles */}
-                    <Bubbles />
+                    <div className="w-full max-w-xl">
+                        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                            <div className="flex items-center justify-between gap-4 border-b border-gray-100 pb-4">
+                                <div>
+                                    <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Today</p>
+                                    <p className="mt-1 text-lg font-semibold text-gray-950">Premium exterior wash</p>
+                                </div>
+                                <span className="rounded-full bg-gray-900 px-3 py-1 text-xs font-medium text-white">
+                                    Available
+                                </span>
+                            </div>
 
-                    {/* Car illustration */}
-                    <div className="relative z-10 w-full px-6 sm:px-10">
-                        <CarIllustration />
+                            <CarIllustration />
+
+                            <div id="contact" className="grid gap-3 border-t border-gray-100 pt-4 sm:grid-cols-3">
+                                <PreviewItem label="Vehicle" value="Sedan" />
+                                <PreviewItem label="Time" value="10:30 AM" />
+                                <PreviewItem label="Status" value="Ready" />
+                            </div>
+                        </div>
                     </div>
                 </section>
             </div>
 
-            {/* Navbar — absolute positioned over the right panel (desktop) or top-right hamburger (mobile) */}
             <Navbar />
+        </div>
+    );
+}
+
+function Metric({ value, label }: { value: string; label: string }) {
+    return (
+        <div className="rounded-lg border border-gray-200 bg-white px-3 py-2">
+            <p className="text-base font-semibold text-gray-950">{value}</p>
+            <p className="mt-0.5 text-xs text-gray-500">{label}</p>
+        </div>
+    );
+}
+
+function PreviewItem({ label, value }: { label: string; value: string }) {
+    return (
+        <div className="rounded-lg bg-gray-50 px-3 py-2">
+            <p className="text-xs text-gray-500">{label}</p>
+            <p className="mt-1 text-sm font-semibold text-gray-950">{value}</p>
         </div>
     );
 }
@@ -52,119 +86,42 @@ export default function HeroSection() {
 function CarIllustration() {
     return (
         <svg
-            viewBox="0 0 480 280"
-            className="w-full h-auto max-h-[320px] drop-shadow-xl"
+            viewBox="0 0 480 260"
+            className="my-8 h-auto w-full"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
             aria-hidden="true"
         >
-            <defs>
-                <linearGradient id="bodyGrad" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="#475569" />
-                    <stop offset="100%" stopColor="#1e293b" />
-                </linearGradient>
-                <linearGradient id="windowGrad" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="#dbeafe" />
-                    <stop offset="100%" stopColor="#93c5fd" />
-                </linearGradient>
-            </defs>
-
-            {/* Ground shadow */}
-            <ellipse cx="240" cy="240" rx="190" ry="14" fill="#0f172a" fillOpacity="0.04" />
-
-            {/* Foam puddle */}
-            <ellipse cx="240" cy="232" rx="170" ry="10" fill="white" fillOpacity="0.7" />
-            <circle cx="120" cy="232" r="6" fill="white" />
-            <circle cx="380" cy="234" r="5" fill="white" />
-            <circle cx="80" cy="236" r="4" fill="white" fillOpacity="0.8" />
-            <circle cx="420" cy="230" r="4" fill="white" fillOpacity="0.8" />
-
-            {/* Car body */}
+            <ellipse cx="240" cy="222" rx="175" ry="13" fill="#111827" opacity="0.08" />
             <path
-                d="M70 175 Q70 155 95 150 L140 145 L175 110 Q190 95 215 93 L300 93 Q325 95 345 115 L370 145 L405 155 Q420 158 420 175 L420 205 Q420 215 410 215 L80 215 Q70 215 70 205 Z"
-                fill="url(#bodyGrad)"
+                d="M72 167 Q75 144 101 140 L139 136 L174 103 Q192 87 219 86 L299 86 Q326 88 347 108 L375 136 L408 145 Q423 149 423 168 L423 196 Q423 207 411 207 L84 207 Q72 207 72 195 Z"
+                fill="#1f2937"
             />
-
-            {/* Roof highlight */}
-            <path
-                d="M180 110 Q193 100 215 99 L295 99 Q318 100 335 118 L350 138 L180 138 Z"
-                fill="#1e293b"
-            />
-
-            {/* Windows */}
-            <path
-                d="M192 115 Q200 107 217 106 L245 106 L245 138 L188 138 Z"
-                fill="url(#windowGrad)"
-                fillOpacity="0.9"
-            />
-            <path
-                d="M255 106 L292 106 Q310 108 322 122 L335 138 L255 138 Z"
-                fill="url(#windowGrad)"
-                fillOpacity="0.9"
-            />
-
-            {/* Window shine */}
-            <path d="M200 113 Q210 109 225 110" stroke="white" strokeOpacity="0.7" strokeWidth="2" strokeLinecap="round" />
-            <path d="M265 112 Q280 109 300 113" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" />
-
-            {/* Door line */}
-            <line x1="245" y1="138" x2="245" y2="200" stroke="#0f172a" strokeOpacity="0.5" strokeWidth="1.5" />
-
-            {/* Headlight */}
-            <ellipse cx="405" cy="175" rx="10" ry="6" fill="#fde68a" />
-            <ellipse cx="405" cy="175" rx="6" ry="3" fill="#fef9c3" />
-
-            {/* Taillight */}
-            <rect x="75" y="170" width="10" height="8" rx="2" fill="#fca5a5" />
-
-            {/* Wheels */}
-            <circle cx="145" cy="215" r="32" fill="#0f172a" />
-            <circle cx="145" cy="215" r="22" fill="#1e293b" />
-            <circle cx="145" cy="215" r="10" fill="#475569" />
-            <circle cx="145" cy="215" r="4" fill="#94a3b8" />
-
-            <circle cx="345" cy="215" r="32" fill="#0f172a" />
-            <circle cx="345" cy="215" r="22" fill="#1e293b" />
-            <circle cx="345" cy="215" r="10" fill="#475569" />
-            <circle cx="345" cy="215" r="4" fill="#94a3b8" />
-
-            {/* Foam clouds on body */}
-            <g opacity="0.95">
-                <circle cx="120" cy="160" r="14" fill="white" />
-                <circle cx="138" cy="152" r="10" fill="white" />
-                <circle cx="105" cy="170" r="8" fill="white" />
-                <circle cx="130" cy="172" r="7" fill="white" />
+            <path d="M184 105 Q198 94 220 94 L294 94 Q315 96 331 113 L346 132 L184 132 Z" fill="#111827" />
+            <path d="M197 111 Q205 103 220 102 L244 102 L244 132 L192 132 Z" fill="#e5e7eb" />
+            <path d="M254 102 L291 102 Q307 104 320 118 L333 132 L254 132 Z" fill="#e5e7eb" />
+            <line x1="247" y1="132" x2="247" y2="196" stroke="#374151" strokeWidth="1.5" />
+            <rect x="86" y="164" width="16" height="8" rx="3" fill="#fca5a5" />
+            <ellipse cx="407" cy="169" rx="12" ry="6" fill="#fef3c7" />
+            <circle cx="145" cy="207" r="31" fill="#111827" />
+            <circle cx="145" cy="207" r="20" fill="#374151" />
+            <circle cx="145" cy="207" r="8" fill="#9ca3af" />
+            <circle cx="347" cy="207" r="31" fill="#111827" />
+            <circle cx="347" cy="207" r="20" fill="#374151" />
+            <circle cx="347" cy="207" r="8" fill="#9ca3af" />
+            <g fill="#ffffff">
+                <circle cx="125" cy="154" r="13" />
+                <circle cx="142" cy="148" r="9" />
+                <circle cx="110" cy="163" r="7" />
+                <circle cx="372" cy="154" r="12" />
+                <circle cx="388" cy="162" r="8" />
+                <circle cx="238" cy="90" r="9" />
+                <circle cx="224" cy="84" r="6" />
+                <circle cx="251" cy="84" r="6" />
             </g>
-            <g opacity="0.95">
-                <circle cx="370" cy="160" r="13" fill="white" />
-                <circle cx="385" cy="170" r="9" fill="white" />
-                <circle cx="395" cy="158" r="7" fill="white" />
-            </g>
-            <g opacity="0.9">
-                <circle cx="240" cy="100" r="10" fill="white" />
-                <circle cx="225" cy="92" r="6" fill="white" />
-                <circle cx="252" cy="93" r="7" fill="white" />
-            </g>
-
-            {/* Water streams */}
-            <path d="M180 30 Q185 60 200 90" stroke="rgba(255,255,255,0.35)" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" fill="none" />
-            <path d="M240 20 Q240 55 240 88" stroke="rgba(255,255,255,0.35)" strokeOpacity="0.55" strokeWidth="2" strokeLinecap="round" fill="none" />
-            <path d="M300 28 Q295 58 285 90" stroke="rgba(255,255,255,0.35)" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" fill="none" />
+            <path d="M182 34 Q187 61 201 88" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" />
+            <path d="M240 25 Q240 58 240 82" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" />
+            <path d="M300 33 Q295 60 285 87" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" />
         </svg>
-    );
-}
-
-function Bubbles() {
-    return (
-        <div className="absolute inset-0 pointer-events-none">
-            <span className="absolute top-[12%] left-[10%] w-3 h-3 rounded-full bg-white/80 shadow-sm" />
-            <span className="absolute top-[20%] left-[18%] w-2 h-2 rounded-full bg-white/70" />
-            <span className="absolute top-[8%] right-[18%] w-4 h-4 rounded-full bg-white/70 shadow-sm" />
-            <span className="absolute top-[16%] right-[28%] w-2 h-2 rounded-full bg-white/60" />
-            <span className="absolute bottom-[28%] left-[8%] w-3 h-3 rounded-full bg-white/70" />
-            <span className="absolute bottom-[18%] right-[12%] w-2.5 h-2.5 rounded-full bg-white/70" />
-            <span className="absolute top-[35%] left-[6%] w-1.5 h-1.5 rounded-full bg-white/80" />
-            <span className="absolute top-[60%] right-[8%] w-2 h-2 rounded-full bg-white/70" />
-        </div>
     );
 }

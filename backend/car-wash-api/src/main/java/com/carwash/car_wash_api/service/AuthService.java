@@ -32,7 +32,7 @@ public class AuthService {
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
                 .phone(request.getPhone())
-                .role(request.getRole() != null ? request.getRole() : Role.CUSTOMER)
+                .role(Role.CUSTOMER)
                 .enabled(true)
                 .build();
 

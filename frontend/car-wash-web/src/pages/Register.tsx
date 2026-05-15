@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getApiErrorMessage } from '../lib/apiError';
 import { APP_NAME } from '../config';
-import AuthVisualPanel from '../components/AuthVisualPanel';
+import { getDashboardPath } from '../lib/authRoutes';
 
 type PublicRole = 'CUSTOMER' | 'EMPLOYEE';
 
@@ -33,8 +33,36 @@ function validate(form: {
     return errors;
 }
 
+const AuthVisualPanel: React.FC = () => (
+    <div className="hidden lg:flex bg-stone-100 p-10 items-center justify-center border-l border-gray-200">
+        <div className="w-full max-w-sm">
+            <svg viewBox="0 0 320 200" className="w-full h-auto" aria-hidden="true">
+                <ellipse cx="160" cy="170" rx="120" ry="10" fill="#0f172a" opacity="0.08" />
+                <path d="M60 140 L90 95 Q100 85 115 85 L210 85 Q225 85 235 95 L260 140 Z" fill="#1f2937" />
+                <path d="M100 95 L115 95 L120 130 L100 130 Z" fill="#e5e7eb" />
+                <path d="M130 95 L200 95 L205 130 L125 130 Z" fill="#e5e7eb" />
+                <path d="M215 95 L225 95 L235 130 L215 130 Z" fill="#e5e7eb" />
+                <rect x="50" y="138" width="220" height="8" rx="4" fill="#111827" />
+                <circle cx="95" cy="150" r="14" fill="#111827" />
+                <circle cx="95" cy="150" r="6" fill="#374151" />
+                <circle cx="225" cy="150" r="14" fill="#111827" />
+                <circle cx="225" cy="150" r="6" fill="#374151" />
+                <rect x="72" y="48" width="176" height="20" rx="10" fill="#ffffff" stroke="#e5e7eb" />
+                <rect x="105" y="52" width="110" height="4" rx="2" fill="#d1d5db" />
+            </svg>
+
+            <div className="mt-8 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                <p className="text-sm font-semibold text-gray-950">Join with the right workspace</p>
+                <p className="mt-2 text-sm leading-6 text-gray-500">
+                    Client accounts book services. Car washer accounts receive assignments from the admin team.
+                </p>
+            </div>
+        </div>
+    </div>
+);
+
 const baseInputClass =
-    'block w-full bg-gray-50 border rounded-md px-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 transition';
+    'block w-full bg-white border rounded-xl px-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 transition';
 
 const Register: React.FC = () => {
     const [searchParams] = useSearchParams();
@@ -84,8 +112,8 @@ const Register: React.FC = () => {
         setError(null);
         setLoading(true);
         try {
-            await register(formData);
-            navigate('/');
+            const user = await register({ ...formData, role });
+            navigate(getDashboardPath(user.role));
         } catch (err) {
             setError(getApiErrorMessage(err, {
                 409: 'An account with this email already exists.',
@@ -111,8 +139,8 @@ const Register: React.FC = () => {
             : 'Book services, manage vehicles, and track your appointments.';
 
     return (
-        <div className="lg:h-screen lg:overflow-hidden min-h-screen bg-gray-100 flex items-center justify-center px-4 py-4">
-            <div className="w-full max-w-5xl bg-white rounded-xl shadow-lg overflow-hidden grid grid-cols-1 lg:grid-cols-2">
+        <div className="lg:h-screen lg:overflow-hidden min-h-screen bg-stone-100 flex items-center justify-center px-4 py-4">
+            <div className="w-full max-w-5xl bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden grid grid-cols-1 lg:grid-cols-2">
                 <div className="p-6 sm:p-8 lg:p-10 flex flex-col justify-center">
                     <div className="flex items-center justify-between mb-5">
                         <div className="flex items-center gap-2">
@@ -128,11 +156,9 @@ const Register: React.FC = () => {
                     <p className="mt-1 text-sm text-gray-500">{subtitle}</p>
 
                     {error && (
-                        <div role="alert" className="mt-4 flex items-start gap-3 bg-red-50 border border-red-200 rounded-md px-4 py-2.5">
-                            <svg className="w-4 h-4 text-red-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-                            </svg>
-                            <span className="text-sm text-red-800">{error}</span>
+                        <div role="alert" className="mt-4 flex items-start gap-3 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2.5">
+                            <span className="mt-1.5 w-2 h-2 rounded-full bg-red-500 shrink-0" aria-hidden="true" />
+                            <span className="text-sm text-gray-900">{error}</span>
                         </div>
                     )}
 
@@ -235,7 +261,7 @@ const Register: React.FC = () => {
                                 name="password"
                                 type="password"
                                 autoComplete="new-password"
-                                placeholder="••••••••"
+                                placeholder="Password"
                                 aria-required="true"
                                 aria-invalid={touched.password && !!fieldErrors.password}
                                 aria-describedby={fieldErrors.password ? 'password-error' : 'password-hint'}
@@ -251,7 +277,7 @@ const Register: React.FC = () => {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-800 disabled:bg-gray-400 text-white text-sm font-medium rounded-md px-4 py-2.5 transition mt-1"
+                            className="w-full flex items-center justify-center gap-2 bg-gray-950 hover:bg-gray-800 disabled:bg-gray-400 text-white text-sm font-medium rounded-xl px-4 py-2.5 transition mt-1"
                         >
                             {loading ? (
                                 <>

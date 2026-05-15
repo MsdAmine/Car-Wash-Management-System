@@ -58,10 +58,10 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     };
 
     const inputClass = (name: keyof FieldErrors) =>
-        `w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 transition ${
+        `w-full rounded-lg border bg-white px-3 py-2 text-sm text-gray-900 shadow-sm transition placeholder:text-gray-400 focus:outline-none focus:ring-2 ${
             touched[name] && fieldErrors[name]
-                ? 'border-red-400 focus:ring-red-300'
-                : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                ? 'border-red-300 focus:border-red-400 focus:ring-red-100'
+                : 'border-gray-200 focus:border-gray-900 focus:ring-gray-900/10'
         }`;
 
     return (
@@ -69,7 +69,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             {error && (
                 <div
                     role="alert"
-                    className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm"
+                    className="mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
                 >
                     <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
@@ -80,7 +80,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 
             <form onSubmit={handleSubmit} noValidate className="space-y-4">
                 <div>
-                    <label htmlFor="brand" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="brand" className="mb-1.5 block text-sm font-medium text-gray-700">
                         Brand <span className="text-red-500" aria-hidden="true">*</span>
                     </label>
                     <input
@@ -102,7 +102,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 </div>
 
                 <div>
-                    <label htmlFor="model" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="model" className="mb-1.5 block text-sm font-medium text-gray-700">
                         Model <span className="text-red-500" aria-hidden="true">*</span>
                     </label>
                     <input
@@ -124,7 +124,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 </div>
 
                 <div>
-                    <label htmlFor="licensePlate" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="licensePlate" className="mb-1.5 block text-sm font-medium text-gray-700">
                         License Plate <span className="text-red-500" aria-hidden="true">*</span>
                     </label>
                     <input
@@ -146,7 +146,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 </div>
 
                 <div>
-                    <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="type" className="mb-1.5 block text-sm font-medium text-gray-700">
                         Vehicle Type <span className="text-red-500" aria-hidden="true">*</span>
                     </label>
                     <select
@@ -154,7 +154,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                         name="type"
                         value={form.type}
                         onChange={onChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm transition focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
                     >
                         {VEHICLE_TYPES.map(t => (
                             <option key={t} value={t}>{t.charAt(0) + t.slice(1).toLowerCase()}</option>
@@ -162,18 +162,18 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                     </select>
                 </div>
 
-                <div className="flex gap-3 pt-2">
+                <div className="flex flex-col gap-3 pt-2 sm:flex-row">
                     <button
                         type="submit"
                         disabled={submitting}
-                        className="flex-1 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition disabled:opacity-50 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                        className="flex-1 rounded-lg bg-gray-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         {submitting ? submittingLabel : submitLabel}
                     </button>
                     <button
                         type="button"
                         onClick={onCancel}
-                        className="flex-1 border border-gray-300 py-2 rounded-md hover:bg-gray-50 transition font-medium focus:outline-none focus:ring-2 focus:ring-gray-400"
+                        className="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
                     >
                         Cancel
                     </button>

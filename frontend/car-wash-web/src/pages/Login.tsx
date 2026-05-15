@@ -2,10 +2,38 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { APP_NAME } from '../config';
-import AuthVisualPanel from '../components/AuthVisualPanel';
+import { getDashboardPath } from '../lib/authRoutes';
 
 const inputClass =
-    'block w-full bg-gray-50 border border-gray-200 rounded-md px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition';
+    'block w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition';
+
+const AuthVisualPanel: React.FC = () => (
+    <div className="hidden lg:flex bg-stone-100 p-10 items-center justify-center border-l border-gray-200">
+        <div className="w-full max-w-sm">
+            <svg viewBox="0 0 320 200" className="w-full h-auto" aria-hidden="true">
+                <ellipse cx="160" cy="170" rx="120" ry="10" fill="#0f172a" opacity="0.08" />
+                <path d="M60 140 L90 95 Q100 85 115 85 L210 85 Q225 85 235 95 L260 140 Z" fill="#1f2937" />
+                <path d="M100 95 L115 95 L120 130 L100 130 Z" fill="#e5e7eb" />
+                <path d="M130 95 L200 95 L205 130 L125 130 Z" fill="#e5e7eb" />
+                <path d="M215 95 L225 95 L235 130 L215 130 Z" fill="#e5e7eb" />
+                <rect x="50" y="138" width="220" height="8" rx="4" fill="#111827" />
+                <circle cx="95" cy="150" r="14" fill="#111827" />
+                <circle cx="95" cy="150" r="6" fill="#374151" />
+                <circle cx="225" cy="150" r="14" fill="#111827" />
+                <circle cx="225" cy="150" r="6" fill="#374151" />
+                <rect x="72" y="48" width="176" height="20" rx="10" fill="#ffffff" stroke="#e5e7eb" />
+                <rect x="105" y="52" width="110" height="4" rx="2" fill="#d1d5db" />
+            </svg>
+
+            <div className="mt-8 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                <p className="text-sm font-semibold text-gray-950">A quieter way to run the wash bay</p>
+                <p className="mt-2 text-sm leading-6 text-gray-500">
+                    Bookings, vehicles, service status, and payments stay organized in one workspace.
+                </p>
+            </div>
+        </div>
+    </div>
+);
 
 const Login: React.FC = () => {
     const [email, setEmail] = useState('');
@@ -23,13 +51,7 @@ const Login: React.FC = () => {
         try {
             const user = await login({ email, password });
 
-            if (user.role === 'ADMIN') {
-                navigate('/admin/dashboard');
-            } else if (user.role === 'STAFF') {
-                navigate('/employee/dashboard');
-            } else {
-                navigate('/dashboard');
-            }
+            navigate(getDashboardPath(user.role));
         } catch (err) {
             const message =
                 (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
@@ -40,8 +62,8 @@ const Login: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4 py-8">
-            <div className="w-full max-w-5xl bg-white rounded-xl shadow-lg overflow-hidden grid grid-cols-1 lg:grid-cols-2">
+        <div className="min-h-screen bg-stone-100 flex items-center justify-center px-4 py-8">
+            <div className="w-full max-w-5xl bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden grid grid-cols-1 lg:grid-cols-2">
                 <div className="p-8 sm:p-10 lg:p-12 flex flex-col justify-center">
                     <div className="flex items-center justify-between mb-8">
                         <div className="flex items-center gap-2">
@@ -53,15 +75,13 @@ const Login: React.FC = () => {
                         </Link>
                     </div>
 
-                    <h1 className="text-2xl font-semibold text-gray-900">Welcome back</h1>
+                    <h1 className="text-3xl font-semibold text-gray-900">Welcome back</h1>
                     <p className="mt-2 text-gray-500">Sign in to manage your car wash bookings.</p>
 
                     {error && (
-                        <div role="alert" className="mt-6 flex items-start gap-3 bg-red-50 border border-red-200 rounded-md px-4 py-3">
-                            <svg className="w-4 h-4 text-red-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-                            </svg>
-                            <span className="text-sm text-red-800">{error}</span>
+                        <div role="alert" className="mt-6 flex items-start gap-3 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3">
+                            <span className="mt-1.5 w-2 h-2 rounded-full bg-red-500 shrink-0" aria-hidden="true" />
+                            <span className="text-sm text-gray-900">{error}</span>
                         </div>
                     )}
 
@@ -91,7 +111,7 @@ const Login: React.FC = () => {
                                 type="password"
                                 required
                                 autoComplete="current-password"
-                                placeholder="••••••••"
+                                placeholder="Password"
                                 className={inputClass}
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
@@ -101,7 +121,7 @@ const Login: React.FC = () => {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-800 disabled:bg-gray-400 text-white font-medium rounded-md px-4 py-3 transition"
+                            className="w-full flex items-center justify-center gap-2 bg-gray-950 hover:bg-gray-800 disabled:bg-gray-400 text-white font-medium rounded-xl px-4 py-3 transition"
                         >
                             {loading ? (
                                 <>

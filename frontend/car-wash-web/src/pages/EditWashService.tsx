@@ -1,8 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import washServiceService from '../services/washServiceService';
 import type { WashServiceRequest } from '../types/washService';
 import WashServiceForm from '../components/WashServiceForm';
+
+type ApiError = {
+    response?: {
+        status?: number;
+        data?: {
+            message?: string;
+        };
+    };
+};
 
 const EditWashService: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -20,7 +29,7 @@ const EditWashService: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
 
-    const loadService = () => {
+    const loadService = useCallback(() => {
         if (!id) return;
         setLoading(true);
         setLoadError(null);
@@ -40,11 +49,11 @@ const EditWashService: React.FC = () => {
                 else setLoadError('Failed to load service. Please try again.');
             })
             .finally(() => setLoading(false));
-    };
+    }, [id]);
 
     useEffect(() => {
-        loadService();
-    }, [id]);
+        void Promise.resolve().then(loadService);
+    }, [loadService]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
@@ -68,18 +77,19 @@ const EditWashService: React.FC = () => {
         try {
             await washServiceService.update(id, form);
             navigate('/admin/services');
-        } catch (err: any) {
-            const status = err.response?.status;
+        } catch (err) {
+            const apiError = err as ApiError;
+            const status = apiError.response?.status;
             if (status === 403) {
                 setFormError('You do not have permission to edit this service.');
             } else if (status === 409) {
                 setFormError('A wash service with this name already exists.');
             } else if (status === 400) {
-                setFormError(err.response?.data?.message || 'Invalid service data. Please check your input.');
+                setFormError(apiError.response?.data?.message || 'Invalid service data. Please check your input.');
             } else if (status === 404) {
                 setFormError('Wash service not found.');
             } else {
-                setFormError(err.response?.data?.message || 'Failed to update service. Please try again.');
+                setFormError(apiError.response?.data?.message || 'Failed to update service. Please try again.');
             }
         } finally {
             setSubmitting(false);
@@ -106,7 +116,7 @@ const EditWashService: React.FC = () => {
             <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
                 {loading ? (
                     <div className="flex items-center justify-center py-12">
-                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500" />
+                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-900" />
                         <p className="ml-3 text-gray-500">Loading service...</p>
                     </div>
                 ) : loadError ? (
@@ -116,14 +126,14 @@ const EditWashService: React.FC = () => {
                             {loadError === 'Failed to load service. Please try again.' && (
                                 <button
                                     onClick={loadService}
-                                    className="text-blue-600 hover:underline text-sm font-medium"
+                                    className="text-gray-700 hover:text-gray-950 hover:underline text-sm font-medium"
                                 >
                                     Retry
                                 </button>
                             )}
                             <button
                                 onClick={() => navigate('/admin/services')}
-                                className="text-blue-600 hover:underline text-sm"
+                                className="text-gray-700 hover:text-gray-950 hover:underline text-sm"
                             >
                                 Back to Manage Services
                             </button>

@@ -75,11 +75,10 @@ const BookAppointment: React.FC = () => {
     };
 
     return (
-        <div className="max-w-2xl mx-auto p-6 sm:p-8">
-            {/* Back nav */}
+        <div className="mx-auto max-w-3xl p-4 sm:p-6 lg:p-8">
             <button
                 onClick={() => navigate('/my-bookings')}
-                className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-6 transition"
+                className="mb-6 inline-flex items-center gap-2 rounded-lg px-2 py-1 text-sm font-medium text-gray-500 transition hover:bg-white hover:text-gray-900"
             >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
@@ -88,12 +87,12 @@ const BookAppointment: React.FC = () => {
             </button>
 
             <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-800">Book Appointment</h1>
-                <p className="text-sm text-gray-500 mt-0.5">Schedule a car wash at your convenience</p>
+                <h1 className="text-2xl font-bold text-gray-950">Book Appointment</h1>
+                <p className="mt-1 text-sm text-gray-500">Schedule a car wash at your convenience</p>
             </div>
 
             {dataError && (
-                <div className="flex items-center justify-between bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-5">
+                <div className="mb-5 flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700">
                     <div className="flex items-center gap-2">
                         <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
@@ -106,16 +105,16 @@ const BookAppointment: React.FC = () => {
                 </div>
             )}
 
-            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100 bg-gray-50">
+            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                <div className="border-b border-gray-100 bg-gray-50 px-5 py-4 sm:px-6">
                     <div className="flex items-center gap-2">
-                        <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <svg className="h-5 w-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0 2.25h.008v.008H12v-.008ZM9.75 15h.008v.008H9.75V15Zm0 2.25h.008v.008H9.75v-.008ZM7.5 15h.008v.008H7.5V15Zm0 2.25h.008v.008H7.5v-.008Zm6.75-4.5h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V15Zm0 2.25h.008v.008h-.008v-.008Zm2.25-4.5h.008v.008H16.5v-.008Zm0 2.25h.008v.008H16.5V15Z" />
                         </svg>
-                        <span className="text-sm font-semibold text-gray-700">Appointment Details</span>
+                        <span className="text-sm font-semibold text-gray-800">Appointment Details</span>
                     </div>
                 </div>
-                <div className="p-6">
+                <div className="p-5 sm:p-6">
                     <BookingForm
                         form={form}
                         vehicles={vehicles}

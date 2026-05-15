@@ -1,9 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import washServiceService from '../services/washServiceService';
 import type { WashServiceResponse } from '../types/washService';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 import { ServiceTableSkeleton } from '../components/WashServiceSkeletons';
+
+type ApiError = {
+    response?: {
+        status?: number;
+    };
+};
 
 const AdminServices: React.FC = () => {
     const navigate = useNavigate();
@@ -15,7 +21,7 @@ const AdminServices: React.FC = () => {
     const [actionError, setActionError] = useState<string | null>(null);
     const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
-    const fetchServices = async () => {
+    const fetchServices = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
@@ -26,11 +32,11 @@ const AdminServices: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
-        fetchServices();
-    }, []);
+        void Promise.resolve().then(fetchServices);
+    }, [fetchServices]);
 
     const handleDeactivate = async (id: string) => {
         setDeactivatingId(id);
@@ -38,8 +44,9 @@ const AdminServices: React.FC = () => {
         try {
             const updated = await washServiceService.deactivate(id);
             setServices(prev => prev.map(s => s.id === id ? updated : s));
-        } catch (err: any) {
-            const status = err.response?.status;
+        } catch (err) {
+            const apiError = err as ApiError;
+            const status = apiError.response?.status;
             if (status === 404) {
                 setActionError('Service not found.');
             } else if (status === 403) {
@@ -65,8 +72,9 @@ const AdminServices: React.FC = () => {
         try {
             await washServiceService.remove(id);
             setServices(prev => prev.filter(s => s.id !== id));
-        } catch (err: any) {
-            const status = err.response?.status;
+        } catch (err) {
+            const apiError = err as ApiError;
+            const status = apiError.response?.status;
             if (status === 403) {
                 setActionError('You do not have permission to delete this service.');
             } else if (status === 404) {
@@ -89,7 +97,7 @@ const AdminServices: React.FC = () => {
                 </div>
                 <button
                     onClick={() => navigate('/admin/services/add')}
-                    className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm font-medium shadow-sm"
+                    className="inline-flex items-center gap-2 bg-gray-950 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition text-sm font-medium shadow-sm"
                 >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -136,7 +144,7 @@ const AdminServices: React.FC = () => {
                     <p className="text-sm text-gray-400 mt-1 mb-4">Add a service to get started.</p>
                     <button
                         onClick={() => navigate('/admin/services/add')}
-                        className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm font-medium"
+                        className="inline-flex items-center gap-2 bg-gray-950 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition text-sm font-medium"
                     >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -191,7 +199,7 @@ const AdminServices: React.FC = () => {
                                         <div className="flex items-center justify-end gap-3">
                                             <button
                                                 onClick={() => navigate(`/admin/services/${service.id}/edit`)}
-                                                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                                                className="text-sm text-gray-700 hover:text-gray-950 font-medium"
                                             >
                                                 Edit
                                             </button>

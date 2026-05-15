@@ -60,7 +60,7 @@ const WashServiceForm: React.FC<WashServiceFormProps> = ({
         `w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 transition ${
             touched[name] && fieldErrors[name]
                 ? 'border-red-400 focus:ring-red-300'
-                : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                : 'border-gray-300 focus:ring-gray-900 focus:border-gray-900'
         }`;
 
     return (
@@ -111,7 +111,7 @@ const WashServiceForm: React.FC<WashServiceFormProps> = ({
                         value={form.description ?? ''}
                         onChange={onChange}
                         rows={3}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 resize-none"
                         placeholder="Optional description of the service"
                     />
                 </div>
@@ -175,7 +175,7 @@ const WashServiceForm: React.FC<WashServiceFormProps> = ({
                         name="active"
                         checked={form.active ?? true}
                         onChange={onChange}
-                        className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        className="h-4 w-4 text-gray-900 border-gray-300 rounded focus:ring-gray-900"
                     />
                     <label htmlFor="active" className="text-sm font-medium text-gray-700">
                         Active (available for booking)
@@ -186,7 +186,7 @@ const WashServiceForm: React.FC<WashServiceFormProps> = ({
                     <button
                         type="submit"
                         disabled={submitting}
-                        className="flex-1 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition disabled:opacity-50 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                        className="flex-1 bg-gray-950 text-white py-2 rounded-md hover:bg-gray-800 transition disabled:opacity-50 font-medium focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-1"
                     >
                         {submitting ? submittingLabel : submitLabel}
                     </button>

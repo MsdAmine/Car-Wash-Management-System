@@ -4,6 +4,13 @@ import employeeService from '../services/employeeService';
 import type { CreateEmployeeRequest, EmployeePosition } from '../types/employee';
 import EmployeeForm from '../components/EmployeeForm';
 
+type ApiError = {
+    response?: {
+        status?: number;
+        data?: { message?: string };
+    };
+};
+
 const AddEmployee: React.FC = () => {
     const navigate = useNavigate();
     const [form, setForm] = useState<{ userId: number | ''; position: EmployeePosition | ''; hireDate: string }>({
@@ -36,14 +43,15 @@ const AddEmployee: React.FC = () => {
             };
             await employeeService.create(request);
             navigate('/admin/employees');
-        } catch (err: any) {
-            const status = err.response?.status;
+        } catch (err) {
+            const apiError = err as ApiError;
+            const status = apiError.response?.status;
             if (status === 404) {
                 setError('No user account found with this ID.');
             } else if (status === 409) {
                 setError('This user already has an employee profile.');
             } else if (status === 400) {
-                setError(err.response?.data?.message || 'Invalid input. Please check the form fields.');
+                setError(apiError.response?.data?.message || 'Invalid input. Please check the form fields.');
             } else {
                 setError('Failed to create employee. Please try again.');
             }
@@ -53,7 +61,7 @@ const AddEmployee: React.FC = () => {
     };
 
     return (
-        <div className="max-w-lg mx-auto p-6 sm:p-8">
+        <div className="max-w-xl mx-auto p-4 sm:p-6 lg:p-8">
             <button
                 onClick={() => navigate('/admin/employees')}
                 className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-6 transition"
@@ -65,7 +73,7 @@ const AddEmployee: React.FC = () => {
             </button>
 
             <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-800">Add Employee</h1>
+                <h1 className="text-2xl font-bold text-gray-950">Add Employee</h1>
                 <p className="text-sm text-gray-500 mt-0.5">Link an existing user account as an employee</p>
             </div>
 

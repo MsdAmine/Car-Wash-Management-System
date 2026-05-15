@@ -64,10 +64,10 @@ const EditVehicle: React.FC = () => {
     };
 
     return (
-        <div className="max-w-lg mx-auto p-6 sm:p-8">
+        <div className="mx-auto max-w-xl p-4 sm:p-6 lg:p-8">
             <button
                 onClick={() => navigate('/my-vehicles')}
-                className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-6 transition"
+                className="mb-6 inline-flex items-center gap-2 rounded-lg px-2 py-1 text-sm font-medium text-gray-500 transition hover:bg-white hover:text-gray-900"
             >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
@@ -76,14 +76,14 @@ const EditVehicle: React.FC = () => {
             </button>
 
             <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-800">Edit Vehicle</h1>
-                <p className="text-sm text-gray-500 mt-0.5">Update your vehicle information</p>
+                <h1 className="text-2xl font-bold text-gray-950">Edit Vehicle</h1>
+                <p className="mt-1 text-sm text-gray-500">Update your vehicle information</p>
             </div>
 
-            <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+            <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
                 {loading ? (
                     <div className="flex items-center justify-center py-12">
-                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500" />
+                        <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-gray-900" />
                         <p className="ml-3 text-gray-500">Loading vehicle...</p>
                     </div>
                 ) : loadError ? (
@@ -93,14 +93,14 @@ const EditVehicle: React.FC = () => {
                             {loadError === 'Failed to load vehicle. Please try again.' && (
                                 <button
                                     onClick={loadVehicle}
-                                    className="text-blue-600 hover:underline text-sm font-medium"
+                                    className="text-sm font-medium text-gray-900 underline-offset-4 hover:underline"
                                 >
                                     Retry
                                 </button>
                             )}
                             <button
                                 onClick={() => navigate('/my-vehicles')}
-                                className="text-blue-600 hover:underline text-sm"
+                                className="text-sm font-medium text-gray-600 underline-offset-4 hover:text-gray-900 hover:underline"
                             >
                                 Back to My Vehicles
                             </button>

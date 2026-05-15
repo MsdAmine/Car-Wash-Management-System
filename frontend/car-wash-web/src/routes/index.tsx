@@ -29,9 +29,10 @@ export const ROUTES = {
     ADMIN_EMPLOYEES_ADD: '/admin/employees/add',
     ADMIN_EMPLOYEES_EDIT: (id: string | number) => `/admin/employees/${id}/edit`,
     ADMIN_BOOKINGS: '/admin/bookings',
+    ADMIN_PAYMENTS: '/admin/payments',
     ADMIN_SETTINGS: '/admin/settings',
 
-    // Staff / Employee
+    // Employee
     EMPLOYEE_DASHBOARD: '/employee/dashboard',
     EMPLOYEE_DAILY_BOOKINGS: '/employee/daily-bookings',
     EMPLOYEE_ASSIGNED_BOOKINGS: '/employee/assigned-bookings',

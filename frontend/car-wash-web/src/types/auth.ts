@@ -1,7 +1,9 @@
+export type UserRole = 'ADMIN' | 'EMPLOYEE' | 'CUSTOMER';
+
 export interface AuthResponse {
     token: string;
     email: string;
-    role: string;
+    role: UserRole;
     firstName: string;
     lastName: string;
 }
@@ -11,7 +13,7 @@ export interface User {
     email: string;
     firstName: string;
     lastName: string;
-    role: 'ADMIN' | 'CUSTOMER' | 'STAFF';
+    role: UserRole;
 }
 
 export interface LoginRequest {
@@ -23,4 +25,5 @@ export interface RegisterRequest extends LoginRequest {
     firstName: string;
     lastName: string;
     phone: string;
+    role?: Extract<UserRole, 'CUSTOMER' | 'EMPLOYEE'>;
 }
