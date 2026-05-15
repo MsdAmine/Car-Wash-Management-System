@@ -1,6 +1,5 @@
 package com.carwash.car_wash_api.dto.request;
 
-import com.carwash.car_wash_api.model.enums.Role;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -19,5 +18,4 @@ public class RegisterRequest {
     @NotBlank
     private String lastName;
     private String phone;
-    private Role role;
 }

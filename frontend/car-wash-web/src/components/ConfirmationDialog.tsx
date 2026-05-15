@@ -16,7 +16,7 @@ interface ConfirmationDialogProps {
 const confirmButtonClass: Record<ConfirmationVariant, string> = {
     danger: 'bg-red-600 hover:bg-red-700 focus:ring-red-500 text-white',
     warning: 'bg-yellow-500 hover:bg-yellow-600 focus:ring-yellow-500 text-white',
-    info: 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500 text-white',
+    info: 'bg-gray-950 hover:bg-gray-800 focus:ring-gray-900 text-white',
 };
 
 const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
