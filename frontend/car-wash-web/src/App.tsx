@@ -28,6 +28,8 @@ import EmployeeAssignedBookings from './pages/EmployeeAssignedBookings';
 import EmployeeBookingWork from './pages/EmployeeBookingWork';
 import AdminDashboard from './pages/AdminDashboard';
 import CustomerDashboard from './pages/CustomerDashboard';
+import AdminPayments from './pages/AdminPayments';
+import AdminSettings from './pages/AdminSettings';
 import { getDashboardPath } from './lib/authRoutes';
 
 function App() {
@@ -49,11 +51,11 @@ function App() {
                         <Route path="/admin/services" element={<AdminServices />} />
                         <Route path="/admin/services/add" element={<AddWashService />} />
                         <Route path="/admin/services/:id/edit" element={<EditWashService />} />
-                        <Route path="/admin/payments" element={<div className="p-8"><h1>Admin Payments</h1></div>} />
+                        <Route path="/admin/payments" element={<AdminPayments />} />
                         <Route path="/admin/employees" element={<AdminEmployees />} />
                         <Route path="/admin/employees/add" element={<AddEmployee />} />
                         <Route path="/admin/employees/:id/edit" element={<EditEmployee />} />
-                        <Route path="/admin/settings" element={<div className="p-8"><h1>Admin Settings</h1></div>} />
+                        <Route path="/admin/settings" element={<AdminSettings />} />
                     </Route>
                 </Route>
 

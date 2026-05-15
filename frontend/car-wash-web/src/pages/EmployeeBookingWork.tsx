@@ -4,6 +4,12 @@ import bookingService from '../services/bookingService';
 import { BOOKING_STATUSES, type BookingResponse, type BookingStatus } from '../types/booking';
 import BookingStatusBadge from '../components/BookingStatusBadge';
 
+type ApiError = {
+    response?: {
+        status?: number;
+    };
+};
+
 const UPDATABLE_STATUSES: BookingStatus[] = [...BOOKING_STATUSES];
 
 const formatDateTime = (dt: string) =>
@@ -35,7 +41,8 @@ const EmployeeBookingWork: React.FC = () => {
     };
 
     useEffect(() => {
-        fetchBooking();
+        void Promise.resolve().then(fetchBooking);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [bookingId]);
 
     const handleStatusChange = async (newStatus: BookingStatus) => {
@@ -47,8 +54,9 @@ const EmployeeBookingWork: React.FC = () => {
             const updated = await bookingService.updateStatus(bookingId, { status: newStatus });
             setBooking(updated);
             setSuccessMessage(`Status updated to ${newStatus}.`);
-        } catch (err: any) {
-            const status = err.response?.status;
+        } catch (err) {
+            const apiError = err as ApiError;
+            const status = apiError.response?.status;
             if (status === 400) {
                 setActionError('Invalid status transition.');
             } else if (status === 404) {
@@ -62,7 +70,7 @@ const EmployeeBookingWork: React.FC = () => {
     };
 
     return (
-        <div className="max-w-2xl mx-auto p-8">
+        <div className="max-w-3xl mx-auto p-4 sm:p-6 lg:p-8">
             <div className="flex items-center mb-6 gap-3">
                 <button
                     onClick={() => navigate(-1)}
@@ -71,7 +79,7 @@ const EmployeeBookingWork: React.FC = () => {
                 >
                     &#8592;
                 </button>
-                <h1 className="text-2xl font-bold text-gray-800">Booking Work</h1>
+                <h1 className="text-2xl font-bold text-gray-950">Booking Work</h1>
             </div>
 
             {loading ? (
@@ -85,18 +93,18 @@ const EmployeeBookingWork: React.FC = () => {
                     <p className="text-red-600 mb-4">{loadError}</p>
                     <div className="flex justify-center gap-4">
                         {loadError !== 'Booking not found.' && (
-                            <button onClick={fetchBooking} className="text-blue-600 hover:underline text-sm font-medium">
+                            <button onClick={fetchBooking} className="text-gray-900 hover:underline text-sm font-medium">
                                 Retry
                             </button>
                         )}
-                        <button onClick={() => navigate(-1)} className="text-blue-600 hover:underline text-sm">
+                        <button onClick={() => navigate(-1)} className="text-gray-900 hover:underline text-sm">
                             Go Back
                         </button>
                     </div>
                 </div>
             ) : booking ? (
                 <div className="space-y-4">
-                    <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
+                    <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
                         <h2 className="text-base font-semibold text-gray-700 mb-4">Booking Details</h2>
                         <dl className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
                             <div>
@@ -132,7 +140,7 @@ const EmployeeBookingWork: React.FC = () => {
                         </dl>
                     </div>
 
-                    <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
+                    <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
                         <h2 className="text-base font-semibold text-gray-700 mb-4">Update Status</h2>
 
                         {actionError && (
@@ -141,7 +149,7 @@ const EmployeeBookingWork: React.FC = () => {
                             </div>
                         )}
                         {successMessage && (
-                            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-2 rounded text-sm mb-3">
+                            <div className="bg-gray-50 border border-gray-200 text-gray-800 px-4 py-2 rounded text-sm mb-3">
                                 {successMessage}
                             </div>
                         )}
@@ -158,7 +166,7 @@ const EmployeeBookingWork: React.FC = () => {
                                         key={s}
                                         onClick={() => handleStatusChange(s)}
                                         disabled={updatingStatus}
-                                        className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="bg-gray-950 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {updatingStatus ? 'Updating...' : `Mark as ${s}`}
                                     </button>

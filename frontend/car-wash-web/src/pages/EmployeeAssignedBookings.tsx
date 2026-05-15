@@ -32,19 +32,19 @@ const EmployeeAssignedBookings: React.FC = () => {
     };
 
     useEffect(() => {
-        fetchAssignments();
+        void Promise.resolve().then(fetchAssignments);
     }, []);
 
     return (
         <div className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8">
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800">My Assigned Bookings</h1>
+                    <h1 className="text-2xl font-bold text-gray-950">My Assigned Bookings</h1>
                     <p className="text-sm text-gray-500 mt-0.5">Bookings assigned to you by an admin</p>
                 </div>
                 <button
                     onClick={fetchAssignments}
-                    className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="inline-flex items-center gap-2 text-sm text-gray-700 hover:text-gray-950 font-medium bg-white border border-gray-200 hover:bg-gray-50 px-3 py-1.5 rounded-lg transition focus:outline-none focus:ring-2 focus:ring-gray-900"
                 >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
@@ -97,16 +97,16 @@ const EmployeeAssignedBookings: React.FC = () => {
                                 {assignments.map(a => (
                                     <tr key={a.id} className="hover:bg-gray-50 transition">
                                         <td className="px-5 py-4 font-mono text-xs text-gray-700">
-                                            {a.bookingId.slice(0, 8)}…
+                                            {a.bookingId.slice(0, 8)}...
                                         </td>
                                         <td className="px-5 py-4 text-gray-600 text-sm">{a.assignedByEmail}</td>
                                         <td className="px-5 py-4 text-gray-600 text-xs whitespace-nowrap">{formatDateTime(a.assignedAt)}</td>
                                         <td className="px-5 py-4">
                                             <Link
                                                 to={`/employee/bookings/${a.bookingId}/work`}
-                                                className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-md transition"
+                                                className="inline-flex items-center gap-1 text-xs font-medium text-gray-700 hover:text-gray-950 bg-white border border-gray-200 hover:bg-gray-50 px-2.5 py-1 rounded-md transition"
                                             >
-                                                Work on this →
+                                                Open work
                                             </Link>
                                         </td>
                                     </tr>

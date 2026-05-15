@@ -10,7 +10,7 @@ export default function BookingPreviewCard() {
             </div>
             <button
                 type="button"
-                className="mt-3 w-full bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium py-3 rounded-2xl transition-colors flex items-center justify-center gap-2"
+                className="mt-3 w-full bg-gray-950 hover:bg-gray-800 text-white text-sm font-medium py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
             >
                 Check Availability
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -23,7 +23,7 @@ export default function BookingPreviewCard() {
 
 function SelectorRow({ icon, placeholder }: { icon: ReactNode; placeholder: string }) {
     return (
-        <div className="flex items-center gap-3 bg-gray-50 hover:bg-gray-100 rounded-2xl px-4 py-3 cursor-default select-none transition-colors">
+        <div className="flex items-center gap-3 bg-gray-50 hover:bg-gray-100 rounded-xl px-4 py-3 cursor-default select-none transition-colors">
             <span className="text-gray-500 shrink-0">{icon}</span>
             <span className="text-sm text-gray-500 flex-1">{placeholder}</span>
             <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
