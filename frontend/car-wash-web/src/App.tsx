@@ -1,89 +1,285 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from './context/AuthContext';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import ProtectedRoute from './components/ProtectedRoute';
-import RoleGuard from './components/RoleGuard';
-import AdminLayout from './layouts/AdminLayout';
-import CustomerLayout from './layouts/CustomerLayout';
-import EmployeeLayout from './layouts/EmployeeLayout';
-import LandingPage from './pages/LandingPage';
-import MyVehicles from './pages/MyVehicles';
-import AddVehicle from './pages/AddVehicle';
-import EditVehicle from './pages/EditVehicle';
-import Services from './pages/Services';
-import AdminServices from './pages/AdminServices';
-import AddWashService from './pages/AddWashService';
-import EditWashService from './pages/EditWashService';
-import BookAppointment from './pages/BookAppointment';
-import MyBookings from './pages/MyBookings';
-import BookingDetails from './pages/BookingDetails';
-import AdminBookings from './pages/AdminBookings';
-import EmployeeBookings from './pages/EmployeeBookings';
-import AdminEmployees from './pages/AdminEmployees';
-import AddEmployee from './pages/AddEmployee';
-import EditEmployee from './pages/EditEmployee';
-import EmployeeDashboard from './pages/EmployeeDashboard';
-import EmployeeAssignedBookings from './pages/EmployeeAssignedBookings';
-import EmployeeBookingWork from './pages/EmployeeBookingWork';
-import AdminDashboard from './pages/AdminDashboard';
-import CustomerDashboard from './pages/CustomerDashboard';
-import AdminPayments from './pages/AdminPayments';
-import AdminSettings from './pages/AdminSettings';
-import { getDashboardPath } from './lib/authRoutes';
+import { lazy, Suspense } from 'react';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { queryClient } from '@/shared/lib/queryClient';
+import { AuthProvider } from '@/shared/context/AuthContext';
+import { ROUTES } from '@/router/routes';
+
+const LoginPage = lazy(() =>
+  import('@/features/auth/pages/LoginPage').then(({ LoginPage }) => ({ default: LoginPage }))
+);
+
+const RegisterPage = lazy(() =>
+  import('@/features/auth/pages/RegisterPage').then(({ RegisterPage }) => ({ default: RegisterPage }))
+);
+
+const BookingFlowPage = lazy(() =>
+  import('@/features/bookings/pages/BookingFlowPage').then(({ BookingFlowPage }) => ({ default: BookingFlowPage }))
+);
+
+const ClientHomePage = lazy(() =>
+  import('@/features/bookings/pages/ClientHomePage').then(({ ClientHomePage }) => ({ default: ClientHomePage }))
+);
+
+const ClientBookingsPage = lazy(() =>
+  import('@/features/bookings/pages/ClientBookingsPage').then(({ ClientBookingsPage }) => ({ default: ClientBookingsPage }))
+);
+
+const ClientBookingDetailPage = lazy(() =>
+  import('@/features/bookings/pages/ClientBookingDetailPage').then(({ ClientBookingDetailPage }) => ({ default: ClientBookingDetailPage }))
+);
+
+const WasherJobsPage = lazy(() =>
+  import('@/features/washer/pages/WasherJobsPage').then(({ WasherJobsPage }) => ({ default: WasherJobsPage }))
+);
+
+const WasherJobDetailPage = lazy(() =>
+  import('@/features/washer/pages/WasherJobDetailPage').then(({ WasherJobDetailPage }) => ({ default: WasherJobDetailPage }))
+);
+
+const WasherHistoryPage = lazy(() =>
+  import('@/features/washer/pages/WasherHistoryPage').then(({ WasherHistoryPage }) => ({ default: WasherHistoryPage }))
+);
+
+const WasherProfilePage = lazy(() =>
+  import('@/features/washer/pages/WasherProfilePage').then(({ WasherProfilePage }) => ({ default: WasherProfilePage }))
+);
+
+const AdminDashboardPage = lazy(() =>
+  import('@/features/admin/pages/AdminDashboardPage').then(({ AdminDashboardPage }) => ({ default: AdminDashboardPage }))
+);
+
+const AdminBookingsPage = lazy(() =>
+  import('@/features/bookings/pages/AdminBookingsPage').then(({ AdminBookingsPage }) => ({ default: AdminBookingsPage }))
+);
+
+const AdminBookingDetailPage = lazy(() =>
+  import('@/features/bookings/pages/AdminBookingDetailPage').then(({ AdminBookingDetailPage }) => ({ default: AdminBookingDetailPage }))
+);
+
+const AdminServicesPage = lazy(() =>
+  import('@/features/services/pages/AdminServicesPage').then(({ AdminServicesPage }) => ({ default: AdminServicesPage }))
+);
+
+const AdminStaffPage = lazy(() =>
+  import('@/features/staff/pages/AdminStaffPage').then(({ AdminStaffPage }) => ({ default: AdminStaffPage }))
+);
+
+const AdminClientsPage = lazy(() =>
+  import('@/features/clients/pages/AdminClientsPage').then(({ AdminClientsPage }) => ({ default: AdminClientsPage }))
+);
+
+const AdminAnalyticsPage = lazy(() =>
+  import('@/features/admin/pages/AdminAnalyticsPage').then(({ AdminAnalyticsPage }) => ({ default: AdminAnalyticsPage }))
+);
+
+const ClientVehiclesPage = lazy(() =>
+  import('@/features/vehicles/pages/ClientVehiclesPage').then(({ ClientVehiclesPage }) => ({ default: ClientVehiclesPage }))
+);
+
+const LandingPage = lazy(() =>
+  import('@/features/auth/pages/LandingPage').then(({ LandingPage }) => ({ default: LandingPage }))
+);
+
+const ClientProfilePage = lazy(() =>
+  import('@/features/auth/pages/ClientProfilePage').then(({ ClientProfilePage }) => ({ default: ClientProfilePage }))
+);
+
+const AdminSettingsPage = lazy(() =>
+  import('@/features/admin/pages/AdminSettingsPage').then(({ AdminSettingsPage }) => ({ default: AdminSettingsPage }))
+);
+
+const WasherPendingPage = lazy(() =>
+  import('@/features/auth/pages/WasherPendingPage').then(({ WasherPendingPage }) => ({ default: WasherPendingPage }))
+);
 
 function App() {
-    const { user } = useAuth();
-    const dashboardPath = getDashboardPath(user?.role);
-
-    return (
-        <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={!user ? <Login /> : <Navigate to={dashboardPath} replace />} />
-            <Route path="/register" element={!user ? <Register /> : <Navigate to={dashboardPath} replace />} />
-            <Route path="/services" element={<Services />} />
-
-            <Route element={<ProtectedRoute />}>
-                <Route element={<RoleGuard allowedRoles={['ADMIN']} />}>
-                    <Route element={<AdminLayout />}>
-                        <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                        <Route path="/admin/bookings" element={<AdminBookings />} />
-                        <Route path="/admin/services" element={<AdminServices />} />
-                        <Route path="/admin/services/add" element={<AddWashService />} />
-                        <Route path="/admin/services/:id/edit" element={<EditWashService />} />
-                        <Route path="/admin/payments" element={<AdminPayments />} />
-                        <Route path="/admin/employees" element={<AdminEmployees />} />
-                        <Route path="/admin/employees/add" element={<AddEmployee />} />
-                        <Route path="/admin/employees/:id/edit" element={<EditEmployee />} />
-                        <Route path="/admin/settings" element={<AdminSettings />} />
-                    </Route>
-                </Route>
-
-                <Route element={<RoleGuard allowedRoles={['CUSTOMER']} />}>
-                    <Route element={<CustomerLayout />}>
-                        <Route path="/dashboard" element={<CustomerDashboard />} />
-                        <Route path="/book-appointment" element={<BookAppointment />} />
-                        <Route path="/my-bookings" element={<MyBookings />} />
-                        <Route path="/bookings/:id" element={<BookingDetails />} />
-                        <Route path="/my-vehicles" element={<MyVehicles />} />
-                        <Route path="/add-vehicle" element={<AddVehicle />} />
-                        <Route path="/vehicles/:id/edit" element={<EditVehicle />} />
-                    </Route>
-                </Route>
-
-                <Route element={<RoleGuard allowedRoles={['EMPLOYEE']} />}>
-                    <Route element={<EmployeeLayout />}>
-                        <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
-                        <Route path="/employee/daily-bookings" element={<EmployeeBookings />} />
-                        <Route path="/employee/assigned-bookings" element={<EmployeeAssignedBookings />} />
-                        <Route path="/employee/bookings/:bookingId/work" element={<EmployeeBookingWork />} />
-                    </Route>
-                </Route>
-            </Route>
-
-            <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-    );
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <Suspense fallback={<div className="min-h-screen bg-white" />}>
+                  <LandingPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path={ROUTES.PUBLIC.LOGIN}
+              element={
+                <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+                  <LoginPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path={ROUTES.PUBLIC.REGISTER}
+              element={
+                <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+                  <RegisterPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path={ROUTES.CLIENT.HOME}
+              element={
+                <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+                  <ClientHomePage />
+                </Suspense>
+              }
+            />
+            <Route
+              path={ROUTES.CLIENT.BOOK}
+              element={
+                <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+                  <BookingFlowPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path={ROUTES.CLIENT.BOOKINGS}
+              element={
+                <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+                  <ClientBookingsPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path={ROUTES.CLIENT.BOOKING_DETAIL(':id')}
+              element={
+                <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+                  <ClientBookingDetailPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path={ROUTES.WASHER.HOME}
+              element={
+                <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+                  <WasherJobsPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/washer/jobs/:id"
+              element={
+                <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+                  <WasherJobDetailPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path={ROUTES.WASHER.HISTORY}
+              element={
+                <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+                  <WasherHistoryPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path={ROUTES.WASHER.PROFILE}
+              element={
+                <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+                  <WasherProfilePage />
+                </Suspense>
+              }
+            />
+            <Route
+              path={ROUTES.ADMIN.DASHBOARD}
+              element={
+                <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+                  <AdminDashboardPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path={ROUTES.ADMIN.BOOKINGS}
+              element={
+                <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+                  <AdminBookingsPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/admin/bookings/:id"
+              element={
+                <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+                  <AdminBookingDetailPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path={ROUTES.ADMIN.SERVICES}
+              element={
+                <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+                  <AdminServicesPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path={ROUTES.ADMIN.STAFF}
+              element={
+                <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+                  <AdminStaffPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path={ROUTES.ADMIN.CLIENTS}
+              element={
+                <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+                  <AdminClientsPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path={ROUTES.ADMIN.ANALYTICS}
+              element={
+                <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+                  <AdminAnalyticsPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path={ROUTES.CLIENT.VEHICLES}
+              element={
+                <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+                  <ClientVehiclesPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path={ROUTES.CLIENT.PROFILE}
+              element={
+                <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+                  <ClientProfilePage />
+                </Suspense>
+              }
+            />
+            <Route
+              path={ROUTES.ADMIN.SETTINGS}
+              element={
+                <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+                  <AdminSettingsPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path={ROUTES.PUBLIC.WASHER_PENDING}
+              element={
+                <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+                  <WasherPendingPage />
+                </Suspense>
+              }
+            />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
 }
 
 export default App;

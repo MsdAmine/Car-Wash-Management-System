@@ -143,6 +143,26 @@ public class EmployeeController {
         return ResponseEntity.ok(employeeService.updateEmployee(id, request));
     }
 
+    @Operation(
+            summary = "Activate an employee",
+            description = "Marks a pending or inactive employee profile as ACTIVE. Requires ADMIN role.",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Employee activated successfully",
+                    content = @Content(schema = @Schema(implementation = EmployeeResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Authentication required",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Admin role required",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Employee not found",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @PatchMapping("/{id}/activate")
+    public ResponseEntity<EmployeeResponse> activateEmployee(@PathVariable UUID id) {
+        return ResponseEntity.ok(employeeService.activateEmployee(id));
+    }
+
     // ── DELETE /api/v1/employees/{id} ─────────────────────────────────────────
 
     @Operation(

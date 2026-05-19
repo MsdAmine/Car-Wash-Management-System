@@ -61,6 +61,11 @@ public class SecurityConfig {
                                                 // Vehicle management for both roles
                                                 .requestMatchers("/api/v1/vehicles/**").hasAnyRole("CUSTOMER", "ADMIN")
 
+                                                // Booking assignment endpoints
+                                                .requestMatchers(HttpMethod.GET, "/api/v1/bookings/*/assignments").hasAnyRole("ADMIN", "EMPLOYEE")
+                                                .requestMatchers(HttpMethod.POST, "/api/v1/bookings/*/assign").hasRole("ADMIN")
+                                                .requestMatchers(HttpMethod.DELETE, "/api/v1/bookings/*/assign/*").hasRole("ADMIN")
+
                                                 // Booking management
                                                 // Admin / employee only: all bookings list and today's bookings
                                                 .requestMatchers(HttpMethod.GET, "/api/v1/bookings/today").hasAnyRole("ADMIN", "EMPLOYEE")
@@ -85,10 +90,6 @@ public class SecurityConfig {
                                                 .requestMatchers(HttpMethod.GET, "/api/v1/employees/me/bookings/today").hasAnyRole("ADMIN", "EMPLOYEE")
                                                 .requestMatchers(HttpMethod.GET, "/api/v1/employees/*/bookings").hasAnyRole("ADMIN", "EMPLOYEE")
                                                 .requestMatchers("/api/v1/employees/**").hasRole("ADMIN")
-
-                                                // Booking assignment endpoints
-                                                .requestMatchers("/api/v1/bookings/*/assign**").hasRole("ADMIN")
-                                                .requestMatchers("/api/v1/bookings/*/assignments").hasAnyRole("ADMIN", "EMPLOYEE")
 
                                                 // Dashboard endpoints: each role sees only its own summary
                                                 .requestMatchers(HttpMethod.GET, "/api/v1/dashboard/admin").hasRole("ADMIN")

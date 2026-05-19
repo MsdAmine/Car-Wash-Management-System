@@ -8,6 +8,8 @@ import com.carwash.car_wash_api.exception.ResourceNotFoundException;
 import com.carwash.car_wash_api.mapper.EmployeeMapper;
 import com.carwash.car_wash_api.model.entity.Employee;
 import com.carwash.car_wash_api.model.entity.User;
+import com.carwash.car_wash_api.model.enums.EmployeeStatus;
+import com.carwash.car_wash_api.model.enums.Role;
 import com.carwash.car_wash_api.repository.EmployeeRepository;
 import com.carwash.car_wash_api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +17,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -39,7 +42,11 @@ public class EmployeeService {
                 .user(user)
                 .position(request.getPosition())
                 .hireDate(request.getHireDate())
+                .status(EmployeeStatus.ACTIVE)
                 .build();
+
+        user.setRole(Role.EMPLOYEE);
+        userRepository.save(user);
 
         return employeeMapper.toResponse(employeeRepository.save(employee));
     }
@@ -57,8 +64,18 @@ public class EmployeeService {
     @Transactional
     public void deactivateEmployee(UUID id) {
         Employee employee = findActiveEmployeeOrThrow(id);
-        employee.setActive(false);
+        employee.setStatus(EmployeeStatus.INACTIVE);
         employeeRepository.save(employee);
+    }
+
+    @Transactional
+    public EmployeeResponse activateEmployee(UUID id) {
+        Employee employee = findEmployeeOrThrow(id);
+        employee.setStatus(EmployeeStatus.ACTIVE);
+        if (employee.getHireDate() == null) {
+            employee.setHireDate(LocalDate.now());
+        }
+        return employeeMapper.toResponse(employeeRepository.save(employee));
     }
 
     @Transactional(readOnly = true)
@@ -92,7 +109,7 @@ public class EmployeeService {
     private Employee findActiveEmployeeOrThrow(UUID id) {
         Employee employee = findEmployeeOrThrow(id);
         if (!employee.isActive()) {
-            throw new ResourceNotFoundException("Employee with ID " + id + " is no longer active");
+            throw new ResourceNotFoundException("Employee with ID " + id + " is not active");
         }
         return employee;
     }

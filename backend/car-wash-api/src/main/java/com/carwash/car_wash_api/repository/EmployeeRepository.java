@@ -2,6 +2,7 @@ package com.carwash.car_wash_api.repository;
 
 import com.carwash.car_wash_api.model.entity.Employee;
 import com.carwash.car_wash_api.model.enums.EmployeePosition;
+import com.carwash.car_wash_api.model.enums.EmployeeStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -16,7 +17,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, UUID> {
 
     Optional<Employee> findByUserId(Long userId);
 
-    List<Employee> findByActive(boolean active);
+    List<Employee> findByStatus(EmployeeStatus status);
 
     List<Employee> findByPosition(EmployeePosition position);
 }

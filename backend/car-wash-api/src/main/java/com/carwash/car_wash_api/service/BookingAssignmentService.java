@@ -48,7 +48,7 @@ public class BookingAssignmentService {
 
         if (!employee.isActive()) {
             throw new InvalidEmployeeOperationException(
-                    "Cannot assign an inactive employee to a booking");
+                    "Cannot assign an employee with status " + employee.getStatus() + " to a booking");
         }
 
         if (assignmentRepository.existsByBookingIdAndEmployeeId(bookingId, employee.getId())) {

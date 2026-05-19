@@ -25,6 +25,7 @@ public class BookingMapper {
                 .status(booking.getStatus())
                 .appointmentDateTime(booking.getAppointmentDateTime())
                 .endDateTime(booking.getEndDateTime())
+                .startedAt(booking.getStartedAt())
                 .notes(booking.getNotes())
                 .createdAt(booking.getCreatedAt())
                 .updatedAt(booking.getUpdatedAt())

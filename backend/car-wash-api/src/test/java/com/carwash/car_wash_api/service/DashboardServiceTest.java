@@ -8,6 +8,7 @@ import com.carwash.car_wash_api.model.entity.Employee;
 import com.carwash.car_wash_api.model.entity.User;
 import com.carwash.car_wash_api.model.enums.BookingStatus;
 import com.carwash.car_wash_api.model.enums.EmployeePosition;
+import com.carwash.car_wash_api.model.enums.EmployeeStatus;
 import com.carwash.car_wash_api.model.enums.PaymentStatus;
 import com.carwash.car_wash_api.model.enums.Role;
 import com.carwash.car_wash_api.repository.BookingAssignmentRepository;
@@ -226,7 +227,7 @@ class DashboardServiceTest {
                 .user(user)
                 .position(EmployeePosition.WASHER)
                 .hireDate(LocalDate.now())
-                .active(true)
+                .status(EmployeeStatus.ACTIVE)
                 .build();
     }
 }

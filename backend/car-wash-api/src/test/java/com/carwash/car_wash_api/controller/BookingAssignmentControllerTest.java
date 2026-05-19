@@ -58,9 +58,10 @@ class BookingAssignmentControllerTest {
                     .authorizeHttpRequests(auth -> auth
                             .requestMatchers(HttpMethod.GET, "/api/v1/employees/me/bookings/today").hasAnyRole("ADMIN", "EMPLOYEE")
                             .requestMatchers(HttpMethod.GET, "/api/v1/employees/*/bookings").hasAnyRole("ADMIN", "EMPLOYEE")
+                            .requestMatchers(HttpMethod.GET, "/api/v1/bookings/*/assignments").hasAnyRole("ADMIN", "EMPLOYEE")
+                            .requestMatchers(HttpMethod.POST, "/api/v1/bookings/*/assign").hasRole("ADMIN")
+                            .requestMatchers(HttpMethod.DELETE, "/api/v1/bookings/*/assign/*").hasRole("ADMIN")
                             .requestMatchers(HttpMethod.DELETE, "/api/v1/**").hasRole("ADMIN")
-                            .requestMatchers("/api/v1/bookings/*/assign**").hasRole("ADMIN")
-                            .requestMatchers("/api/v1/bookings/*/assignments").hasAnyRole("ADMIN", "EMPLOYEE")
                             .anyRequest().authenticated()
                     )
                     .exceptionHandling(ex -> ex

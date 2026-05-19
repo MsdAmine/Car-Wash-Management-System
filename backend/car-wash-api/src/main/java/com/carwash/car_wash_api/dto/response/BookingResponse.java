@@ -34,6 +34,7 @@ public class BookingResponse {
     private BookingStatus status;
     private LocalDateTime appointmentDateTime;
     private LocalDateTime endDateTime;
+    private LocalDateTime startedAt;
     private String notes;
 
     private LocalDateTime createdAt;
