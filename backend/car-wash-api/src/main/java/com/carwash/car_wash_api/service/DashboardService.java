@@ -125,7 +125,7 @@ public class DashboardService {
         // #332 — total assigned bookings
         long assignedBookings = bookingAssignmentRepository.countByEmployeeId(employee.getId());
 
-        // #333 — bookings in progress (assigned bookings with CONFIRMED status)
+        // #333 — bookings in progress (assigned bookings with IN_PROGRESS status)
         long bookingsInProgress = bookingAssignmentRepository.countInProgressByEmployeeId(employee.getId());
 
         return EmployeeDashboardResponse.builder()

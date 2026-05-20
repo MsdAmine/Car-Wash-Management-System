@@ -37,7 +37,7 @@ import java.util.UUID;
 public class BookingService {
 
     private static final Set<BookingStatus> EMPLOYEE_ALLOWED_STATUSES =
-            Set.of(BookingStatus.CONFIRMED, BookingStatus.COMPLETED);
+            Set.of(BookingStatus.IN_PROGRESS, BookingStatus.COMPLETED);
 
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
@@ -145,8 +145,12 @@ public class BookingService {
 
             if (!EMPLOYEE_ALLOWED_STATUSES.contains(request.getStatus())) {
                 throw new InvalidBookingException(
-                        "Employees can only set booking status to CONFIRMED or COMPLETED");
+                        "Employees can only set booking status to IN_PROGRESS or COMPLETED");
             }
+        }
+
+        if (request.getStatus() == BookingStatus.IN_PROGRESS && booking.getStartedAt() == null) {
+            booking.setStartedAt(LocalDateTime.now());
         }
 
         booking.setStatus(request.getStatus());
@@ -203,7 +207,7 @@ public class BookingService {
                 vehicle.getId(),
                 appointmentDateTime,
                 endDateTime,
-                List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED)
+                List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS)
         );
         if (conflict) {
             throw new InvalidBookingException(

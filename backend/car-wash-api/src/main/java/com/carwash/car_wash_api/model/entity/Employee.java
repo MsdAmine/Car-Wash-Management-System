@@ -1,6 +1,7 @@
 package com.carwash.car_wash_api.model.entity;
 
 import com.carwash.car_wash_api.model.enums.EmployeePosition;
+import com.carwash.car_wash_api.model.enums.EmployeeStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -29,8 +30,12 @@ public class Employee {
     @Column(nullable = false)
     private EmployeePosition position;
 
-    @Column(nullable = false)
+    @Column
     private LocalDate hireDate;
+
+    @Enumerated(EnumType.STRING)
+    @Column
+    private EmployeeStatus status;
 
     @Builder.Default
     @Column(nullable = false)
@@ -44,12 +49,43 @@ public class Employee {
 
     @PrePersist
     protected void onCreate() {
+        syncLegacyActiveFlag();
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
     }
 
     @PreUpdate
     protected void onUpdate() {
+        syncLegacyActiveFlag();
         updatedAt = LocalDateTime.now();
+    }
+
+    public EmployeeStatus getStatus() {
+        if (status != null) {
+            return status;
+        }
+        return active ? EmployeeStatus.ACTIVE : EmployeeStatus.INACTIVE;
+    }
+
+    public void setStatus(EmployeeStatus status) {
+        this.status = status;
+        if (status != null) {
+            this.active = status == EmployeeStatus.ACTIVE;
+        }
+    }
+
+    public boolean isActive() {
+        return getStatus() == EmployeeStatus.ACTIVE;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+        this.status = active ? EmployeeStatus.ACTIVE : EmployeeStatus.INACTIVE;
+    }
+
+    private void syncLegacyActiveFlag() {
+        if (status != null) {
+            active = status == EmployeeStatus.ACTIVE;
+        }
     }
 }

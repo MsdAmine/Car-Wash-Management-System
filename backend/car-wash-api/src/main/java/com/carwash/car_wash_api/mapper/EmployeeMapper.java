@@ -20,6 +20,7 @@ public class EmployeeMapper {
                 .phone(employee.getUser() != null ? employee.getUser().getPhone() : null)
                 .position(employee.getPosition())
                 .hireDate(employee.getHireDate())
+                .status(employee.getStatus())
                 .active(employee.isActive())
                 .createdAt(employee.getCreatedAt())
                 .updatedAt(employee.getUpdatedAt())

@@ -70,7 +70,7 @@ public class DashboardController {
 
     @Operation(
             summary = "Employee dashboard summary",
-            description = "Returns the authenticated employee's statistics: total assigned bookings and bookings currently in progress (CONFIRMED status). Requires EMPLOYEE role.",
+            description = "Returns the authenticated employee's statistics: total assigned bookings and bookings currently in progress (IN_PROGRESS status). Requires EMPLOYEE role.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses({

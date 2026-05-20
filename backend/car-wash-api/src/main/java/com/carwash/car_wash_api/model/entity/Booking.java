@@ -44,6 +44,9 @@ public class Booking {
     @Column(nullable = false)
     private LocalDateTime endDateTime;
 
+    @Column(name = "started_at")
+    private LocalDateTime startedAt;
+
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal totalPrice;
 
