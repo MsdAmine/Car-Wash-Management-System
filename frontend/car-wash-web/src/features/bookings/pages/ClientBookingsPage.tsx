@@ -1,69 +1,42 @@
 import { useState } from 'react';
 import { Calendar, Car } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/shared/components/ui/Badge';
 import { Button } from '@/shared/components/ui/Button';
 import { EmptyState } from '@/shared/components/feedback/EmptyState';
+import { ErrorState } from '@/shared/components/feedback/ErrorState';
 import { ClientLayout } from '@/shared/components/layout/ClientLayout';
-
-// ─── Mock data (not exported) ─────────────────────────────────────────────────
-
-const MOCK_BOOKINGS = [
-  {
-    id: '1',
-    ref: 'CW-000101',
-    service: 'Full Detail',
-    date: 'Monday, 19 May 2025',
-    time: '10:00',
-    vehicle: 'Toyota Camry',
-    status: 'confirmed' as const,
-  },
-  {
-    id: '2',
-    ref: 'CW-000098',
-    service: 'Basic Wash',
-    date: 'Wednesday, 21 May 2025',
-    time: '14:00',
-    vehicle: 'Ford F-150',
-    status: 'inProgress' as const,
-  },
-  {
-    id: '3',
-    ref: 'CW-000085',
-    service: 'Express Wash',
-    date: 'May 12, 2025',
-    time: '09:00',
-    vehicle: 'Toyota Camry',
-    status: 'completed' as const,
-  },
-  {
-    id: '4',
-    ref: 'CW-000079',
-    service: 'Premium Detail',
-    date: 'Apr 28, 2025',
-    time: '11:00',
-    vehicle: 'Ford F-150',
-    status: 'cancelled' as const,
-  },
-];
+import { ROUTES } from '@/router/routes';
+import { useMyBookings } from '../hooks/useMyBookings';
+import { formatAppointmentDateTime } from '@/shared/lib/formatDate';
+import type { BookingResponse } from '../types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type BookingStatus = 'confirmed' | 'inProgress' | 'completed' | 'cancelled';
+type BookingStatus = 'pending' | 'confirmed' | 'inProgress' | 'completed' | 'cancelled';
 type TabId = 'upcoming' | 'past';
 
 interface Booking {
   id: string;
   ref: string;
   service: string;
-  date: string;
-  time: string;
+  dateTime: string;
   vehicle: string;
   status: BookingStatus;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+const STATUS_MAP: Record<BookingResponse['status'], BookingStatus> = {
+  PENDING: 'pending',
+  CONFIRMED: 'confirmed',
+  IN_PROGRESS: 'inProgress',
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled',
+};
+
 const statusBorderClass: Record<BookingStatus, string> = {
+  pending: 'border-l-gray-400',
   confirmed: 'border-l-indigo-500',
   inProgress: 'border-l-amber-500',
   completed: 'border-l-green-500',
@@ -91,7 +64,7 @@ function BookingCardBottom({ booking }: BookingCardBottomProps) {
     );
   }
 
-  if (booking.status === 'confirmed') {
+  if (booking.status === 'pending' || booking.status === 'confirmed') {
     return (
       <div className="mt-4 flex gap-2">
         <Button variant="ghost" size="sm" onClick={() => console.log('reschedule', booking.id)}>
@@ -143,7 +116,7 @@ function BookingCard({ booking }: BookingCardProps) {
         <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1">
           <span className="flex items-center gap-1.5 text-sm text-gray-500">
             <Calendar className="w-4 h-4" />
-            {booking.date} at {booking.time}
+            {booking.dateTime}
           </span>
           <span className="flex items-center gap-1.5 text-sm text-gray-500">
             <Car className="w-4 h-4" />
@@ -160,15 +133,26 @@ function BookingCard({ booking }: BookingCardProps) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function ClientBookingsPage() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabId>('upcoming');
+  const { data: bookings, isLoading, isError } = useMyBookings();
 
-  const upcomingCount = MOCK_BOOKINGS.filter(
-    b => b.status === 'confirmed' || b.status === 'inProgress'
+  const allBookings: Booking[] = (bookings ?? []).map(b => ({
+    id: b.id,
+    ref: b.id.slice(-8).toUpperCase(),
+    service: b.washServiceName,
+    dateTime: formatAppointmentDateTime(b.appointmentDateTime),
+    vehicle: b.vehicleLicensePlate,
+    status: STATUS_MAP[b.status],
+  }));
+
+  const upcomingCount = (bookings ?? []).filter(
+    b => b.status === 'PENDING' || b.status === 'CONFIRMED' || b.status === 'IN_PROGRESS'
   ).length;
 
-  const filtered = MOCK_BOOKINGS.filter(b =>
+  const filtered = allBookings.filter(b =>
     activeTab === 'upcoming'
-      ? b.status === 'confirmed' || b.status === 'inProgress'
+      ? b.status === 'pending' || b.status === 'confirmed' || b.status === 'inProgress'
       : b.status === 'completed' || b.status === 'cancelled'
   );
 
@@ -177,7 +161,7 @@ export function ClientBookingsPage() {
       <main className="max-w-5xl mx-auto px-6 py-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-semibold text-gray-900">My Bookings</h1>
-          <Button variant="primary" size="sm" onClick={() => console.log('new booking')}>
+          <Button variant="primary" size="sm" onClick={() => navigate(ROUTES.CLIENT.BOOK)}>
             + New booking
           </Button>
         </div>
@@ -211,12 +195,20 @@ export function ClientBookingsPage() {
           </button>
         </div>
 
-        {filtered.length === 0 ? (
+        {isLoading ? (
+          <div className="flex flex-col gap-4">
+            {[0, 1, 2].map(i => (
+              <div key={i} className="bg-white rounded-xl border border-gray-200 h-32 animate-pulse" />
+            ))}
+          </div>
+        ) : isError ? (
+          <ErrorState message="Could not load bookings." />
+        ) : filtered.length === 0 ? (
           activeTab === 'upcoming' ? (
             <EmptyState
               title="No upcoming bookings"
               subtitle="Book a wash to get started."
-              action={{ label: '+ New booking', onClick: () => console.log('new booking') }}
+              action={{ label: '+ New booking', onClick: () => navigate(ROUTES.CLIENT.BOOK) }}
             />
           ) : (
             <EmptyState

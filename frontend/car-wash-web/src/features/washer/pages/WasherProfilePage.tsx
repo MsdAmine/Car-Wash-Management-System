@@ -1,19 +1,85 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import type { AxiosError } from 'axios';
 import { ChevronRight } from 'lucide-react';
 import { WasherLayout } from '@/shared/components/layout/WasherLayout';
 import { ImagePlaceholder } from '@/shared/components/ui/ImagePlaceholder';
 import { Button } from '@/shared/components/ui/Button';
-
-const MOCK_WASHER = {
-  firstName: 'James',
-  lastName: 'K.',
-  email: 'james@washflow.com',
-  phone: '+1 555 0101',
-  joinedAt: 'January 12, 2025',
-};
+import { useAuth } from '@/shared/context/AuthContext';
+import { fetchUserProfile } from '@/features/auth/api';
+import { useUpdateProfile } from '@/features/auth/hooks/useUpdateProfile';
 
 export function WasherProfilePage() {
-  const [editingField, setEditingField] = useState<'name' | 'phone' | 'email' | null>(null);
+  const { user, logout } = useAuth();
+  const queryClient = useQueryClient();
+  const updateProfile = useUpdateProfile();
+
+  const { data: profile } = useQuery({
+    queryKey: ['userProfile'],
+    queryFn: fetchUserProfile,
+  });
+
+  const [editingField, setEditingField] = useState<'name' | 'phone' | null>(null);
+  const [nameValue, setNameValue] = useState('');
+  const [phoneValue, setPhoneValue] = useState('');
+  const [rowError, setRowError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (profile) {
+      setNameValue(`${profile.firstName} ${profile.lastName}`);
+      setPhoneValue(profile.phone ?? '');
+    }
+  }, [profile]);
+
+  function splitName(full: string): { firstName: string; lastName: string } {
+    const parts = full.trim().split(/\s+/);
+    return {
+      firstName: parts[0] ?? '',
+      lastName: parts.slice(1).join(' '),
+    };
+  }
+
+  function handleSaveName() {
+    setRowError(null);
+    const { firstName, lastName } = splitName(nameValue);
+    updateProfile.mutate(
+      { firstName, lastName, phone: profile?.phone ?? phoneValue },
+      {
+        onSuccess: () => {
+          setEditingField(null);
+          queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+        },
+        onError: (err) => {
+          const axiosErr = err as AxiosError<{ message?: string }>;
+          setRowError(axiosErr.response?.data?.message ?? 'Failed to save.');
+        },
+      },
+    );
+  }
+
+  function handleSavePhone() {
+    setRowError(null);
+    const { firstName, lastName } = splitName(nameValue);
+    updateProfile.mutate(
+      { firstName, lastName, phone: phoneValue },
+      {
+        onSuccess: () => {
+          setEditingField(null);
+          queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+        },
+        onError: (err) => {
+          const axiosErr = err as AxiosError<{ message?: string }>;
+          setRowError(axiosErr.response?.data?.message ?? 'Failed to save.');
+        },
+      },
+    );
+  }
+
+  const displayName = profile
+    ? `${profile.firstName} ${profile.lastName}`
+    : user
+      ? `${user.firstName} ${user.lastName}`
+      : '';
 
   return (
     <WasherLayout>
@@ -25,13 +91,10 @@ export function WasherProfilePage() {
         {/* Identity card */}
         <div className="bg-white rounded-xl border border-gray-200 p-5 text-center">
           <ImagePlaceholder label="Profile photo" className="w-20 h-20 rounded-full mx-auto" />
-          <p className="text-lg font-semibold text-gray-900 mt-3">
-            {MOCK_WASHER.firstName} {MOCK_WASHER.lastName}
-          </p>
+          <p className="text-lg font-semibold text-gray-900 mt-3">{displayName}</p>
           <span className="bg-indigo-50 text-indigo-700 text-xs font-medium px-2.5 py-1 rounded-full inline-block mt-1">
             Car Washer
           </span>
-          <p className="text-xs text-gray-400 mt-2">Member since {MOCK_WASHER.joinedAt}</p>
         </div>
 
         {/* Editable info card */}
@@ -41,24 +104,29 @@ export function WasherProfilePage() {
           </div>
 
           {/* Name row */}
-          <div className="px-4 py-3 border-b border-gray-100 last:border-b-0">
+          <div className="px-4 py-3 border-b border-gray-100">
             {editingField === 'name' ? (
               <div>
                 <span className="text-xs text-gray-500 uppercase tracking-wide">Name</span>
                 <input
                   className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm mt-1 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                  defaultValue={`${MOCK_WASHER.firstName} ${MOCK_WASHER.lastName}`}
+                  value={nameValue}
+                  onChange={(e) => setNameValue(e.target.value)}
                 />
+                {rowError && editingField === 'name' && (
+                  <p className="text-xs text-red-600 mt-1">{rowError}</p>
+                )}
                 <div className="flex justify-end gap-2 mt-2">
                   <button
                     className="text-xs text-gray-500 hover:text-gray-700 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 rounded"
-                    onClick={() => setEditingField(null)}
+                    onClick={() => { setEditingField(null); setRowError(null); }}
                   >
                     Cancel
                   </button>
                   <button
-                    className="text-xs text-indigo-600 hover:text-indigo-700 font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
-                    onClick={() => { console.log('save name'); setEditingField(null); }}
+                    className="text-xs text-indigo-600 hover:text-indigo-700 font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded disabled:opacity-50"
+                    onClick={handleSaveName}
+                    disabled={updateProfile.isPending}
                   >
                     Save
                   </button>
@@ -68,9 +136,7 @@ export function WasherProfilePage() {
               <div className="flex justify-between items-center">
                 <div>
                   <p className="text-xs text-gray-500 uppercase tracking-wide">Name</p>
-                  <p className="text-sm text-gray-900 font-medium mt-0.5">
-                    {MOCK_WASHER.firstName} {MOCK_WASHER.lastName}
-                  </p>
+                  <p className="text-sm text-gray-900 font-medium mt-0.5">{displayName}</p>
                 </div>
                 <button
                   className="text-xs text-indigo-600 hover:text-indigo-700 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
@@ -83,24 +149,29 @@ export function WasherProfilePage() {
           </div>
 
           {/* Phone row */}
-          <div className="px-4 py-3 border-b border-gray-100 last:border-b-0">
+          <div className="px-4 py-3 border-b border-gray-100">
             {editingField === 'phone' ? (
               <div>
                 <span className="text-xs text-gray-500 uppercase tracking-wide">Phone</span>
                 <input
                   className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm mt-1 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                  defaultValue={MOCK_WASHER.phone}
+                  value={phoneValue}
+                  onChange={(e) => setPhoneValue(e.target.value)}
                 />
+                {rowError && editingField === 'phone' && (
+                  <p className="text-xs text-red-600 mt-1">{rowError}</p>
+                )}
                 <div className="flex justify-end gap-2 mt-2">
                   <button
                     className="text-xs text-gray-500 hover:text-gray-700 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 rounded"
-                    onClick={() => setEditingField(null)}
+                    onClick={() => { setEditingField(null); setRowError(null); }}
                   >
                     Cancel
                   </button>
                   <button
-                    className="text-xs text-indigo-600 hover:text-indigo-700 font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
-                    onClick={() => { console.log('save phone'); setEditingField(null); }}
+                    className="text-xs text-indigo-600 hover:text-indigo-700 font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded disabled:opacity-50"
+                    onClick={handleSavePhone}
+                    disabled={updateProfile.isPending}
                   >
                     Save
                   </button>
@@ -110,7 +181,7 @@ export function WasherProfilePage() {
               <div className="flex justify-between items-center">
                 <div>
                   <p className="text-xs text-gray-500 uppercase tracking-wide">Phone</p>
-                  <p className="text-sm text-gray-900 font-medium mt-0.5">{MOCK_WASHER.phone}</p>
+                  <p className="text-sm text-gray-900 font-medium mt-0.5">{profile?.phone ?? '—'}</p>
                 </div>
                 <button
                   className="text-xs text-indigo-600 hover:text-indigo-700 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
@@ -122,48 +193,21 @@ export function WasherProfilePage() {
             )}
           </div>
 
-          {/* Email row */}
+          {/* Email row — read-only */}
           <div className="px-4 py-3 border-b border-gray-100 last:border-b-0">
-            {editingField === 'email' ? (
+            <div className="flex justify-between items-center">
               <div>
-                <span className="text-xs text-gray-500 uppercase tracking-wide">Email</span>
-                <input
-                  className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm mt-1 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                  defaultValue={MOCK_WASHER.email}
-                />
-                <div className="flex justify-end gap-2 mt-2">
-                  <button
-                    className="text-xs text-gray-500 hover:text-gray-700 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 rounded"
-                    onClick={() => setEditingField(null)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    className="text-xs text-indigo-600 hover:text-indigo-700 font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
-                    onClick={() => { console.log('save email'); setEditingField(null); }}
-                  >
-                    Save
-                  </button>
-                </div>
+                <p className="text-xs text-gray-500 uppercase tracking-wide">Email</p>
+                <p className="text-sm text-gray-900 font-medium mt-0.5">
+                  {profile?.email ?? user?.email ?? '—'}
+                </p>
               </div>
-            ) : (
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-xs text-gray-500 uppercase tracking-wide">Email</p>
-                  <p className="text-sm text-gray-900 font-medium mt-0.5">{MOCK_WASHER.email}</p>
-                </div>
-                <button
-                  className="text-xs text-indigo-600 hover:text-indigo-700 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
-                  onClick={() => setEditingField('email')}
-                >
-                  Edit
-                </button>
-              </div>
-            )}
+            </div>
           </div>
         </div>
 
         {/* Change password row */}
+        {/* TODO: no change-password endpoint yet */}
         <div className="bg-white rounded-xl border border-gray-200">
           <button
             className="w-full px-4 py-3 flex justify-between items-center cursor-pointer hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 rounded-xl"
@@ -174,12 +218,11 @@ export function WasherProfilePage() {
           </button>
         </div>
 
-        {/* Log out */}
         <Button
           variant="ghost"
           size="sm"
           className="w-full mt-2 text-red-500 border border-red-200 hover:bg-red-50"
-          onClick={() => console.log('logout')}
+          onClick={logout}
         >
           Log out
         </Button>

@@ -1,7 +1,11 @@
 package com.carwash.car_wash_api.config;
 
+import com.carwash.car_wash_api.model.entity.BusinessSettings;
+import com.carwash.car_wash_api.model.entity.OperatingHours;
 import com.carwash.car_wash_api.model.entity.User;
 import com.carwash.car_wash_api.model.enums.Role;
+import com.carwash.car_wash_api.repository.BusinessSettingsRepository;
+import com.carwash.car_wash_api.repository.OperatingHoursRepository;
 import com.carwash.car_wash_api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +16,9 @@ import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalTime;
+import java.util.List;
+
 @Slf4j
 @Component
 @Order(1)
@@ -20,6 +27,8 @@ public class DataInitializer implements ApplicationRunner {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final BusinessSettingsRepository businessSettingsRepository;
+    private final OperatingHoursRepository operatingHoursRepository;
 
     @Value("${app.admin.email}")
     private String adminEmail;
@@ -43,6 +52,12 @@ public class DataInitializer implements ApplicationRunner {
                      "Set ADMIN_EMAIL and ADMIN_PASSWORD env vars before deploying to production. ***");
         }
 
+        seedAdminIfAbsent();
+        seedBusinessSettingsIfAbsent();
+        seedOperatingHoursIfAbsent();
+    }
+
+    private void seedAdminIfAbsent() {
         if (userRepository.existsByEmail(adminEmail)) {
             log.info("Admin account already exists for '{}'. Skipping seed.", adminEmail);
             return;
@@ -59,5 +74,45 @@ public class DataInitializer implements ApplicationRunner {
 
         userRepository.save(admin);
         log.info("Default admin account created for '{}'.", adminEmail);
+    }
+
+    private void seedBusinessSettingsIfAbsent() {
+        if (businessSettingsRepository.count() > 0) {
+            return;
+        }
+
+        businessSettingsRepository.save(BusinessSettings.builder()
+                .businessName("WashFlow")
+                .phone("")
+                .address("")
+                .city("")
+                .cancellationHours(24)
+                .build());
+
+        log.info("Default business settings created.");
+    }
+
+    private void seedOperatingHoursIfAbsent() {
+        if (operatingHoursRepository.count() > 0) {
+            return;
+        }
+
+        LocalTime weekdayOpen  = LocalTime.of(8, 0);
+        LocalTime weekdayClose = LocalTime.of(18, 0);
+        LocalTime satOpen      = LocalTime.of(9, 0);
+        LocalTime satClose     = LocalTime.of(17, 0);
+
+        List<OperatingHours> days = List.of(
+                OperatingHours.builder().dayOfWeek("MONDAY")    .openTime(weekdayOpen).closeTime(weekdayClose).open(true).build(),
+                OperatingHours.builder().dayOfWeek("TUESDAY")   .openTime(weekdayOpen).closeTime(weekdayClose).open(true).build(),
+                OperatingHours.builder().dayOfWeek("WEDNESDAY") .openTime(weekdayOpen).closeTime(weekdayClose).open(true).build(),
+                OperatingHours.builder().dayOfWeek("THURSDAY")  .openTime(weekdayOpen).closeTime(weekdayClose).open(true).build(),
+                OperatingHours.builder().dayOfWeek("FRIDAY")    .openTime(weekdayOpen).closeTime(weekdayClose).open(true).build(),
+                OperatingHours.builder().dayOfWeek("SATURDAY")  .openTime(satOpen)    .closeTime(satClose)    .open(true).build(),
+                OperatingHours.builder().dayOfWeek("SUNDAY")    .openTime(weekdayOpen).closeTime(weekdayClose).open(false).build()
+        );
+
+        operatingHoursRepository.saveAll(days);
+        log.info("Default operating hours created for 7 days.");
     }
 }

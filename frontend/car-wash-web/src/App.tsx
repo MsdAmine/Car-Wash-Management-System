@@ -93,11 +93,15 @@ const WasherPendingPage = lazy(() =>
   import('@/features/auth/pages/WasherPendingPage').then(({ WasherPendingPage }) => ({ default: WasherPendingPage }))
 );
 
+const UnauthorizedPage = lazy(() =>
+  import('@/features/auth/pages/UnauthorizedPage').then(({ UnauthorizedPage }) => ({ default: UnauthorizedPage }))
+);
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <BrowserRouter>
+      <BrowserRouter>
+        <AuthProvider>
           <Routes>
             <Route
               path="/"
@@ -275,9 +279,17 @@ function App() {
                 </Suspense>
               }
             />
+            <Route
+              path={ROUTES.PUBLIC.UNAUTHORIZED}
+              element={
+                <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+                  <UnauthorizedPage />
+                </Suspense>
+              }
+            />
           </Routes>
-        </BrowserRouter>
-      </AuthProvider>
+        </AuthProvider>
+      </BrowserRouter>
     </QueryClientProvider>
   );
 }

@@ -1,108 +1,91 @@
 import { Bell, Car, CheckCircle2, Clock, Droplets, Search } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/shared/components/ui/Badge';
 import { ImagePlaceholder } from '@/shared/components/ui/ImagePlaceholder';
 import { WasherLayout } from '@/shared/components/layout/WasherLayout';
-
-// ─── Mock data ────────────────────────────────────────────────────────────────
-
-const MOCK_WASHER = { firstName: 'James', lastName: 'K.' };
-
-const MOCK_JOBS = [
-  {
-    id: '1',
-    ref: 'CW-000101',
-    client: 'Alex Morgan',
-    vehicle: 'Toyota Camry',
-    service: 'Full Detail',
-    time: '10:00',
-    status: 'inProgress' as const,
-  },
-  {
-    id: '2',
-    ref: 'CW-000103',
-    client: 'Sarah Chen',
-    vehicle: 'Honda Civic',
-    service: 'Basic Wash',
-    time: '13:00',
-    status: 'confirmed' as const,
-  },
-  {
-    id: '3',
-    ref: 'CW-000099',
-    client: 'Mike Torres',
-    vehicle: 'BMW X5',
-    service: 'Premium Detail',
-    time: '08:00',
-    status: 'completed' as const,
-  },
-];
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type JobStatus = 'inProgress' | 'confirmed' | 'completed';
-
-interface Job {
-  id: string;
-  ref: string;
-  client: string;
-  vehicle: string;
-  service: string;
-  time: string;
-  status: JobStatus;
-}
+import { ErrorState } from '@/shared/components/feedback/ErrorState';
+import { useAuth } from '@/shared/context/AuthContext';
+import { useMyJobsToday } from '../hooks/useMyJobsToday';
+import { ROUTES } from '@/router/routes';
+import type { BookingResponse } from '../types';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const leftBorderClass: Record<JobStatus, string> = {
-  inProgress: 'border-l-amber-500',
-  confirmed: 'border-l-indigo-500',
-  completed: 'border-l-gray-200',
+const STATUS_TO_BADGE: Record<
+  BookingResponse['status'],
+  'pending' | 'confirmed' | 'inProgress' | 'completed' | 'cancelled'
+> = {
+  PENDING: 'pending',
+  CONFIRMED: 'confirmed',
+  IN_PROGRESS: 'inProgress',
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled',
 };
+
+const LEFT_BORDER: Record<BookingResponse['status'], string> = {
+  PENDING: 'border-l-gray-400',
+  CONFIRMED: 'border-l-indigo-500',
+  IN_PROGRESS: 'border-l-amber-500',
+  COMPLETED: 'border-l-gray-200',
+  CANCELLED: 'border-l-red-300',
+};
+
+function extractTime(isoString: string): string {
+  return isoString.slice(11, 16);
+}
+
+// ─── JobCardSkeleton ──────────────────────────────────────────────────────────
+
+function JobCardSkeleton() {
+  return <div className="bg-white rounded-xl h-24 animate-pulse border border-gray-100" />;
+}
 
 // ─── JobCard ──────────────────────────────────────────────────────────────────
 
 interface JobCardProps {
-  job: Job;
+  booking: BookingResponse;
+  onClick: () => void;
 }
 
-function JobCard({ job }: JobCardProps) {
+function JobCard({ booking, onClick }: JobCardProps) {
   return (
     <button
       type="button"
-      className={`w-full text-left bg-white rounded-xl border border-gray-200 border-l-4 ${leftBorderClass[job.status]} overflow-hidden p-4 hover:shadow-sm transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500`}
-      onClick={() => console.log('open job', job.id)}
+      className={`w-full text-left bg-white rounded-xl border border-gray-200 border-l-4 ${LEFT_BORDER[booking.status]} overflow-hidden p-4 hover:shadow-sm transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500`}
+      onClick={onClick}
     >
       <div className="flex justify-between items-start">
-        <span className="font-mono text-xs text-gray-500">{job.ref}</span>
-        <Badge variant={job.status} />
+        <span className="font-mono text-xs text-gray-500">
+          {booking.id.slice(-8).toUpperCase()}
+        </span>
+        <Badge variant={STATUS_TO_BADGE[booking.status]} />
       </div>
 
       <div className="mt-2">
-        <p className="text-sm font-semibold text-gray-900">{job.client}</p>
+        <p className="text-sm font-semibold text-gray-900">{booking.customerEmail}</p>
         <div className="flex gap-3 mt-1 text-xs text-gray-500">
           <span className="flex items-center gap-1">
             <Car className="w-3 h-3" />
-            {job.vehicle}
+            {booking.vehicleLicensePlate}
           </span>
           <span className="flex items-center gap-1">
             <Droplets className="w-3 h-3" />
-            {job.service}
+            {booking.washServiceName}
           </span>
         </div>
         <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
           <Clock className="w-3 h-3" />
-          {job.time}
+          {extractTime(booking.appointmentDateTime)}
         </div>
       </div>
 
-      {job.status === 'inProgress' && (
+      {booking.status === 'IN_PROGRESS' && (
         <div className="mt-3">
           <div className="flex justify-between text-xs text-gray-500 mb-1">
             <span>In progress</span>
-            <span>~45 min remaining</span>
           </div>
           <div className="bg-gray-100 h-2 rounded-full">
-            <div className="bg-amber-500 h-2 rounded-full" style={{ width: '60%' }} />
+            <div className="bg-amber-500 h-2 rounded-full w-3/5" />
           </div>
         </div>
       )}
@@ -113,8 +96,14 @@ function JobCard({ job }: JobCardProps) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function WasherJobsPage() {
-  const activeJobs = MOCK_JOBS.filter(j => j.status !== 'completed');
-  const completedJobs = MOCK_JOBS.filter(j => j.status === 'completed');
+  const { user } = useAuth();
+  const { data: bookings, isLoading, isError } = useMyJobsToday();
+  const navigate = useNavigate();
+
+  const activeJobs = bookings?.filter(
+    b => b.status === 'CONFIRMED' || b.status === 'IN_PROGRESS',
+  ) ?? [];
+  const completedJobs = bookings?.filter(b => b.status === 'COMPLETED') ?? [];
 
   return (
     <WasherLayout>
@@ -125,7 +114,7 @@ export function WasherJobsPage() {
               <ImagePlaceholder label="Avatar" className="w-10 h-10 rounded-full flex-shrink-0" />
               <div>
                 <p className="text-sm font-semibold text-gray-900">
-                  {MOCK_WASHER.firstName} {MOCK_WASHER.lastName}
+                  {user?.firstName} {user?.lastName}
                 </p>
                 <p className="text-xs text-gray-500">Car Washer</p>
               </div>
@@ -152,46 +141,68 @@ export function WasherJobsPage() {
         </div>
 
         <div className="px-4 pt-4">
-          <div className="flex justify-between items-center mb-3">
-            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-              Today's jobs
-            </span>
-            <span className="bg-indigo-100 text-indigo-700 text-xs font-medium px-2 py-0.5 rounded-full">
-              {activeJobs.length}
-            </span>
-          </div>
-
-          {activeJobs.length === 0 ? (
+          {isLoading ? (
+            <div className="flex flex-col gap-3">
+              <JobCardSkeleton />
+              <JobCardSkeleton />
+              <JobCardSkeleton />
+            </div>
+          ) : isError ? (
             <div className="py-12">
-              <CheckCircle2 className="w-10 h-10 text-gray-300 mx-auto" />
-              <p className="text-sm font-medium text-gray-500 mt-3 text-center">
-                No jobs assigned yet
-              </p>
+              <ErrorState message="Could not load today's jobs." />
             </div>
           ) : (
-            <div className="flex flex-col gap-3">
-              {activeJobs.map(job => (
-                <JobCard key={job.id} job={job} />
-              ))}
-            </div>
-          )}
-
-          {completedJobs.length > 0 && (
-            <div className="mt-6 opacity-50">
+            <>
               <div className="flex justify-between items-center mb-3">
                 <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                  Completed today
+                  Today's jobs
                 </span>
                 <span className="bg-indigo-100 text-indigo-700 text-xs font-medium px-2 py-0.5 rounded-full">
-                  {completedJobs.length}
+                  {activeJobs.length}
                 </span>
               </div>
-              <div className="flex flex-col gap-3">
-                {completedJobs.map(job => (
-                  <JobCard key={job.id} job={job} />
-                ))}
-              </div>
-            </div>
+
+              {activeJobs.length === 0 ? (
+                <div className="py-12">
+                  <CheckCircle2 className="w-10 h-10 text-gray-300 mx-auto" />
+                  <p className="text-sm font-medium text-gray-500 mt-3 text-center">
+                    No jobs assigned yet
+                  </p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {activeJobs.map(booking => (
+                    <JobCard
+                      key={booking.id}
+                      booking={booking}
+                      onClick={() => navigate(ROUTES.WASHER.JOB_DETAIL(booking.id))}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {completedJobs.length > 0 && (
+                <div className="mt-6 opacity-50">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                      Completed today
+                    </span>
+                    <span className="bg-indigo-100 text-indigo-700 text-xs font-medium px-2 py-0.5 rounded-full">
+                      {completedJobs.length}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    {completedJobs.map(booking => (
+                      <JobCard
+                        key={booking.id}
+                        booking={booking}
+                        onClick={() => navigate(ROUTES.WASHER.JOB_DETAIL(booking.id))}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </>

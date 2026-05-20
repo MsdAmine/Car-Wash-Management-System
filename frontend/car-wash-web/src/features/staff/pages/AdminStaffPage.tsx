@@ -12,25 +12,13 @@ import {
   TableRow,
   TableCell,
 } from '@/shared/components/ui/Table';
-
-// ─── Mock data ────────────────────────────────────────────────────────────────
-
-const MOCK_STAFF = [
-  { id: '1', name: 'James K.', email: 'james@washflow.com', phone: '+1 555 0101', status: 'active' as const, jobsThisMonth: 47, joinedAt: 'Jan 12, 2025' },
-  { id: '2', name: 'Maria L.', email: 'maria@washflow.com', phone: '+1 555 0102', status: 'active' as const, jobsThisMonth: 38, joinedAt: 'Feb 3, 2025' },
-  { id: '3', name: 'Tony B.',  email: 'tony@washflow.com',  phone: '+1 555 0103', status: 'inactive' as const, jobsThisMonth: 0, joinedAt: 'Mar 15, 2025' },
-  { id: '4', name: 'Priya S.', email: 'priya@washflow.com', phone: '+1 555 0104', status: 'pending' as const, jobsThisMonth: 0, joinedAt: 'May 18, 2025' },
-];
-
-const MOCK_RECENT_JOBS = [
-  { ref: 'CW-000101', service: 'Full Detail',   date: 'May 19, 2025', status: 'completed' as const },
-  { ref: 'CW-000098', service: 'Basic Wash',    date: 'May 17, 2025', status: 'completed' as const },
-  { ref: 'CW-000091', service: 'Express Wash',  date: 'May 14, 2025', status: 'completed' as const },
-];
+import { ErrorState } from '@/shared/components/feedback/ErrorState';
+import { useAllEmployees } from '../hooks/useAllEmployees';
+import { useActivateEmployee } from '../hooks/useActivateEmployee';
+import type { EmployeeResponse } from '../types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type StaffStatus = 'active' | 'inactive' | 'pending';
 type TabKey = 'all' | 'active' | 'inactive' | 'pending';
 
 // ─── Tab config ───────────────────────────────────────────────────────────────
@@ -44,30 +32,32 @@ const TABS: { key: TabKey; label: string }[] = [
 
 // ─── Filter helpers ───────────────────────────────────────────────────────────
 
-function filterByTab(staff: typeof MOCK_STAFF, tab: TabKey): typeof MOCK_STAFF {
-  if (tab === 'all') return staff;
-  return staff.filter(s => s.status === tab);
+function filterByTab(employees: EmployeeResponse[], tab: TabKey): EmployeeResponse[] {
+  if (tab === 'all') return employees;
+  return employees.filter((e) => e.status === tab.toUpperCase());
 }
 
-function applySearch(staff: typeof MOCK_STAFF, query: string): typeof MOCK_STAFF {
+function applySearch(employees: EmployeeResponse[], query: string): EmployeeResponse[] {
   const q = query.trim().toLowerCase();
-  if (!q) return staff;
-  return staff.filter(
-    s => s.name.toLowerCase().includes(q) || s.email.toLowerCase().includes(q)
+  if (!q) return employees;
+  return employees.filter(
+    (e) =>
+      `${e.firstName} ${e.lastName}`.toLowerCase().includes(q) ||
+      e.email.toLowerCase().includes(q),
   );
 }
 
 // ─── Badge helpers ────────────────────────────────────────────────────────────
 
-function statusVariant(status: StaffStatus): 'completed' | 'cancelled' | 'pending' {
-  if (status === 'active')   return 'completed';
-  if (status === 'inactive') return 'cancelled';
+function statusVariant(status: EmployeeResponse['status']): 'completed' | 'cancelled' | 'pending' {
+  if (status === 'ACTIVE')   return 'completed';
+  if (status === 'INACTIVE') return 'cancelled';
   return 'pending';
 }
 
-function statusLabel(status: StaffStatus): string {
-  if (status === 'active')   return 'Active';
-  if (status === 'inactive') return 'Inactive';
+function statusLabel(status: EmployeeResponse['status']): string {
+  if (status === 'ACTIVE')   return 'Active';
+  if (status === 'INACTIVE') return 'Inactive';
   return 'Pending';
 }
 
@@ -76,10 +66,12 @@ function statusLabel(status: StaffStatus): string {
 interface StaffDetailPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  staff: (typeof MOCK_STAFF)[0] | null;
+  staff: EmployeeResponse | null;
 }
 
 function StaffDetailPanel({ isOpen, onClose, staff }: StaffDetailPanelProps) {
+  const activateEmployee = useActivateEmployee();
+
   useEffect(() => {
     if (!isOpen) return;
     function handleKeyDown(e: KeyboardEvent) {
@@ -102,7 +94,9 @@ function StaffDetailPanel({ isOpen, onClose, staff }: StaffDetailPanelProps) {
       <div className="fixed right-0 top-0 h-full w-96 bg-white shadow-xl z-50 flex flex-col">
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center flex-shrink-0">
-          <h2 className="text-lg font-semibold text-gray-900">{staff.name}</h2>
+          <h2 className="text-lg font-semibold text-gray-900">
+            {staff.firstName} {staff.lastName}
+          </h2>
           <button
             type="button"
             aria-label="Close panel"
@@ -118,7 +112,9 @@ function StaffDetailPanel({ isOpen, onClose, staff }: StaffDetailPanelProps) {
           {/* Identity */}
           <div className="flex flex-col items-center">
             <ImagePlaceholder label="Staff avatar" className="w-16 h-16 rounded-full" />
-            <p className="text-lg font-semibold text-gray-900 text-center mt-3">{staff.name}</p>
+            <p className="text-lg font-semibold text-gray-900 text-center mt-3">
+              {staff.firstName} {staff.lastName}
+            </p>
             <div className="mt-1">
               <Badge variant={statusVariant(staff.status)} label={statusLabel(staff.status)} />
             </div>
@@ -135,47 +131,32 @@ function StaffDetailPanel({ isOpen, onClose, staff }: StaffDetailPanelProps) {
               <span className="text-sm text-gray-900">{staff.phone}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-500">Joined</span>
-              <span className="text-sm text-gray-900">{staff.joinedAt}</span>
+              <span className="text-xs text-gray-500">Position</span>
+              <span className="text-sm text-gray-900">{staff.position}</span>
             </div>
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-gray-50 rounded-xl p-4 text-center">
-              <p className="text-2xl font-bold text-gray-900">{staff.jobsThisMonth}</p>
-              <p className="text-xs text-gray-500 mt-1">Jobs this month</p>
-            </div>
-            <div className="bg-gray-50 rounded-xl p-4 text-center">
-              <p className="text-2xl font-bold text-gray-900">{staff.jobsThisMonth * 3}</p>
-              <p className="text-xs text-gray-500 mt-1">Total jobs</p>
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-500">Hired</span>
+              <span className="text-sm text-gray-900">
+                {new Date(staff.hireDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+              </span>
             </div>
           </div>
 
           {/* Recent jobs */}
           <div>
-            <p className="text-sm font-semibold text-gray-900 mb-3">Recent jobs</p>
-            <div className="flex flex-col gap-2">
-              {MOCK_RECENT_JOBS.map(job => (
-                <div
-                  key={job.ref}
-                  className="bg-white border border-gray-200 rounded-lg p-3 flex justify-between items-center"
-                >
-                  <div>
-                    <p className="font-mono text-xs text-gray-500">{job.ref}</p>
-                    <p className="text-sm text-gray-900 mt-0.5">{job.service}</p>
-                  </div>
-                  <Badge variant={job.status} />
-                </div>
-              ))}
-            </div>
+            <p className="text-sm font-semibold text-gray-900 mb-2">Recent jobs</p>
+            <p className="text-sm text-gray-400 italic">Recent job history not available in this view.</p>
           </div>
         </div>
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3 flex-shrink-0">
-          {staff.status === 'pending' ? (
-            <Button size="sm" onClick={() => console.log('activate', staff.id)}>
+          {staff.status === 'PENDING' ? (
+            <Button
+              size="sm"
+              isLoading={activateEmployee.isPending}
+              onClick={() => activateEmployee.mutate(staff.id, { onSuccess: onClose })}
+            >
               Activate
             </Button>
           ) : (
@@ -194,15 +175,37 @@ function StaffDetailPanel({ isOpen, onClose, staff }: StaffDetailPanelProps) {
   );
 }
 
+// ─── Skeleton rows ────────────────────────────────────────────────────────────
+
+function SkeletonRows() {
+  return (
+    <>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <tr key={i} className="border-b border-gray-100">
+          {Array.from({ length: 5 }).map((__, j) => (
+            <td key={j} className="px-4 py-3">
+              <div className="h-4 bg-gray-100 rounded animate-pulse" />
+            </td>
+          ))}
+        </tr>
+      ))}
+    </>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function AdminStaffPage() {
-  const [activeTab, setActiveTab]     = useState<TabKey>('all');
-  const [search, setSearch]           = useState('');
-  const [selectedStaff, setSelectedStaff] = useState<(typeof MOCK_STAFF)[0] | null>(null);
+  const { data: employees, isLoading, isError } = useAllEmployees();
+  const activateEmployee = useActivateEmployee();
 
-  const tabFiltered   = filterByTab(MOCK_STAFF, activeTab);
-  const visibleStaff  = applySearch(tabFiltered, search);
+  const [activeTab, setActiveTab]         = useState<TabKey>('all');
+  const [search, setSearch]               = useState('');
+  const [selectedStaff, setSelectedStaff] = useState<EmployeeResponse | null>(null);
+
+  const allEmployees   = employees ?? [];
+  const tabFiltered    = filterByTab(allEmployees, activeTab);
+  const visibleStaff   = applySearch(tabFiltered, search);
 
   const topBar = (
     <>
@@ -212,7 +215,7 @@ export function AdminStaffPage() {
         <input
           type="text"
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={(e) => setSearch(e.target.value)}
           placeholder="Search staff"
           className="w-56 pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
         />
@@ -243,73 +246,86 @@ export function AdminStaffPage() {
 
         {/* Table */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <Table>
-            <TableHead>
-              <tr>
-                <TableHeader>Staff member</TableHeader>
-                <TableHeader>Phone</TableHeader>
-                <TableHeader>Status</TableHeader>
-                <TableHeader className="text-right">Jobs this month</TableHeader>
-                <TableHeader className="w-24">
-                  <span className="sr-only">Actions</span>
-                </TableHeader>
-              </tr>
-            </TableHead>
-            <TableBody>
-              {visibleStaff.map(staff => (
-                <TableRow
-                  key={staff.id}
-                  onClick={() => setSelectedStaff(staff)}
-                >
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <ImagePlaceholder label="Avatar" className="w-8 h-8 rounded-full flex-shrink-0" />
-                      <div>
-                        <p className="text-sm font-semibold text-gray-900">{staff.name}</p>
-                        <p className="text-xs text-gray-500">{staff.email}</p>
-                      </div>
-                    </div>
-                  </TableCell>
+          {isError ? (
+            <div className="py-12">
+              <ErrorState message="Could not load staff." />
+            </div>
+          ) : (
+            <Table>
+              <TableHead>
+                <tr>
+                  <TableHeader>Staff member</TableHeader>
+                  <TableHeader>Phone</TableHeader>
+                  <TableHeader>Status</TableHeader>
+                  <TableHeader className="text-right">Position</TableHeader>
+                  <TableHeader className="w-24">
+                    <span className="sr-only">Actions</span>
+                  </TableHeader>
+                </tr>
+              </TableHead>
+              <TableBody>
+                {isLoading ? (
+                  <SkeletonRows />
+                ) : (
+                  visibleStaff.map((staff) => (
+                    <TableRow
+                      key={staff.id}
+                      onClick={() => setSelectedStaff(staff)}
+                    >
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <ImagePlaceholder label="Avatar" className="w-8 h-8 rounded-full flex-shrink-0" />
+                          <div>
+                            <p className="text-sm font-semibold text-gray-900">
+                              {staff.firstName} {staff.lastName}
+                            </p>
+                            <p className="text-xs text-gray-500">{staff.email}</p>
+                          </div>
+                        </div>
+                      </TableCell>
 
-                  <TableCell>{staff.phone}</TableCell>
+                      <TableCell>{staff.phone}</TableCell>
 
-                  <TableCell>
-                    <Badge variant={statusVariant(staff.status)} label={statusLabel(staff.status)} />
-                  </TableCell>
+                      <TableCell>
+                        <Badge variant={statusVariant(staff.status)} label={statusLabel(staff.status)} />
+                      </TableCell>
 
-                  <TableCell className="text-right">
-                    <span className="text-sm text-gray-700">{staff.jobsThisMonth}</span>
-                  </TableCell>
+                      <TableCell className="text-right">
+                        <span className="text-sm text-gray-700">{staff.position}</span>
+                      </TableCell>
 
-                  <TableCell className="text-right">
-                    {staff.status === 'pending' ? (
-                      <Button
-                        size="sm"
-                        onClick={e => {
-                          e.stopPropagation();
-                          console.log('activate', staff.id);
-                        }}
-                      >
-                        Activate
-                      </Button>
-                    ) : (
-                      <button
-                        type="button"
-                        aria-label="Staff actions"
-                        onClick={e => {
-                          e.stopPropagation();
-                          setSelectedStaff(staff);
-                        }}
-                        className="text-gray-400 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded px-1"
-                      >
-                        ···
-                      </button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                      <TableCell className="text-right">
+                        {staff.status === 'PENDING' ? (
+                          <Button
+                            size="sm"
+                            isLoading={activateEmployee.isPending}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              activateEmployee.mutate(staff.id);
+                            }}
+                          >
+                            Activate
+                          </Button>
+                        ) : (
+                          <button
+                            type="button"
+                            aria-label="Staff actions"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedStaff(staff);
+                            }}
+                            className="text-gray-400 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded px-1"
+                          >
+                            ···
+                          </button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          )}
         </div>
       </AdminLayout>
 

@@ -1,53 +1,55 @@
 import { useState } from 'react';
 import { Car, CheckCircle2, Plus, ChevronLeft, ChevronRight, Info } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/components/ui/Button';
 import { StepTracker } from '@/shared/components/ui/StepTracker';
 import { ImagePlaceholder } from '@/shared/components/ui/ImagePlaceholder';
+import { ErrorState } from '@/shared/components/feedback/ErrorState';
 import { ClientLayout } from '@/shared/components/layout/ClientLayout';
+import { ROUTES } from '@/router/routes';
+import { useActiveServices } from '@/features/services/hooks/useActiveServices';
+import { useMyVehicles } from '@/features/vehicles/hooks/useMyVehicles';
+import { useCreateBooking } from '../hooks/useCreateBooking';
+import type { WashServiceResponse } from '@/features/services/types';
+import type { VehicleResponse } from '@/features/vehicles/types';
 
-// ─── Mock data (not exported) ────────────────────────────────────────────────
-
-interface MockService {
-  id: string;
-  name: string;
-  description: string;
-  duration: number;
-  price: number;
-  badge: string | null;
-}
-
-interface MockVehicle {
-  id: string;
-  make: string;
-  model: string;
-  plate: string;
-  type: string;
-}
-
-const MOCK_SERVICES: MockService[] = [
-  { id: '1', name: 'Basic Wash', description: 'Exterior hand wash and dry.', duration: 30, price: 15, badge: null },
-  { id: '2', name: 'Full Detail', description: 'Interior + exterior full detail.', duration: 90, price: 65, badge: 'Best Value' },
-  { id: '3', name: 'Express Wash', description: 'Quick exterior rinse and dry.', duration: 20, price: 10, badge: 'Popular' },
-  { id: '4', name: 'Premium Detail', description: 'Full detail + paint protection.', duration: 120, price: 95, badge: null },
-];
-
-const MOCK_VEHICLES: MockVehicle[] = [
-  { id: '1', make: 'Toyota', model: 'Camry', plate: 'ABC-1234', type: 'Sedan' },
-  { id: '2', make: 'Ford', model: 'F-150', plate: 'XYZ-9876', type: 'Truck' },
-];
-
+// TODO: replace with GET /api/v1/services/{id}/slots when endpoint is implemented
 const MOCK_TIME_SLOTS = ['08:00', '09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'];
 const MOCK_BOOKED_SLOTS = ['09:00', '13:00'];
 
 // ─── Step 0 — Service selection ──────────────────────────────────────────────
 
 interface ServiceStepProps {
-  services: MockService[];
+  services: WashServiceResponse[];
   selectedServiceId: string | null;
   onSelect: (id: string) => void;
+  isLoading: boolean;
+  isError: boolean;
 }
 
-function ServiceStep({ services, selectedServiceId, onSelect }: ServiceStepProps) {
+function ServiceStep({ services, selectedServiceId, onSelect, isLoading, isError }: ServiceStepProps) {
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Choose a service</h2>
+        <div className="grid grid-cols-2 gap-4">
+          {[0, 1, 2, 3].map(i => (
+            <div key={i} className="bg-gray-100 rounded-xl h-48 animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Choose a service</h2>
+        <ErrorState message="Could not load services." />
+      </div>
+    );
+  }
+
   return (
     <div className="p-6">
       <h2 className="text-lg font-semibold text-gray-900 mb-4">Choose a service</h2>
@@ -60,24 +62,19 @@ function ServiceStep({ services, selectedServiceId, onSelect }: ServiceStepProps
               type="button"
               onClick={() => onSelect(service.id)}
               onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && onSelect(service.id)}
-              className={`relative border-2 rounded-xl p-4 cursor-pointer w-full text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
+              className={`border-2 rounded-xl p-4 cursor-pointer w-full text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
                 isSelected
                   ? 'border-indigo-600 bg-indigo-50'
                   : 'border-gray-200 bg-white hover:border-gray-300'
               }`}
             >
-              {service.badge && (
-                <span className="absolute top-3 right-3 bg-indigo-600 text-white text-xs font-medium px-2 py-0.5 rounded-full">
-                  {service.badge}
-                </span>
-              )}
               <ImagePlaceholder label={service.name} aspectRatio="video" className="w-full mb-3" />
               <p className="text-sm font-semibold text-gray-900">{service.name}</p>
               <p className="text-xs text-gray-500 mt-0.5">{service.description}</p>
               <div className="flex justify-between items-center mt-3">
                 <span className="text-lg font-bold text-gray-900">${service.price}</span>
                 <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">
-                  {service.duration} min
+                  {service.durationMinutes} min
                 </span>
               </div>
             </button>
@@ -91,58 +88,72 @@ function ServiceStep({ services, selectedServiceId, onSelect }: ServiceStepProps
 // ─── Step 1 — Vehicle selection ──────────────────────────────────────────────
 
 interface VehicleStepProps {
-  vehicles: MockVehicle[];
+  vehicles: VehicleResponse[];
   selectedVehicleId: string | null;
   onSelect: (id: string) => void;
+  isLoading: boolean;
+  onAddVehicle: () => void;
 }
 
-function VehicleStep({ vehicles, selectedVehicleId, onSelect }: VehicleStepProps) {
+function VehicleStep({ vehicles, selectedVehicleId, onSelect, isLoading, onAddVehicle }: VehicleStepProps) {
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Select a vehicle</h2>
+        <div className="flex flex-col gap-3">
+          {[0, 1].map(i => (
+            <div key={i} className="bg-gray-100 rounded-xl h-16 animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6">
       <h2 className="text-lg font-semibold text-gray-900 mb-4">Select a vehicle</h2>
-      <div className="flex flex-col gap-3">
-        {vehicles.map(vehicle => {
-          const isSelected = selectedVehicleId === vehicle.id;
-          return (
-            <button
-              key={vehicle.id}
-              type="button"
-              onClick={() => onSelect(vehicle.id)}
-              onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && onSelect(vehicle.id)}
-              className={`border-2 rounded-xl p-4 cursor-pointer flex items-center gap-4 w-full text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
-                isSelected
-                  ? 'border-indigo-600 bg-indigo-50'
-                  : 'border-gray-200 bg-white hover:border-gray-300'
-              }`}
-            >
-              <Car
-                className={`w-8 h-8 flex-shrink-0 ${isSelected ? 'text-indigo-600' : 'text-gray-400'}`}
-              />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-900">
-                  {vehicle.make} {vehicle.model}
-                </p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-xs text-gray-500">{vehicle.plate}</span>
-                  <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">
-                    {vehicle.type}
-                  </span>
+      {vehicles.length === 0 ? (
+        <div className="text-center py-6">
+          <p className="text-sm text-gray-500 mb-3">You have no saved vehicles.</p>
+          <Button variant="ghost" size="sm" onClick={onAddVehicle}>
+            <Plus className="w-4 h-4" />
+            Add a vehicle
+          </Button>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {vehicles.map(vehicle => {
+            const isSelected = selectedVehicleId === vehicle.id;
+            return (
+              <button
+                key={vehicle.id}
+                type="button"
+                onClick={() => onSelect(vehicle.id)}
+                onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && onSelect(vehicle.id)}
+                className={`border-2 rounded-xl p-4 cursor-pointer flex items-center gap-4 w-full text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
+                  isSelected
+                    ? 'border-indigo-600 bg-indigo-50'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}
+              >
+                <Car className={`w-8 h-8 flex-shrink-0 ${isSelected ? 'text-indigo-600' : 'text-gray-400'}`} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900">
+                    {vehicle.brand} {vehicle.model}
+                  </p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-xs text-gray-500">{vehicle.licensePlate}</span>
+                    <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">
+                      {vehicle.type}
+                    </span>
+                  </div>
                 </div>
-              </div>
-              {isSelected && <CheckCircle2 className="w-5 h-5 text-indigo-600 flex-shrink-0" />}
-            </button>
-          );
-        })}
-      </div>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => console.log('add vehicle')}
-        className="mt-4"
-      >
-        <Plus className="w-4 h-4" />
-        Add a vehicle
-      </Button>
+                {isSelected && <CheckCircle2 className="w-5 h-5 text-indigo-600 flex-shrink-0" />}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -200,7 +211,6 @@ function DateTimeStep({
     <div className="p-6">
       <h2 className="text-lg font-semibold text-gray-900 mb-4">Pick a date and time</h2>
 
-      {/* Month navigation */}
       <div className="flex justify-between items-center mb-4">
         <button
           type="button"
@@ -221,7 +231,6 @@ function DateTimeStep({
         </button>
       </div>
 
-      {/* Day-of-week headers */}
       <div className="grid grid-cols-7 mb-2">
         {DAY_LABELS.map(d => (
           <span key={d} className="text-xs text-gray-500 text-center">
@@ -230,7 +239,6 @@ function DateTimeStep({
         ))}
       </div>
 
-      {/* Day grid */}
       <div className="grid grid-cols-7 gap-1">
         {Array.from({ length: firstDayOfMonth }).map((_, i) => (
           <div key={`empty-${i}`} />
@@ -266,7 +274,6 @@ function DateTimeStep({
         })}
       </div>
 
-      {/* Time slots — only after a date is selected */}
       {selectedDate && (
         <div>
           <p className="text-sm font-medium text-gray-700 mt-6 mb-3">Available times</p>
@@ -323,8 +330,8 @@ function formatDate(date: Date): string {
 }
 
 interface ConfirmStepProps {
-  service: MockService;
-  vehicle: MockVehicle;
+  service: WashServiceResponse;
+  vehicle: VehicleResponse;
   date: Date;
   timeSlot: string;
 }
@@ -332,7 +339,7 @@ interface ConfirmStepProps {
 function ConfirmStep({ service, vehicle, date, timeSlot }: ConfirmStepProps) {
   const rows = [
     { label: 'Service', value: service.name },
-    { label: 'Vehicle', value: `${vehicle.make} ${vehicle.model}` },
+    { label: 'Vehicle', value: `${vehicle.brand} ${vehicle.model}` },
     { label: 'Date', value: formatDate(date) },
     { label: 'Time', value: timeSlot },
   ];
@@ -367,17 +374,22 @@ function ConfirmStep({ service, vehicle, date, timeSlot }: ConfirmStepProps) {
 
 // ─── Success state ───────────────────────────────────────────────────────────
 
-function SuccessCard() {
+interface SuccessCardProps {
+  bookingRef: string;
+}
+
+function SuccessCard({ bookingRef }: SuccessCardProps) {
+  const navigate = useNavigate();
   return (
     <div className="p-8 text-center">
       <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto" />
       <h2 className="text-xl font-semibold text-gray-900 mt-4">You're all set!</h2>
       <p className="text-sm text-gray-500 mt-1">Your booking has been confirmed.</p>
       <span className="font-mono text-sm bg-gray-100 px-3 py-1 rounded-lg inline-block mt-3">
-        CW-000123
+        {bookingRef}
       </span>
       <div className="mt-6">
-        <Button variant="ghost" size="sm" onClick={() => console.log('view bookings')}>
+        <Button variant="ghost" size="sm" onClick={() => navigate(ROUTES.CLIENT.BOOKINGS)}>
           View my bookings
         </Button>
       </div>
@@ -395,13 +407,22 @@ const STEPS = [
 ];
 
 export function BookingFlowPage() {
+  const navigate = useNavigate();
+
+  const { data: services = [], isLoading: servicesLoading, isError: servicesError } = useActiveServices();
+  const { data: vehicles = [], isLoading: vehiclesLoading } = useMyVehicles();
+  const createBooking = useCreateBooking();
+
   const [currentStep, setCurrentStep] = useState(0);
-  const [isSuccess, setIsSuccess] = useState(false);
+  const [confirmedBookingId, setConfirmedBookingId] = useState<string | null>(null);
 
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
+
+  const selectedService = services.find(s => s.id === selectedServiceId);
+  const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId);
 
   const canContinue =
     (currentStep === 0 && selectedServiceId !== null) ||
@@ -410,32 +431,44 @@ export function BookingFlowPage() {
     currentStep === 3;
 
   const handleContinue = () => {
-    if (currentStep === 3) {
-      setIsSuccess(true);
-    } else {
+    if (currentStep < 3) {
       setCurrentStep(s => s + 1);
+      return;
     }
-  };
 
-  const selectedService = MOCK_SERVICES.find(s => s.id === selectedServiceId);
-  const selectedVehicle = MOCK_VEHICLES.find(v => v.id === selectedVehicleId);
+    if (!selectedService || !selectedVehicle || !selectedDate || !selectedTimeSlot) return;
+
+    const [hours = '0', minutes = '0'] = selectedTimeSlot.split(':');
+    const dt = new Date(selectedDate);
+    dt.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    const appointmentDateTime = dt.toISOString();
+
+    createBooking.mutate(
+      { vehicleId: selectedVehicle.id, washServiceId: selectedService.id, appointmentDateTime },
+      { onSuccess: data => setConfirmedBookingId(data.id) },
+    );
+  };
 
   const renderStep = () => {
     switch (currentStep) {
       case 0:
         return (
           <ServiceStep
-            services={MOCK_SERVICES}
+            services={services}
             selectedServiceId={selectedServiceId}
             onSelect={setSelectedServiceId}
+            isLoading={servicesLoading}
+            isError={servicesError}
           />
         );
       case 1:
         return (
           <VehicleStep
-            vehicles={MOCK_VEHICLES}
+            vehicles={vehicles}
             selectedVehicleId={selectedVehicleId}
             onSelect={setSelectedVehicleId}
+            isLoading={vehiclesLoading}
+            onAddVehicle={() => navigate(ROUTES.CLIENT.VEHICLES)}
           />
         );
       case 2:
@@ -472,31 +505,39 @@ export function BookingFlowPage() {
   return (
     <ClientLayout>
       <main className="max-w-lg mx-auto py-10 px-4">
-        {!isSuccess && <StepTracker steps={STEPS} currentStep={currentStep} />}
+        {confirmedBookingId === null && <StepTracker steps={STEPS} currentStep={currentStep} />}
 
         <div className="bg-white rounded-xl border border-gray-200 mt-6">
-          {isSuccess ? (
-            <SuccessCard />
+          {confirmedBookingId !== null ? (
+            <SuccessCard bookingRef={confirmedBookingId.slice(-8).toUpperCase()} />
           ) : (
             <>
               {renderStep()}
 
-              <div className="border-t border-gray-200 px-6 py-4 flex justify-between items-center">
-                {currentStep > 0 ? (
-                  <Button variant="ghost" size="sm" onClick={() => setCurrentStep(s => s - 1)}>
-                    Back
-                  </Button>
-                ) : (
-                  <div />
+              <div className="border-t border-gray-200 px-6 py-4 flex flex-col gap-3">
+                {currentStep === 3 && createBooking.isError && (
+                  <p className="text-sm text-red-600 text-right">
+                    {createBooking.error?.message ?? 'Failed to create booking. Please try again.'}
+                  </p>
                 )}
-                <Button
-                  variant="primary"
-                  size="sm"
-                  disabled={!canContinue}
-                  onClick={handleContinue}
-                >
-                  {currentStep === 3 ? 'Confirm booking' : 'Continue'}
-                </Button>
+                <div className="flex justify-between items-center">
+                  {currentStep > 0 ? (
+                    <Button variant="ghost" size="sm" onClick={() => setCurrentStep(s => s - 1)}>
+                      Back
+                    </Button>
+                  ) : (
+                    <div />
+                  )}
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    disabled={!canContinue}
+                    isLoading={currentStep === 3 ? createBooking.isPending : false}
+                    onClick={handleContinue}
+                  >
+                    {currentStep === 3 ? 'Confirm booking' : 'Continue'}
+                  </Button>
+                </div>
               </div>
             </>
           )}

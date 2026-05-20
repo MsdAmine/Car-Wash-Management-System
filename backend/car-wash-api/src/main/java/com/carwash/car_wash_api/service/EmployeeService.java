@@ -8,8 +8,10 @@ import com.carwash.car_wash_api.exception.ResourceNotFoundException;
 import com.carwash.car_wash_api.mapper.EmployeeMapper;
 import com.carwash.car_wash_api.model.entity.Employee;
 import com.carwash.car_wash_api.model.entity.User;
+import com.carwash.car_wash_api.model.enums.BookingStatus;
 import com.carwash.car_wash_api.model.enums.EmployeeStatus;
 import com.carwash.car_wash_api.model.enums.Role;
+import com.carwash.car_wash_api.repository.BookingAssignmentRepository;
 import com.carwash.car_wash_api.repository.EmployeeRepository;
 import com.carwash.car_wash_api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +20,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -28,6 +34,7 @@ public class EmployeeService {
     private final EmployeeRepository employeeRepository;
     private final UserRepository userRepository;
     private final EmployeeMapper employeeMapper;
+    private final BookingAssignmentRepository bookingAssignmentRepository;
 
     @Transactional
     public EmployeeResponse createEmployee(CreateEmployeeRequest request) {
@@ -99,6 +106,21 @@ public class EmployeeService {
         Employee employee = employeeRepository.findByUserId(user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("No employee profile found for the current user"));
         return employeeMapper.toResponse(employee);
+    }
+
+    @Transactional(readOnly = true)
+    public List<EmployeeResponse> getAvailableEmployees(String date, String time, int duration) {
+        LocalDateTime windowStart = LocalDateTime.of(LocalDate.parse(date), LocalTime.parse(time));
+        LocalDateTime windowEnd = windowStart.plusMinutes(duration);
+
+        List<Employee> active = employeeRepository.findByStatus(EmployeeStatus.ACTIVE);
+        Set<UUID> busy = new HashSet<>(bookingAssignmentRepository.findBusyEmployeeIds(
+                List.of(BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS), windowStart, windowEnd));
+
+        return active.stream()
+                .filter(e -> !busy.contains(e.getId()))
+                .map(employeeMapper::toResponse)
+                .toList();
     }
 
     private Employee findEmployeeOrThrow(UUID id) {

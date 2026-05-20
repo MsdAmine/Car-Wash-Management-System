@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import type { AxiosError } from 'axios';
 import { AlertTriangle } from 'lucide-react';
 import { ClientLayout } from '@/shared/components/layout/ClientLayout';
 import { Button } from '@/shared/components/ui/Button';
@@ -6,21 +8,52 @@ import { Input } from '@/shared/components/ui/Input';
 import { ImagePlaceholder } from '@/shared/components/ui/ImagePlaceholder';
 import { ToggleSwitch } from '@/shared/components/ui/ToggleSwitch';
 import { NavItem } from '@/shared/components/ui/NavItem';
-
-// ─── Mock data ────────────────────────────────────────────────────────────────
-
-const MOCK_USER = {
-  firstName: 'Alex',
-  lastName: 'Morgan',
-  email: 'alex@example.com',
-  phone: '+1 555 0192',
-  joinedAt: 'January 5, 2025',
-};
+import { useAuth } from '@/shared/context/AuthContext';
+import { fetchUserProfile } from '@/features/auth/api';
+import { useUpdateProfile } from '@/features/auth/hooks/useUpdateProfile';
 
 // ─── Personal info section ────────────────────────────────────────────────────
 
 function PersonalInfoSection() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const updateProfile = useUpdateProfile();
+
+  const { data: profile } = useQuery({
+    queryKey: ['userProfile'],
+    queryFn: fetchUserProfile,
+  });
+
   const [isEditing, setIsEditing] = useState(false);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (profile) {
+      setFirstName(profile.firstName);
+      setLastName(profile.lastName);
+      setPhone(profile.phone ?? '');
+    }
+  }, [profile]);
+
+  function handleSave() {
+    setSaveError(null);
+    updateProfile.mutate(
+      { firstName, lastName, phone },
+      {
+        onSuccess: () => {
+          setIsEditing(false);
+          queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+        },
+        onError: (err) => {
+          const axiosErr = err as AxiosError<{ message?: string }>;
+          setSaveError(axiosErr.response?.data?.message ?? 'Failed to save changes.');
+        },
+      },
+    );
+  }
 
   return (
     <div className="bg-white rounded-xl border border-gray-200">
@@ -34,16 +67,13 @@ function PersonalInfoSection() {
       </div>
 
       <div className="px-6 py-6">
-        {/* Avatar area — shown in both modes, non-editable in this pass */}
         <div className="flex items-center gap-4 pb-6 mb-6 border-b border-gray-100">
           <ImagePlaceholder label="Profile photo" className="w-16 h-16 rounded-full" />
           <div>
             <p className="text-base font-semibold text-gray-900">
-              {MOCK_USER.firstName} {MOCK_USER.lastName}
+              {profile?.firstName ?? user?.firstName} {profile?.lastName ?? user?.lastName}
             </p>
-            <p className="text-sm text-gray-500 mt-0.5">
-              Member since {MOCK_USER.joinedAt}
-            </p>
+            <p className="text-sm text-gray-500 mt-0.5">{profile?.email ?? user?.email}</p>
             <Button
               variant="ghost"
               size="sm"
@@ -55,63 +85,73 @@ function PersonalInfoSection() {
           </div>
         </div>
 
-        {/* View mode */}
         {!isEditing && (
           <div className="grid grid-cols-2 gap-6">
             <div>
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">First name</p>
-              <p className="text-sm text-gray-900 mt-1">{MOCK_USER.firstName}</p>
+              <p className="text-sm text-gray-900 mt-1">{profile?.firstName ?? user?.firstName}</p>
             </div>
             <div>
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Last name</p>
-              <p className="text-sm text-gray-900 mt-1">{MOCK_USER.lastName}</p>
+              <p className="text-sm text-gray-900 mt-1">{profile?.lastName ?? user?.lastName}</p>
             </div>
             <div className="col-span-2">
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Email</p>
-              <p className="text-sm text-gray-900 mt-1">{MOCK_USER.email}</p>
+              <p className="text-sm text-gray-900 mt-1">{profile?.email ?? user?.email}</p>
             </div>
             <div>
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Phone</p>
-              <p className="text-sm text-gray-900 mt-1">{MOCK_USER.phone}</p>
+              <p className="text-sm text-gray-900 mt-1">{profile?.phone ?? '—'}</p>
             </div>
           </div>
         )}
 
-        {/* Edit mode */}
         {isEditing && (
           <>
             <div className="grid grid-cols-2 gap-4">
               <Input
                 label="First name"
                 required
-                defaultValue={MOCK_USER.firstName}
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
               />
               <Input
                 label="Last name"
                 required
-                defaultValue={MOCK_USER.lastName}
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
               />
             </div>
             <div className="mt-4">
               <Input
                 label="Email"
                 type="email"
-                required
-                defaultValue={MOCK_USER.email}
+                value={profile?.email ?? user?.email ?? ''}
+                disabled
+                className="opacity-50 cursor-not-allowed"
               />
             </div>
             <div className="mt-4">
               <Input
                 label="Phone"
                 type="tel"
-                defaultValue={MOCK_USER.phone}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
               />
             </div>
+            {saveError && (
+              <p className="text-sm text-red-600 mt-3">{saveError}</p>
+            )}
             <div className="flex justify-end gap-3 mt-6">
-              <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)}>
+              <Button variant="ghost" size="sm" onClick={() => { setIsEditing(false); setSaveError(null); }}>
                 Cancel
               </Button>
-              <Button variant="primary" size="sm" onClick={() => console.log('save changes')}>
+              <Button
+                variant="primary"
+                size="sm"
+                isLoading={updateProfile.isPending}
+                onClick={handleSave}
+              >
                 Save changes
               </Button>
             </div>
@@ -125,34 +165,15 @@ function PersonalInfoSection() {
 // ─── Notifications section ────────────────────────────────────────────────────
 
 const NOTIFICATION_ROWS = [
-  {
-    key: 'booking_confirmed',
-    label: 'Booking confirmed',
-    description: 'Get notified when a booking is confirmed.',
-  },
-  {
-    key: 'wash_in_progress',
-    label: 'Wash in progress',
-    description: 'Get notified when your wash starts.',
-  },
-  {
-    key: 'wash_completed',
-    label: 'Wash completed',
-    description: 'Get notified when your wash is done.',
-  },
-  {
-    key: 'booking_reminders',
-    label: 'Booking reminders',
-    description: 'Reminder 24 hours before your appointment.',
-  },
-  {
-    key: 'promotions',
-    label: 'Promotions',
-    description: 'Occasional offers and service updates.',
-  },
+  { key: 'booking_confirmed', label: 'Booking confirmed', description: 'Get notified when a booking is confirmed.' },
+  { key: 'wash_in_progress',  label: 'Wash in progress',  description: 'Get notified when your wash starts.' },
+  { key: 'wash_completed',    label: 'Wash completed',    description: 'Get notified when your wash is done.' },
+  { key: 'booking_reminders', label: 'Booking reminders', description: 'Reminder 24 hours before your appointment.' },
+  { key: 'promotions',        label: 'Promotions',        description: 'Occasional offers and service updates.' },
 ];
 
 function NotificationsSection() {
+  // TODO: no backend endpoint for notification preferences yet — local state only
   const [toggleStates, setToggleStates] = useState<Record<string, boolean>>({
     booking_confirmed: true,
     wash_in_progress: true,
@@ -190,6 +211,7 @@ function NotificationsSection() {
 // ─── Change password section ──────────────────────────────────────────────────
 
 function ChangePasswordSection() {
+  // TODO: no change-password endpoint yet
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6">
       <h2 className="text-base font-semibold text-gray-900 mb-6">Change password</h2>
@@ -210,6 +232,7 @@ function ChangePasswordSection() {
 // ─── Delete account section ───────────────────────────────────────────────────
 
 function DeleteAccountSection() {
+  // TODO: no delete-account endpoint yet
   const [confirmValue, setConfirmValue] = useState('');
 
   return (
@@ -260,7 +283,6 @@ export function ClientProfilePage() {
         <h1 className="text-2xl font-semibold text-gray-900 mb-8">Settings</h1>
 
         <div className="grid grid-cols-4 gap-8">
-          {/* Left sub-nav */}
           <nav className="col-span-1 sticky top-20 self-start" aria-label="Settings navigation">
             <NavItem label="Personal info" isActive={activeSection === 'personal'} onClick={() => setActiveSection('personal')} />
             <NavItem label="Notifications" isActive={activeSection === 'notifications'} onClick={() => setActiveSection('notifications')} />
@@ -282,7 +304,6 @@ export function ClientProfilePage() {
             </button>
           </nav>
 
-          {/* Right content */}
           <div className="col-span-3">
             {activeSection === 'personal' && <PersonalInfoSection />}
             {activeSection === 'notifications' && <NotificationsSection />}

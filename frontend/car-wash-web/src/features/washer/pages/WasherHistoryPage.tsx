@@ -3,41 +3,34 @@ import { Car, Clock, Droplets, Search, SlidersHorizontal } from 'lucide-react';
 import { Badge } from '@/shared/components/ui/Badge';
 import { Button } from '@/shared/components/ui/Button';
 import { WasherLayout } from '@/shared/components/layout/WasherLayout';
+import { ErrorState } from '@/shared/components/feedback/ErrorState';
+import { useMyBookingHistory } from '../hooks/useMyBookingHistory';
+import type { BookingResponse } from '../types';
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
-
-const MOCK_HISTORY = [
-  { id: '1', ref: 'CW-000099', client: 'Mike Torres', vehicle: 'BMW X5',        service: 'Premium Detail', date: 'May 19, 2025', time: '08:00', status: 'completed' as const },
-  { id: '2', ref: 'CW-000095', client: 'Dana Wu',     vehicle: 'Tesla Model 3', service: 'Full Detail',    date: 'May 19, 2025', time: '09:30', status: 'completed' as const },
-  { id: '3', ref: 'CW-000088', client: 'Alex Morgan', vehicle: 'Toyota Camry',  service: 'Basic Wash',     date: 'May 18, 2025', time: '14:00', status: 'completed' as const },
-  { id: '4', ref: 'CW-000082', client: 'Sarah Chen',  vehicle: 'Honda Civic',   service: 'Express Wash',   date: 'May 18, 2025', time: '10:00', status: 'completed' as const },
-  { id: '5', ref: 'CW-000071', client: 'Chris Park',  vehicle: 'Ford F-150',    service: 'Full Detail',    date: 'May 17, 2025', time: '11:00', status: 'completed' as const },
-];
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const TODAY = 'May 19, 2025';
-const YESTERDAY = 'May 18, 2025';
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const SERVICE_FILTERS = ['All', 'Basic Wash', 'Express Wash', 'Full Detail', 'Premium Detail'] as const;
 type ServiceFilter = (typeof SERVICE_FILTERS)[number];
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface HistoryJob {
-  id: string;
-  ref: string;
-  client: string;
-  vehicle: string;
-  service: string;
-  date: string;
-  time: string;
-  status: 'completed';
-}
-
 interface JobGroup {
   label: string;
-  jobs: HistoryJob[];
+  jobs: BookingResponse[];
+}
+
+function toLocalDateKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
+
+function HistorySkeleton() {
+  return (
+    <div className="flex flex-col gap-3">
+      {[0, 1, 2].map(i => (
+        <div key={i} className="bg-white rounded-xl h-20 animate-pulse border border-gray-100" />
+      ))}
+    </div>
+  );
 }
 
 // ─── FilterSheet ──────────────────────────────────────────────────────────────
@@ -90,16 +83,11 @@ function FilterSheet({ isOpen, onClose }: FilterSheetProps) {
               variant="ghost"
               size="sm"
               className="flex-1"
-              onClick={() => console.log('clear filters')}
+              onClick={() => setSelected('All')}
             >
               Clear filters
             </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              className="flex-1"
-              onClick={onClose}
-            >
+            <Button variant="primary" size="sm" className="flex-1" onClick={onClose}>
               Apply
             </Button>
           </div>
@@ -112,39 +100,37 @@ function FilterSheet({ isOpen, onClose }: FilterSheetProps) {
 // ─── HistoryJobCard ───────────────────────────────────────────────────────────
 
 interface HistoryJobCardProps {
-  job: HistoryJob;
+  booking: BookingResponse;
 }
 
-function HistoryJobCard({ job }: HistoryJobCardProps) {
+function HistoryJobCard({ booking }: HistoryJobCardProps) {
   return (
-    <button
-      type="button"
-      className="w-full text-left bg-white rounded-xl border border-gray-200 p-4 hover:shadow-sm transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"
-      onClick={() => console.log('view job', job.id)}
-    >
+    <div className="w-full text-left bg-white rounded-xl border border-gray-200 p-4">
       <div className="flex justify-between items-start">
-        <span className="font-mono text-xs text-gray-500">{job.ref}</span>
-        <Badge variant={job.status} />
+        <span className="font-mono text-xs text-gray-500">
+          {booking.id.slice(-8).toUpperCase()}
+        </span>
+        <Badge variant="completed" />
       </div>
 
       <div className="mt-2">
-        <p className="text-sm font-semibold text-gray-900">{job.client}</p>
+        <p className="text-sm font-semibold text-gray-900">{booking.customerEmail}</p>
         <div className="flex gap-3 mt-1 text-xs text-gray-500">
           <span className="flex items-center gap-1">
             <Car className="w-3 h-3" />
-            {job.vehicle}
+            {booking.vehicleLicensePlate}
           </span>
           <span className="flex items-center gap-1">
             <Droplets className="w-3 h-3" />
-            {job.service}
+            {booking.washServiceName}
           </span>
         </div>
         <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
           <Clock className="w-3 h-3" />
-          {job.time}
+          {booking.appointmentDateTime.slice(11, 16)}
         </div>
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -154,40 +140,56 @@ export function WasherHistoryPage() {
   const [search, setSearch] = useState('');
   const [filterOpen, setFilterOpen] = useState(false);
 
+  // The today endpoint returns all statuses; filter to completed only.
+  // TODO: replace with a real history endpoint when available
+  const { data: assignments, isLoading, isError } = useMyBookingHistory();
+
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  const todayKey = toLocalDateKey(today);
+  const yesterdayKey = toLocalDateKey(yesterday);
+
+  const completed = useMemo(
+    () => (assignments ?? []).filter(b => b.status === 'COMPLETED'),
+    [assignments],
+  );
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return MOCK_HISTORY;
-    return MOCK_HISTORY.filter(
-      j =>
-        j.client.toLowerCase().includes(q) ||
-        j.vehicle.toLowerCase().includes(q) ||
-        j.service.toLowerCase().includes(q)
+    if (!q) return completed;
+    return completed.filter(
+      b =>
+        b.customerEmail.toLowerCase().includes(q) ||
+        b.vehicleLicensePlate.toLowerCase().includes(q) ||
+        b.washServiceName.toLowerCase().includes(q),
     );
-  }, [search]);
+  }, [search, completed]);
 
   const grouped = useMemo<JobGroup[]>(() => {
-    const map = new Map<string, HistoryJob[]>();
+    const map = new Map<string, BookingResponse[]>();
     const order: string[] = [];
 
-    for (const job of filtered) {
+    for (const booking of filtered) {
+      const dateKey = booking.appointmentDateTime.slice(0, 10);
       const label =
-        job.date === TODAY ? 'Today' : job.date === YESTERDAY ? 'Yesterday' : job.date;
+        dateKey === todayKey ? 'Today' : dateKey === yesterdayKey ? 'Yesterday' : dateKey;
       if (!map.has(label)) {
         map.set(label, []);
         order.push(label);
       }
-      map.get(label)!.push(job);
+      map.get(label)!.push(booking);
     }
 
     return order.map(label => ({ label, jobs: map.get(label)! }));
-  }, [filtered]);
+  }, [filtered, todayKey, yesterdayKey]);
 
   return (
     <WasherLayout>
       <>
         <header className="bg-white border-b border-gray-200 px-4 py-3">
           <p className="text-lg font-semibold text-gray-900">History</p>
-          <p className="text-xs text-gray-500 mt-0.5">{MOCK_HISTORY.length} jobs completed</p>
+          <p className="text-xs text-gray-500 mt-0.5">{completed.length} jobs completed</p>
         </header>
 
         <div className="flex gap-2 px-4 py-3 bg-white border-b border-gray-200">
@@ -208,7 +210,13 @@ export function WasherHistoryPage() {
         </div>
 
         <div className="px-4 pt-4">
-          {grouped.length === 0 ? (
+          {isLoading ? (
+            <HistorySkeleton />
+          ) : isError ? (
+            <div className="py-12">
+              <ErrorState message="Could not load job history." />
+            </div>
+          ) : grouped.length === 0 ? (
             <p className="py-12 text-center text-sm text-gray-500">No jobs match your search.</p>
           ) : (
             grouped.map((group, index) => (
@@ -221,14 +229,15 @@ export function WasherHistoryPage() {
                   {group.label}
                 </p>
                 <div className="flex flex-col gap-3">
-                  {group.jobs.map(job => (
-                    <HistoryJobCard key={job.id} job={job} />
+                  {group.jobs.map(booking => (
+                    <HistoryJobCard key={booking.id} booking={booking} />
                   ))}
                 </div>
               </div>
             ))
           )}
         </div>
+
         <FilterSheet isOpen={filterOpen} onClose={() => setFilterOpen(false)} />
       </>
     </WasherLayout>

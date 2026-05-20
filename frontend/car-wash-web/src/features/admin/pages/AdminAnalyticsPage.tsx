@@ -2,19 +2,12 @@ import { useState } from 'react';
 import { Download } from 'lucide-react';
 import { AdminLayout } from '@/shared/components/layout/AdminLayout';
 import { Button } from '@/shared/components/ui/Button';
+import { ErrorState } from '@/shared/components/feedback/ErrorState';
+import { useRevenueTimeSeries } from '@/features/admin/hooks/useRevenueTimeSeries';
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
+// ─── Mock data (no dedicated endpoints yet) ───────────────────────────────────
 
-const MOCK_REVENUE = [
-  { label: 'May 13', value: 320 },
-  { label: 'May 14', value: 480 },
-  { label: 'May 15', value: 290 },
-  { label: 'May 16', value: 510 },
-  { label: 'May 17', value: 620 },
-  { label: 'May 18', value: 750 },
-  { label: 'May 19', value: 410 },
-];
-
+// TODO: replace MOCK_BY_SERVICE with a bookings-by-service endpoint
 const MOCK_BY_SERVICE = [
   { label: 'Basic Wash',     value: 38, color: '#4F46E5' },
   { label: 'Express Wash',   value: 22, color: '#7C3AED' },
@@ -22,6 +15,7 @@ const MOCK_BY_SERVICE = [
   { label: 'Premium Detail', value: 12, color: '#0891B2' },
 ];
 
+// TODO: replace MOCK_HEATMAP with a booking activity endpoint
 const MOCK_HEATMAP = {
   days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
   slots: ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00'],
@@ -87,12 +81,16 @@ const PERIODS: { key: ChartPeriod; label: string }[] = [
 
 function RevenueChart() {
   const [period, setPeriod] = useState<ChartPeriod>('daily');
+  const { data: revenueData, isLoading: revenueLoading, isError: revenueError } =
+    useRevenueTimeSeries(period, 7);
 
-  const maxValue = Math.max(...MOCK_REVENUE.map((d) => d.value));
-  const slotWidth = 700 / MOCK_REVENUE.length;
+  const slotWidth = 700 / Math.max(revenueData?.length ?? 1, 1);
   const barWidth = 60;
   const maxBarHeight = 140;
   const barsBottom = 155;
+  const maxValue = revenueData && revenueData.length > 0
+    ? Math.max(...revenueData.map((d) => d.revenue), 1)
+    : 1;
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5">
@@ -116,28 +114,36 @@ function RevenueChart() {
       </div>
 
       <div className="w-full h-48">
-        <svg
-          viewBox="0 0 700 180"
-          preserveAspectRatio="none"
-          className="w-full h-full"
-          aria-label="Revenue bar chart"
-          role="img"
-        >
-          {MOCK_REVENUE.map((d, i) => {
-            const barHeight = (d.value / maxValue) * maxBarHeight;
-            const barX = i * slotWidth + (slotWidth - barWidth) / 2;
-            const barY = barsBottom - barHeight;
-            const labelX = i * slotWidth + slotWidth / 2;
-            return (
-              <g key={d.label}>
-                <rect x={barX} y={barY} width={barWidth} height={barHeight} fill="#4F46E5" rx="4" />
-                <text x={labelX} y={175} fontSize="11" fill="#6B7280" textAnchor="middle">
-                  {d.label}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
+        {revenueLoading ? (
+          <div className="w-full h-full bg-gray-100 animate-pulse rounded-lg" />
+        ) : revenueError ? (
+          <div className="w-full h-full flex items-center justify-center">
+            <ErrorState message="Could not load revenue data." />
+          </div>
+        ) : (
+          <svg
+            viewBox="0 0 700 180"
+            preserveAspectRatio="none"
+            className="w-full h-full"
+            aria-label="Revenue bar chart"
+            role="img"
+          >
+            {(revenueData ?? []).map((d, i) => {
+              const barHeight = (d.revenue / maxValue) * maxBarHeight;
+              const barX = i * slotWidth + (slotWidth - barWidth) / 2;
+              const barY = barsBottom - barHeight;
+              const labelX = i * slotWidth + slotWidth / 2;
+              return (
+                <g key={d.label}>
+                  <rect x={barX} y={barY} width={barWidth} height={barHeight} fill="#4F46E5" rx="4" />
+                  <text x={labelX} y={175} fontSize="11" fill="#6B7280" textAnchor="middle">
+                    {d.label}
+                  </text>
+                </g>
+              );
+            })}
+          </svg>
+        )}
       </div>
     </div>
   );

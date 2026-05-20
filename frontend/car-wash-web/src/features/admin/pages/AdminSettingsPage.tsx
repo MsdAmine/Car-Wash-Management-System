@@ -1,32 +1,39 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Info } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { isAxiosError } from 'axios';
 import { AdminLayout } from '@/shared/components/layout/AdminLayout';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
 import { ImagePlaceholder } from '@/shared/components/ui/ImagePlaceholder';
 import { ToggleSwitch } from '@/shared/components/ui/ToggleSwitch';
 import { NavItem } from '@/shared/components/ui/NavItem';
+import { useBusinessSettings, SETTINGS_KEYS } from '../hooks/useBusinessSettings';
+import { useUpdateBusinessSettings } from '../hooks/useUpdateBusinessSettings';
+import { useOperatingHours } from '../hooks/useOperatingHours';
+import { useUpdateOperatingHours } from '../hooks/useUpdateOperatingHours';
 
-// ─── Mock data ───────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const MOCK_BUSINESS = {
-  name: 'WashFlow HQ',
-  phone: '+1 555 0100',
-  address: '123 Main Street',
-  city: 'San Francisco, CA',
-};
+function apiErrorMessage(error: unknown): string | null {
+  if (!error) return null;
+  if (isAxiosError(error)) {
+    const msg = (error.response?.data as { message?: string } | undefined)?.message;
+    return msg ?? error.message;
+  }
+  if (error instanceof Error) return error.message;
+  return 'Something went wrong';
+}
 
-const MOCK_HOURS: Record<string, { open: string; close: string; isOpen: boolean }> = {
-  Monday:    { open: '08:00', close: '18:00', isOpen: true },
-  Tuesday:   { open: '08:00', close: '18:00', isOpen: true },
-  Wednesday: { open: '08:00', close: '18:00', isOpen: true },
-  Thursday:  { open: '08:00', close: '18:00', isOpen: true },
-  Friday:    { open: '08:00', close: '20:00', isOpen: true },
-  Saturday:  { open: '09:00', close: '17:00', isOpen: true },
-  Sunday:    { open: '00:00', close: '00:00', isOpen: false },
-};
-
-const MOCK_POLICY = { cancellationHours: 24 };
+const DAY_ORDER = [
+  'MONDAY',
+  'TUESDAY',
+  'WEDNESDAY',
+  'THURSDAY',
+  'FRIDAY',
+  'SATURDAY',
+  'SUNDAY',
+] as const;
 
 // ─── Sub-nav ──────────────────────────────────────────────────────────────────
 
@@ -35,7 +42,27 @@ type Section = 'business' | 'hours' | 'notifications' | 'cancellation';
 // ─── Business info section ────────────────────────────────────────────────────
 
 function BusinessInfoSection() {
+  const { data: settings, isLoading: settingsLoading } = useBusinessSettings();
+  const updateSettings = useUpdateBusinessSettings();
+  const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
+
+  useEffect(() => {
+    if (settings) {
+      setName(settings.businessName);
+      setPhone(settings.phone);
+      setAddress(settings.address);
+      setCity(settings.city);
+    }
+  }, [settings]);
+
+  if (settingsLoading) {
+    return <div className="bg-gray-100 animate-pulse h-48 rounded-xl" />;
+  }
 
   return (
     <div className="bg-white rounded-xl border border-gray-200">
@@ -53,7 +80,7 @@ function BusinessInfoSection() {
           <div className="flex items-center gap-4 pb-6 mb-2 border-b border-gray-100">
             <ImagePlaceholder label="Business logo" className="w-16 h-16 rounded-xl" />
             <div>
-              <p className="text-base font-semibold text-gray-900">{MOCK_BUSINESS.name}</p>
+              <p className="text-base font-semibold text-gray-900">{settings?.businessName}</p>
               <Button
                 variant="ghost"
                 size="sm"
@@ -67,19 +94,19 @@ function BusinessInfoSection() {
           <div className="grid grid-cols-2 gap-6">
             <div>
               <p className="text-xs text-gray-500 uppercase tracking-wide">Business name</p>
-              <p className="text-sm text-gray-900 font-medium mt-1">{MOCK_BUSINESS.name}</p>
+              <p className="text-sm text-gray-900 font-medium mt-1">{settings?.businessName}</p>
             </div>
             <div>
               <p className="text-xs text-gray-500 uppercase tracking-wide">Phone</p>
-              <p className="text-sm text-gray-900 font-medium mt-1">{MOCK_BUSINESS.phone}</p>
+              <p className="text-sm text-gray-900 font-medium mt-1">{settings?.phone}</p>
             </div>
             <div>
               <p className="text-xs text-gray-500 uppercase tracking-wide">Address</p>
-              <p className="text-sm text-gray-900 font-medium mt-1">{MOCK_BUSINESS.address}</p>
+              <p className="text-sm text-gray-900 font-medium mt-1">{settings?.address}</p>
             </div>
             <div>
               <p className="text-xs text-gray-500 uppercase tracking-wide">City</p>
-              <p className="text-sm text-gray-900 font-medium mt-1">{MOCK_BUSINESS.city}</p>
+              <p className="text-sm text-gray-900 font-medium mt-1">{settings?.city}</p>
             </div>
           </div>
         </div>
@@ -88,7 +115,7 @@ function BusinessInfoSection() {
           <div className="flex items-center gap-4 pb-6 mb-2 border-b border-gray-100">
             <ImagePlaceholder label="Business logo" className="w-16 h-16 rounded-xl" />
             <div>
-              <p className="text-base font-semibold text-gray-900">{MOCK_BUSINESS.name}</p>
+              <p className="text-base font-semibold text-gray-900">{settings?.businessName}</p>
               <Button
                 variant="ghost"
                 size="sm"
@@ -100,17 +127,61 @@ function BusinessInfoSection() {
             </div>
           </div>
           <div className="flex flex-col gap-4 mt-4">
-            <Input label="Business name" required defaultValue={MOCK_BUSINESS.name} />
-            <Input label="Phone" type="tel" defaultValue={MOCK_BUSINESS.phone} />
-            <Input label="Address" defaultValue={MOCK_BUSINESS.address} />
-            <Input label="City" defaultValue={MOCK_BUSINESS.city} />
+            <Input
+              label="Business name"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+            <Input
+              label="Phone"
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
+            <Input
+              label="Address"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+            />
+            <Input
+              label="City"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+            />
           </div>
+          {updateSettings.error && (
+            <p className="text-sm text-red-600 mt-4">
+              {apiErrorMessage(updateSettings.error)}
+            </p>
+          )}
           <div className="flex justify-end gap-3 mt-6">
             <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)}>
               Cancel
             </Button>
-            <Button variant="primary" size="sm" onClick={() => console.log('save business info')}>
-              Save changes
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={updateSettings.isPending}
+              onClick={() =>
+                updateSettings.mutate(
+                  {
+                    businessName: name,
+                    phone,
+                    address,
+                    city,
+                    cancellationHours: settings?.cancellationHours ?? 24,
+                  },
+                  {
+                    onSuccess: () => {
+                      setIsEditing(false);
+                      queryClient.invalidateQueries({ queryKey: SETTINGS_KEYS.business() });
+                    },
+                  },
+                )
+              }
+            >
+              {updateSettings.isPending ? 'Saving…' : 'Save changes'}
             </Button>
           </div>
         </div>
@@ -122,58 +193,126 @@ function BusinessInfoSection() {
 // ─── Operating hours section ──────────────────────────────────────────────────
 
 function OperatingHoursSection() {
-  const [hours, setHours] = useState<Record<string, { open: string; close: string; isOpen: boolean }>>(MOCK_HOURS);
+  const { data: hours, isLoading: hoursLoading } = useOperatingHours();
+  const updateHours = useUpdateOperatingHours();
+  const queryClient = useQueryClient();
+  const [hoursState, setHoursState] = useState<
+    Record<string, { open: string; close: string; isOpen: boolean }>
+  >({});
+
+  useEffect(() => {
+    if (hours) {
+      const map: Record<string, { open: string; close: string; isOpen: boolean }> = {};
+      hours.forEach((h) => {
+        map[h.dayOfWeek] = {
+          open: h.openTime,
+          close: h.closeTime,
+          isOpen: h.isOpen,
+        };
+      });
+      setHoursState(map);
+    }
+  }, [hours]);
 
   function toggleDay(day: string) {
-    setHours((prev) => ({ ...prev, [day]: { ...prev[day], isOpen: !prev[day].isOpen } }));
+    setHoursState((prev) => ({
+      ...prev,
+      [day]: { ...prev[day], isOpen: !prev[day].isOpen },
+    }));
   }
 
   function updateTime(day: string, field: 'open' | 'close', value: string) {
-    setHours((prev) => ({ ...prev, [day]: { ...prev[day], [field]: value } }));
+    setHoursState((prev) => ({
+      ...prev,
+      [day]: { ...prev[day], [field]: value },
+    }));
+  }
+
+  if (hoursLoading) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="h-6 w-40 bg-gray-100 animate-pulse rounded mb-6" />
+        <div className="flex flex-col gap-3">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <div key={i} className="h-12 bg-gray-100 animate-pulse rounded-lg" />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6">
       <h2 className="text-base font-semibold text-gray-900 mb-6">Operating hours</h2>
       <div className="flex flex-col divide-y divide-gray-100">
-        {Object.entries(hours).map(([day, { open, close, isOpen }]) => (
-          <div key={day} className="py-4 flex items-center gap-4">
-            <ToggleSwitch
-              checked={isOpen}
-              onChange={() => toggleDay(day)}
-              label={`Toggle ${day} open`}
-            />
-            <span className={`w-24 text-sm font-medium ${isOpen ? 'text-gray-900' : 'text-gray-400'}`}>
-              {day}
-            </span>
-            <div className="flex items-center gap-2 ml-auto">
-              {isOpen ? (
-                <>
-                  <input
-                    type="time"
-                    value={open}
-                    onChange={(e) => updateTime(day, 'open', e.target.value)}
-                    className="border border-gray-200 rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                  />
-                  <span className="text-xs text-gray-400">to</span>
-                  <input
-                    type="time"
-                    value={close}
-                    onChange={(e) => updateTime(day, 'close', e.target.value)}
-                    className="border border-gray-200 rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                  />
-                </>
-              ) : (
-                <span className="text-sm text-gray-400 italic">Closed</span>
-              )}
+        {DAY_ORDER.map((day) => {
+          const entry = hoursState[day];
+          const isOpen = entry?.isOpen ?? false;
+          const open = entry?.open ?? '08:00';
+          const close = entry?.close ?? '18:00';
+          const label = day.charAt(0) + day.slice(1).toLowerCase();
+          return (
+            <div key={day} className="py-4 flex items-center gap-4">
+              <ToggleSwitch
+                checked={isOpen}
+                onChange={() => toggleDay(day)}
+                label={`Toggle ${label} open`}
+              />
+              <span className={`w-24 text-sm font-medium ${isOpen ? 'text-gray-900' : 'text-gray-400'}`}>
+                {label}
+              </span>
+              <div className="flex items-center gap-2 ml-auto">
+                {isOpen ? (
+                  <>
+                    <input
+                      type="time"
+                      value={open}
+                      onChange={(e) => updateTime(day, 'open', e.target.value)}
+                      className="border border-gray-200 rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                    />
+                    <span className="text-xs text-gray-400">to</span>
+                    <input
+                      type="time"
+                      value={close}
+                      onChange={(e) => updateTime(day, 'close', e.target.value)}
+                      className="border border-gray-200 rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                    />
+                  </>
+                ) : (
+                  <span className="text-sm text-gray-400 italic">Closed</span>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
-      <div className="flex justify-end mt-6">
-        <Button variant="primary" size="sm" onClick={() => console.log('save hours')}>
-          Save hours
+      <div className="flex flex-col items-end gap-2 mt-6">
+        <Button
+          variant="primary"
+          size="sm"
+          disabled={updateHours.isPending}
+          onClick={() =>
+            updateHours.mutate(
+              {
+                days: DAY_ORDER.map((day) => ({
+                  dayOfWeek: day,
+                  openTime: hoursState[day]?.open ?? '08:00',
+                  closeTime: hoursState[day]?.close ?? '18:00',
+                  isOpen: hoursState[day]?.isOpen ?? true,
+                })),
+              },
+              {
+                onSuccess: () =>
+                  queryClient.invalidateQueries({ queryKey: SETTINGS_KEYS.hours() }),
+              },
+            )
+          }
+        >
+          {updateHours.isPending ? 'Saving…' : 'Save hours'}
         </Button>
+        {updateHours.error && (
+          <p className="text-sm text-red-600">{apiErrorMessage(updateHours.error)}</p>
+        )}
       </div>
     </div>
   );
@@ -189,6 +328,7 @@ const ADMIN_NOTIFICATION_ROWS = [
 ];
 
 function NotificationsSection() {
+  // TODO: wire to a notifications preferences endpoint when available
   const [notifications, setNotifications] = useState<Record<string, boolean>>({
     new_booking: true,
     booking_cancelled: true,
@@ -225,7 +365,21 @@ function NotificationsSection() {
 // ─── Cancellation policy section ──────────────────────────────────────────────
 
 function CancellationPolicySection() {
-  const [cancellationHours, setCancellationHours] = useState(MOCK_POLICY.cancellationHours);
+  const { data: settings, isLoading: settingsLoading } = useBusinessSettings();
+  const updateSettings = useUpdateBusinessSettings();
+  const [cancellationHoursInput, setCancellationHoursInput] = useState<string>('24');
+
+  useEffect(() => {
+    if (settings) {
+      setCancellationHoursInput(String(settings.cancellationHours));
+    }
+  }, [settings]);
+
+  if (settingsLoading) {
+    return <div className="bg-gray-100 animate-pulse h-48 rounded-xl" />;
+  }
+
+  const displayHours = cancellationHoursInput !== '' ? Number(cancellationHoursInput) : (settings?.cancellationHours ?? 24);
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -237,8 +391,8 @@ function CancellationPolicySection() {
         <Input
           label="Hours notice required"
           type="number"
-          defaultValue={MOCK_POLICY.cancellationHours}
-          onChange={(e) => setCancellationHours(Number(e.target.value))}
+          value={cancellationHoursInput}
+          onChange={(e) => setCancellationHoursInput(e.target.value)}
           className="w-32"
         />
         <span className="text-sm text-gray-500 mt-5">hours</span>
@@ -246,12 +400,28 @@ function CancellationPolicySection() {
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mt-4">
         <p className="text-sm text-blue-700">
           <Info className="w-4 h-4 text-blue-500 inline mr-2" />
-          Clients can cancel for free up to {cancellationHours} hours before their appointment.
+          Clients can cancel for free up to {displayHours} hours before their appointment.
         </p>
       </div>
+      {updateSettings.error && (
+        <p className="text-sm text-red-600 mt-4">{apiErrorMessage(updateSettings.error)}</p>
+      )}
       <div className="flex justify-end mt-6">
-        <Button variant="primary" size="sm" onClick={() => console.log('save policy')}>
-          Save policy
+        <Button
+          variant="primary"
+          size="sm"
+          disabled={updateSettings.isPending}
+          onClick={() =>
+            updateSettings.mutate({
+              businessName: settings?.businessName ?? '',
+              phone: settings?.phone ?? '',
+              address: settings?.address ?? '',
+              city: settings?.city ?? '',
+              cancellationHours: Number(cancellationHoursInput),
+            })
+          }
+        >
+          {updateSettings.isPending ? 'Saving…' : 'Save policy'}
         </Button>
       </div>
     </div>

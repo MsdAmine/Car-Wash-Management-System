@@ -10,8 +10,8 @@ export function useRegister() {
 
   return useMutation({
     mutationFn: registerUser,
-    onSuccess: (data) => {
-      auth.login(data);
+    onSuccess: async (data) => {
+      await auth.login(data);
       if (data.role === 'EMPLOYEE') {
         navigate(ROUTES.PUBLIC.WASHER_PENDING);
       } else {
