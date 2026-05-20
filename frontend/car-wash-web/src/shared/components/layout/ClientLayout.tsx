@@ -2,7 +2,6 @@ import { type ReactNode } from 'react';
 import { CalendarDays, Car, Home, UserRound } from 'lucide-react';
 import { Link, NavLink } from 'react-router-dom';
 import { ROUTES } from '@/router/routes';
-import { ImagePlaceholder } from '@/shared/components/ui/ImagePlaceholder';
 
 interface ClientLayoutProps {
   children: ReactNode;
@@ -55,7 +54,7 @@ export function ClientLayout({ children }: ClientLayoutProps) {
             to={ROUTES.CLIENT.PROFILE}
             className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-full"
           >
-            <ImagePlaceholder label="Avatar" className="w-8 h-8 rounded-full" />
+            <img src="/images/avatar-customer.png" alt="Avatar" className="w-8 h-8 rounded-full object-cover" />
           </Link>
         </div>
       </nav>

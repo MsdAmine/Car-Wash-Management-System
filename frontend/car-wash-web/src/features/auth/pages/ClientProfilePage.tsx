@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AxiosError } from 'axios';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, LogOut } from 'lucide-react';
 import { ClientLayout } from '@/shared/components/layout/ClientLayout';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
-import { ImagePlaceholder } from '@/shared/components/ui/ImagePlaceholder';
 import { ToggleSwitch } from '@/shared/components/ui/ToggleSwitch';
 import { NavItem } from '@/shared/components/ui/NavItem';
 import { useAuth } from '@/shared/context/AuthContext';
@@ -68,7 +67,7 @@ function PersonalInfoSection() {
 
       <div className="px-6 py-6">
         <div className="flex items-center gap-4 pb-6 mb-6 border-b border-gray-100">
-          <ImagePlaceholder label="Profile photo" className="w-16 h-16 rounded-full" />
+          <img src="/images/avatar-customer.png" alt="Profile photo" className="w-16 h-16 rounded-full object-cover" />
           <div>
             <p className="text-base font-semibold text-gray-900">
               {profile?.firstName ?? user?.firstName} {profile?.lastName ?? user?.lastName}
@@ -275,12 +274,24 @@ function DeleteAccountSection() {
 type Section = 'personal' | 'notifications' | 'password' | 'delete';
 
 export function ClientProfilePage() {
+  const { logout } = useAuth();
   const [activeSection, setActiveSection] = useState<Section>('personal');
 
   return (
     <ClientLayout>
       <main className="max-w-4xl mx-auto px-6 py-8">
-        <h1 className="text-2xl font-semibold text-gray-900 mb-8">Settings</h1>
+        <div className="mb-8 flex items-center justify-between gap-4">
+          <h1 className="text-2xl font-semibold text-gray-900">Settings</h1>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-red-600 hover:bg-red-50 hover:text-red-700"
+            onClick={logout}
+          >
+            <LogOut className="w-4 h-4" />
+            Sign out
+          </Button>
+        </div>
 
         <div className="grid grid-cols-4 gap-8">
           <nav className="col-span-1 sticky top-20 self-start" aria-label="Settings navigation">

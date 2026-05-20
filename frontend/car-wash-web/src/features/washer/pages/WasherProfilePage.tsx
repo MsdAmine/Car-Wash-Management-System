@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AxiosError } from 'axios';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, LogOut } from 'lucide-react';
 import { WasherLayout } from '@/shared/components/layout/WasherLayout';
-import { ImagePlaceholder } from '@/shared/components/ui/ImagePlaceholder';
 import { Button } from '@/shared/components/ui/Button';
 import { useAuth } from '@/shared/context/AuthContext';
 import { fetchUserProfile } from '@/features/auth/api';
@@ -90,7 +89,7 @@ export function WasherProfilePage() {
       <div className="px-4 pt-4 flex flex-col gap-4">
         {/* Identity card */}
         <div className="bg-white rounded-xl border border-gray-200 p-5 text-center">
-          <ImagePlaceholder label="Profile photo" className="w-20 h-20 rounded-full mx-auto" />
+          <img src="/images/avatar-washer.png" alt="Profile photo" className="w-20 h-20 rounded-full mx-auto object-cover" />
           <p className="text-lg font-semibold text-gray-900 mt-3">{displayName}</p>
           <span className="bg-indigo-50 text-indigo-700 text-xs font-medium px-2.5 py-1 rounded-full inline-block mt-1">
             Car Washer
@@ -224,7 +223,8 @@ export function WasherProfilePage() {
           className="w-full mt-2 text-red-500 border border-red-200 hover:bg-red-50"
           onClick={logout}
         >
-          Log out
+          <LogOut className="w-4 h-4" />
+          Sign out
         </Button>
       </div>
     </WasherLayout>

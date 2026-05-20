@@ -2,12 +2,19 @@ import { CalendarPlus, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/components/ui/Button';
 import { Badge } from '@/shared/components/ui/Badge';
-import { ImagePlaceholder } from '@/shared/components/ui/ImagePlaceholder';
 import { ClientLayout } from '@/shared/components/layout/ClientLayout';
 import { ErrorState } from '@/shared/components/feedback/ErrorState';
 import { useAuth } from '@/shared/context/AuthContext';
 import { ROUTES } from '@/router/routes';
 import { useMyBookings } from '../hooks/useMyBookings';
+
+const SERVICE_IMAGES: Record<string, string> = {
+  'Basic Wash':     '/images/service-basic-wash.png',
+  'Express Wash':   '/images/service-express-wash.png',
+  'Full Detail':    '/images/service-full-detail.png',
+  'Premium Detail': '/images/service-premium-detail.png',
+};
+const DEFAULT_SERVICE_IMAGE = '/images/service-basic-wash.png';
 import { useMyVehicles } from '@/features/vehicles/hooks/useMyVehicles';
 import { formatAppointmentDate, formatAppointmentDateTime, formatShortDate } from '@/shared/lib/formatDate';
 import type { BookingResponse } from '../types';
@@ -159,7 +166,11 @@ function QuickServiceCard({ service, onBook }: QuickServiceCardProps) {
       }}
       className="bg-white rounded-xl border border-gray-200 p-4 hover:border-indigo-300 hover:shadow-sm cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
     >
-      <ImagePlaceholder label={service.name} aspectRatio="video" className="w-full mb-3" />
+      <img
+        src={SERVICE_IMAGES[service.name] ?? DEFAULT_SERVICE_IMAGE}
+        alt={service.name}
+        className="w-full mb-3 aspect-video object-cover"
+      />
       <p className="text-sm font-semibold text-gray-900">{service.name}</p>
       <div className="flex justify-between items-center mt-1">
         <span className="text-sm text-gray-900">${service.price}</span>
@@ -191,7 +202,7 @@ interface VehicleCardProps {
 function VehicleCard({ vehicle }: VehicleCardProps) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-4 flex-shrink-0 w-48">
-      <ImagePlaceholder label="Vehicle photo" aspectRatio="square" className="w-full mb-3" />
+      <img src="/images/vehicle-overhead.png" alt="Vehicle photo" className="w-full mb-3 aspect-square object-cover" />
       <p className="text-sm font-semibold text-gray-900">
         {vehicle.make} {vehicle.model}
       </p>

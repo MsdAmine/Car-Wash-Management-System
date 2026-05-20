@@ -2,7 +2,6 @@ import { ChevronLeft, CheckCircle2 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Badge } from '@/shared/components/ui/Badge';
 import { Button } from '@/shared/components/ui/Button';
-import { ImagePlaceholder } from '@/shared/components/ui/ImagePlaceholder';
 import { WasherLayout } from '@/shared/components/layout/WasherLayout';
 import { ErrorState } from '@/shared/components/feedback/ErrorState';
 import { LoadingSpinner } from '@/shared/components/feedback/LoadingSpinner';
@@ -144,7 +143,7 @@ export function WasherJobDetailPage() {
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
                 Vehicle
               </p>
-              <ImagePlaceholder label="Vehicle photo" aspectRatio="video" className="w-full mb-3" />
+              <img src="/images/vehicle-side.png" alt="Vehicle photo" className="w-full mb-3 aspect-video object-cover" />
               <div className="flex flex-col gap-2">
                 <InfoRow label="Plate" value={booking.vehicleLicensePlate} />
               </div>

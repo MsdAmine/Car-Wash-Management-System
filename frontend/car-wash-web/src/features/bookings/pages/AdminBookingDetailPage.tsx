@@ -4,7 +4,6 @@ import { ChevronLeft, UserX } from 'lucide-react';
 import { AdminLayout } from '@/shared/components/layout/AdminLayout';
 import { Badge } from '@/shared/components/ui/Badge';
 import { Button } from '@/shared/components/ui/Button';
-import { ImagePlaceholder } from '@/shared/components/ui/ImagePlaceholder';
 import { StepTracker } from '@/shared/components/ui/StepTracker';
 import { LoadingSpinner } from '@/shared/components/feedback/LoadingSpinner';
 import { ErrorState } from '@/shared/components/feedback/ErrorState';
@@ -190,7 +189,7 @@ export function AdminBookingDetailPage() {
           {assignedWasher ? (
             <div className="mt-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <ImagePlaceholder label="Washer avatar" className="w-10 h-10 rounded-full" />
+                <img src="/images/avatar-washer.png" alt="Washer avatar" className="w-10 h-10 rounded-full object-cover" />
                 <div>
                   <p className="text-sm font-semibold text-gray-900">
                     {assignedWasher.employeeFirstName} {assignedWasher.employeeLastName}

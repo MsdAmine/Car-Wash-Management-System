@@ -16,6 +16,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -49,6 +51,7 @@ public class AuthService {
             Employee employee = Employee.builder()
                     .user(user)
                     .position(EmployeePosition.WASHER)
+                    .hireDate(LocalDate.now())
                     .status(EmployeeStatus.PENDING)
                     .build();
             employeeRepository.save(employee);

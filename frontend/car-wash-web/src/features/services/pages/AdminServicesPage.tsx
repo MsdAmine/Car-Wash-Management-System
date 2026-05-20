@@ -4,13 +4,19 @@ import { AdminLayout } from '@/shared/components/layout/AdminLayout';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
 import { Textarea } from '@/shared/components/ui/Textarea';
-import { ImagePlaceholder } from '@/shared/components/ui/ImagePlaceholder';
 import { ToggleSwitch } from '@/shared/components/ui/ToggleSwitch';
+
+const SERVICE_IMAGES: Record<string, string> = {
+  'Basic Wash':     '/images/service-basic-wash.png',
+  'Express Wash':   '/images/service-express-wash.png',
+  'Full Detail':    '/images/service-full-detail.png',
+  'Premium Detail': '/images/service-premium-detail.png',
+};
+const DEFAULT_SERVICE_IMAGE = '/images/service-basic-wash.png';
 import { ErrorState } from '@/shared/components/feedback/ErrorState';
 import { useAllServices } from '../hooks/useAllServices';
 import { useCreateService } from '../hooks/useCreateService';
 import { useUpdateService } from '../hooks/useUpdateService';
-import { useDeactivateService } from '../hooks/useDeactivateService';
 import type { WashServiceResponse, WashServiceRequest } from '../types';
 
 // ─── Slide-over panel ─────────────────────────────────────────────────────────
@@ -99,7 +105,11 @@ function ServicePanel({ isOpen, onClose, service }: ServicePanelProps) {
         {/* Body */}
         <div className="px-6 py-6 flex flex-col gap-4 overflow-y-auto flex-1">
           <div>
-            <ImagePlaceholder label="Service photo" aspectRatio="video" className="w-full" />
+            <img
+              src={SERVICE_IMAGES[name] ?? DEFAULT_SERVICE_IMAGE}
+              alt="Service photo"
+              className="w-full aspect-video object-cover"
+            />
             <p className="text-xs text-gray-400 mt-1">Image upload coming soon.</p>
           </div>
 
@@ -177,7 +187,7 @@ function SkeletonCards() {
 
 export function AdminServicesPage() {
   const { data: services, isLoading, isError } = useAllServices();
-  const deactivateService = useDeactivateService();
+  const updateService = useUpdateService();
 
   const [panelOpen, setPanelOpen]             = useState(false);
   const [editingService, setEditingService]   = useState<WashServiceResponse | null>(null);
@@ -194,6 +204,19 @@ export function AdminServicesPage() {
 
   function closePanel() {
     setPanelOpen(false);
+  }
+
+  function toggleServiceActive(service: WashServiceResponse, active: boolean) {
+    updateService.mutate({
+      id: service.id,
+      data: {
+        name: service.name,
+        description: service.description,
+        price: service.price,
+        durationMinutes: service.durationMinutes,
+        active,
+      },
+    });
   }
 
   const topBar = (
@@ -226,17 +249,18 @@ export function AdminServicesPage() {
                 service.active ? '' : 'opacity-60'
               }`}
             >
-              <ImagePlaceholder label={service.name} aspectRatio="video" className="w-full" />
+              <img
+                src={SERVICE_IMAGES[service.name] ?? DEFAULT_SERVICE_IMAGE}
+                alt={service.name}
+                className="w-full aspect-video object-cover"
+              />
               <div className="p-4">
                 <div className="flex justify-between items-start">
                   <span className="text-base font-semibold text-gray-900">{service.name}</span>
-                  {/* TODO: no reactivate endpoint — toggle can only go active→inactive */}
                   <ToggleSwitch
                     checked={service.active}
-                    onChange={() => {
-                      if (service.active) deactivateService.mutate(service.id);
-                    }}
-                    label={service.active ? 'Deactivate service' : 'Service is inactive (cannot reactivate)'}
+                    onChange={(checked) => toggleServiceActive(service, checked)}
+                    label={service.active ? 'Deactivate service' : 'Activate service'}
                   />
                 </div>
                 <p className="text-sm text-gray-500 mt-1 line-clamp-2">{service.description}</p>

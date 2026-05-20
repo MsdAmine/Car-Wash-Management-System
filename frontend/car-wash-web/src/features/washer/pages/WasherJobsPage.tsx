@@ -1,7 +1,6 @@
 import { Bell, Car, CheckCircle2, Clock, Droplets, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/shared/components/ui/Badge';
-import { ImagePlaceholder } from '@/shared/components/ui/ImagePlaceholder';
 import { WasherLayout } from '@/shared/components/layout/WasherLayout';
 import { ErrorState } from '@/shared/components/feedback/ErrorState';
 import { useAuth } from '@/shared/context/AuthContext';
@@ -111,7 +110,7 @@ export function WasherJobsPage() {
         <header className="bg-white border-b border-gray-200 px-4 py-3">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <ImagePlaceholder label="Avatar" className="w-10 h-10 rounded-full flex-shrink-0" />
+              <img src="/images/avatar-washer.png" alt="Avatar" className="w-10 h-10 rounded-full flex-shrink-0 object-cover" />
               <div>
                 <p className="text-sm font-semibold text-gray-900">
                   {user?.firstName} {user?.lastName}

@@ -4,7 +4,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
 import { Checkbox } from '@/shared/components/ui/Checkbox';
-import { ImagePlaceholder } from '@/shared/components/ui/ImagePlaceholder';
 import { loginSchema, type LoginFormValues } from '../schemas';
 import { ROUTES } from '@/router/routes';
 import { useLogin } from '../hooks/useLogin';
@@ -27,9 +26,10 @@ export function LoginPage() {
   return (
     <div className="flex h-screen">
       <div className="hidden md:block w-[45%]">
-        <ImagePlaceholder
-          label="Brand image — car being washed"
-          className="w-full h-full !rounded-none"
+        <img
+          src="/images/hero-login.png"
+          alt="Car being washed"
+          className="w-full h-full object-cover"
         />
       </div>
 

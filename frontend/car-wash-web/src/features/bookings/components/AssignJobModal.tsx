@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { Modal } from '@/shared/components/ui/Modal';
 import { Button } from '@/shared/components/ui/Button';
-import { ImagePlaceholder } from '@/shared/components/ui/ImagePlaceholder';
 import { ErrorState } from '@/shared/components/feedback/ErrorState';
 import { useAvailableEmployees } from '@/features/admin/hooks/useAvailableEmployees';
 import { useAssignWasher } from '@/features/admin/hooks/useAssignWasher';
@@ -119,7 +118,7 @@ export function AssignJobModal({ isOpen, onClose, booking, bookingId }: AssignJo
                 }}
               >
                 <div className="flex items-center gap-4">
-                  <ImagePlaceholder label="Avatar" className="w-10 h-10 rounded-full flex-shrink-0" />
+                  <img src="/images/avatar-washer.png" alt="Avatar" className="w-10 h-10 rounded-full flex-shrink-0 object-cover" />
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-gray-900">
                       {employee.firstName} {employee.lastName}

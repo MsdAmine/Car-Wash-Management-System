@@ -3,7 +3,6 @@ import { Search, X } from 'lucide-react';
 import { AdminLayout } from '@/shared/components/layout/AdminLayout';
 import { Button } from '@/shared/components/ui/Button';
 import { Badge } from '@/shared/components/ui/Badge';
-import { ImagePlaceholder } from '@/shared/components/ui/ImagePlaceholder';
 import {
   Table,
   TableHead,
@@ -111,7 +110,7 @@ function StaffDetailPanel({ isOpen, onClose, staff }: StaffDetailPanelProps) {
         <div className="px-6 py-6 overflow-y-auto flex-1 flex flex-col gap-6">
           {/* Identity */}
           <div className="flex flex-col items-center">
-            <ImagePlaceholder label="Staff avatar" className="w-16 h-16 rounded-full" />
+            <img src="/images/avatar-staff.png" alt="Staff avatar" className="w-16 h-16 rounded-full object-cover" />
             <p className="text-lg font-semibold text-gray-900 text-center mt-3">
               {staff.firstName} {staff.lastName}
             </p>
@@ -274,7 +273,7 @@ export function AdminStaffPage() {
                     >
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <ImagePlaceholder label="Avatar" className="w-8 h-8 rounded-full flex-shrink-0" />
+                          <img src="/images/avatar-staff.png" alt="Avatar" className="w-8 h-8 rounded-full flex-shrink-0 object-cover" />
                           <div>
                             <p className="text-sm font-semibold text-gray-900">
                               {staff.firstName} {staff.lastName}

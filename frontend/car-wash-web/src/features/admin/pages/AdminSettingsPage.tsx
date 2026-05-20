@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Info } from 'lucide-react';
+import { Info, LogOut } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import { AdminLayout } from '@/shared/components/layout/AdminLayout';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
-import { ImagePlaceholder } from '@/shared/components/ui/ImagePlaceholder';
 import { ToggleSwitch } from '@/shared/components/ui/ToggleSwitch';
 import { NavItem } from '@/shared/components/ui/NavItem';
+import { useAuth } from '@/shared/context/AuthContext';
 import { useBusinessSettings, SETTINGS_KEYS } from '../hooks/useBusinessSettings';
 import { useUpdateBusinessSettings } from '../hooks/useUpdateBusinessSettings';
 import { useOperatingHours } from '../hooks/useOperatingHours';
@@ -78,7 +78,7 @@ function BusinessInfoSection() {
       {!isEditing ? (
         <div className="px-6 py-6 flex flex-col gap-4">
           <div className="flex items-center gap-4 pb-6 mb-2 border-b border-gray-100">
-            <ImagePlaceholder label="Business logo" className="w-16 h-16 rounded-xl" />
+            <img src="/images/logo-business.png" alt="Business logo" className="w-16 h-16 rounded-xl object-cover" />
             <div>
               <p className="text-base font-semibold text-gray-900">{settings?.businessName}</p>
               <Button
@@ -113,7 +113,7 @@ function BusinessInfoSection() {
       ) : (
         <div className="px-6 py-6">
           <div className="flex items-center gap-4 pb-6 mb-2 border-b border-gray-100">
-            <ImagePlaceholder label="Business logo" className="w-16 h-16 rounded-xl" />
+            <img src="/images/logo-business.png" alt="Business logo" className="w-16 h-16 rounded-xl object-cover" />
             <div>
               <p className="text-base font-semibold text-gray-900">{settings?.businessName}</p>
               <Button
@@ -431,9 +431,23 @@ function CancellationPolicySection() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function AdminSettingsPage() {
+  const { logout } = useAuth();
   const [activeSection, setActiveSection] = useState<Section>('business');
 
-  const topBar = <span className="text-lg font-semibold text-gray-900">Settings</span>;
+  const topBar = (
+    <>
+      <span className="text-lg font-semibold text-gray-900">Settings</span>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="text-red-600 hover:bg-red-50 hover:text-red-700"
+        onClick={logout}
+      >
+        <LogOut className="w-4 h-4" />
+        Sign out
+      </Button>
+    </>
+  );
 
   return (
     <AdminLayout topBar={topBar}>

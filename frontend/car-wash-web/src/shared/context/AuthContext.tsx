@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { setAuthToken } from '@/shared/lib/axios';
+import { queryClient } from '@/shared/lib/queryClient';
 import type { AuthResponse } from '@/features/auth/types';
 import { fetchUserProfile } from '@/features/auth/api';
 import { ROUTES } from '@/router/routes';
@@ -33,7 +34,6 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 const SESSION_TOKEN_KEY = 'auth_token';
-const SESSION_USER_KEY = 'auth_user';
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -48,6 +48,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isInitialised, setIsInitialised] = useState(false);
 
+  function clearSession(): void {
+    setAuthToken(null);
+    sessionStorage.clear();
+    queryClient.clear();
+    setToken(null);
+    setUser(null);
+    setIsAuthenticated(false);
+  }
+
   async function hydrateFromProfile(tok: string): Promise<void> {
     setAuthToken(tok);
     try {
@@ -61,12 +70,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       });
       setIsAuthenticated(true);
     } catch {
-      sessionStorage.removeItem(SESSION_TOKEN_KEY);
-      sessionStorage.removeItem(SESSION_USER_KEY);
-      setAuthToken(null);
-      setToken(null);
-      setUser(null);
-      setIsAuthenticated(false);
+      clearSession();
     }
   }
 
@@ -87,12 +91,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   function logout(): void {
-    setAuthToken(null);
-    sessionStorage.removeItem(SESSION_TOKEN_KEY);
-    sessionStorage.removeItem(SESSION_USER_KEY);
-    setToken(null);
-    setUser(null);
-    setIsAuthenticated(false);
+    clearSession();
     navigate(ROUTES.PUBLIC.LOGIN);
   }
 

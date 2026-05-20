@@ -1,6 +1,13 @@
 import { Sparkles } from 'lucide-react';
-import { ImagePlaceholder } from '@/shared/components/ui/ImagePlaceholder';
 import { ROUTES } from '@/router/routes';
+
+const SERVICE_IMAGES: Record<string, string> = {
+  'Basic Wash':     '/images/service-basic-wash.png',
+  'Express Wash':   '/images/service-express-wash.png',
+  'Full Detail':    '/images/service-full-detail.png',
+  'Premium Detail': '/images/service-premium-detail.png',
+};
+const DEFAULT_SERVICE_IMAGE = '/images/service-basic-wash.png';
 
 const MOCK_SERVICES = [
   { id: '1', name: 'Basic Wash', description: 'Exterior hand wash and dry. Quick and affordable.' },
@@ -81,9 +88,10 @@ export function LandingPage() {
             </div>
           </div>
 
-          <ImagePlaceholder
-            label="Hero — car being washed"
-            className="w-full h-80 md:h-96 rounded-2xl"
+          <img
+            src="/images/hero-wide.png"
+            alt="Hero — car being washed"
+            className="w-full h-80 md:h-96 object-cover rounded-2xl"
           />
         </div>
       </section>
@@ -115,7 +123,11 @@ export function LandingPage() {
               key={service.id}
               className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
             >
-              <ImagePlaceholder label={service.name} aspectRatio="video" className="w-full mb-4" />
+              <img
+                src={SERVICE_IMAGES[service.name] ?? DEFAULT_SERVICE_IMAGE}
+                alt={service.name}
+                className="w-full mb-4 aspect-video object-cover"
+              />
               <p className="text-lg font-semibold text-gray-900">{service.name}</p>
               <p className="text-sm text-gray-500 mt-1">{service.description}</p>
               <span className="text-sm text-indigo-600 hover:text-indigo-700 font-medium mt-4 inline-block">

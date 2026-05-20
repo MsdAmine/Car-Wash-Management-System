@@ -7,7 +7,6 @@ import {
 import { AdminLayout } from '@/shared/components/layout/AdminLayout';
 import { Button } from '@/shared/components/ui/Button';
 import { Badge } from '@/shared/components/ui/Badge';
-import { ImagePlaceholder } from '@/shared/components/ui/ImagePlaceholder';
 import {
   Table,
   TableHead,
@@ -134,7 +133,7 @@ function BookingRow({ booking, selected, onToggle, onOpenAssign }: BookingRowPro
 
       <TableCell>
         <div className="flex items-center gap-3">
-          <ImagePlaceholder label="Avatar" className="w-8 h-8 rounded-full flex-shrink-0" />
+          <img src="/images/avatar-customer.png" alt="Avatar" className="w-8 h-8 rounded-full flex-shrink-0 object-cover" />
           <span className="text-sm font-semibold text-gray-900">{booking.customerEmail}</span>
         </div>
       </TableCell>
