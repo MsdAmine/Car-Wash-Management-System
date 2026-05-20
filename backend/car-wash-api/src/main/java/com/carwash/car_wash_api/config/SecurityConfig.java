@@ -1,6 +1,7 @@
 package com.carwash.car_wash_api.config;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -17,7 +18,6 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
-import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -28,6 +28,9 @@ public class SecurityConfig {
         private final AuthenticationProvider authenticationProvider;
         private final AuthenticationEntryPoint authEntryPoint;
         private final CustomAccessDeniedHandler accessDeniedHandler;
+
+        @Value("${app.cors.allowed-origins}")
+        private String corsAllowedOrigins;
 
         @Bean
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -88,6 +91,7 @@ public class SecurityConfig {
                                                 // Employee management: admin manages all employees; employees can only read their own profile and assignments
                                                 .requestMatchers(HttpMethod.GET, "/api/v1/employees/me").hasAnyRole("ADMIN", "EMPLOYEE")
                                                 .requestMatchers(HttpMethod.GET, "/api/v1/employees/me/bookings/today").hasAnyRole("ADMIN", "EMPLOYEE")
+                                                .requestMatchers(HttpMethod.GET, "/api/v1/employees/me/bookings/today/details").hasAnyRole("ADMIN", "EMPLOYEE")
                                                 .requestMatchers(HttpMethod.GET, "/api/v1/employees/*/bookings").hasAnyRole("ADMIN", "EMPLOYEE")
                                                 .requestMatchers("/api/v1/employees/**").hasRole("ADMIN")
 
@@ -127,7 +131,8 @@ public class SecurityConfig {
         @Bean
         public CorsConfigurationSource corsConfigurationSource() {
                 CorsConfiguration configuration = new CorsConfiguration();
-                configuration.setAllowedOrigins(List.of("http://localhost:5173"));
+                String[] origins = corsAllowedOrigins.split(",");
+                configuration.setAllowedOrigins(Arrays.asList(origins));
                 configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
                 configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
                 configuration.setAllowCredentials(true);

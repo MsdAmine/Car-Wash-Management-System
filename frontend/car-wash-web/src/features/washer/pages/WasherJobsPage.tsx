@@ -103,6 +103,7 @@ export function WasherJobsPage() {
     b => b.status === 'CONFIRMED' || b.status === 'IN_PROGRESS',
   ) ?? [];
   const completedJobs = bookings?.filter(b => b.status === 'COMPLETED') ?? [];
+  const hasAssignedJobs = (bookings?.length ?? 0) > 0;
 
   return (
     <WasherLayout>
@@ -165,7 +166,12 @@ export function WasherJobsPage() {
                 <div className="py-12">
                   <CheckCircle2 className="w-10 h-10 text-gray-300 mx-auto" />
                   <p className="text-sm font-medium text-gray-500 mt-3 text-center">
-                    No jobs assigned yet
+                    {hasAssignedJobs ? 'No active jobs left' : 'No jobs assigned for today'}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1 text-center max-w-56 mx-auto">
+                    {hasAssignedJobs
+                      ? 'Completed jobs are listed below for reference.'
+                      : 'Assigned jobs will appear here when an admin schedules them.'}
                   </p>
                 </div>
               ) : (

@@ -110,10 +110,22 @@ public class BookingService {
     public BookingResponse getBookingById(UUID id) {
         Booking booking = findBookingOrThrow(id);
         User currentUser = resolveCurrentUser();
-        if (!isAdmin(currentUser) && !booking.getCustomer().getId().equals(currentUser.getId())) {
-            throw new AccessDeniedException("You do not have permission to view this booking");
+
+        if (isAdmin(currentUser) || booking.getCustomer().getId().equals(currentUser.getId())) {
+            return bookingMapper.toResponse(booking);
         }
-        return bookingMapper.toResponse(booking);
+
+        if (currentUser.getRole() == Role.EMPLOYEE) {
+            Employee employee = employeeRepository.findByUserId(currentUser.getId())
+                    .orElseThrow(() -> new AccessDeniedException(
+                            "No employee profile found for the current user"));
+
+            if (bookingAssignmentRepository.existsByBookingIdAndEmployeeId(booking.getId(), employee.getId())) {
+                return bookingMapper.toResponse(booking);
+            }
+        }
+
+        throw new AccessDeniedException("You do not have permission to view this booking");
     }
 
     // #225 — return all bookings whose appointment falls on today (admin / employee)

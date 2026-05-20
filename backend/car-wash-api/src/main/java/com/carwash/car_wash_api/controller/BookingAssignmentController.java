@@ -2,6 +2,7 @@ package com.carwash.car_wash_api.controller;
 
 import com.carwash.car_wash_api.dto.request.AssignEmployeeRequest;
 import com.carwash.car_wash_api.dto.response.BookingAssignmentResponse;
+import com.carwash.car_wash_api.dto.response.BookingResponse;
 import com.carwash.car_wash_api.dto.response.ErrorResponse;
 import com.carwash.car_wash_api.service.BookingAssignmentService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -145,5 +146,10 @@ public class BookingAssignmentController {
     @GetMapping("/api/v1/employees/me/bookings/today")
     public ResponseEntity<List<BookingAssignmentResponse>> getMyTodaysAssignedBookings() {
         return ResponseEntity.ok(assignmentService.getMyTodaysAssignedBookings());
+    }
+
+    @GetMapping("/api/v1/employees/me/bookings/today/details")
+    public ResponseEntity<List<BookingResponse>> getMyTodaysAssignedBookingDetails() {
+        return ResponseEntity.ok(assignmentService.getMyTodaysAssignedBookingDetails());
     }
 }

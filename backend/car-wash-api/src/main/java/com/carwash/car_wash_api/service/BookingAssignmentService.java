@@ -2,9 +2,11 @@ package com.carwash.car_wash_api.service;
 
 import com.carwash.car_wash_api.dto.request.AssignEmployeeRequest;
 import com.carwash.car_wash_api.dto.response.BookingAssignmentResponse;
+import com.carwash.car_wash_api.dto.response.BookingResponse;
 import com.carwash.car_wash_api.exception.DuplicateResourceException;
 import com.carwash.car_wash_api.exception.InvalidEmployeeOperationException;
 import com.carwash.car_wash_api.exception.ResourceNotFoundException;
+import com.carwash.car_wash_api.mapper.BookingMapper;
 import com.carwash.car_wash_api.model.entity.Booking;
 import com.carwash.car_wash_api.model.entity.BookingAssignment;
 import com.carwash.car_wash_api.model.entity.Employee;
@@ -32,6 +34,7 @@ public class BookingAssignmentService {
     private final BookingRepository bookingRepository;
     private final EmployeeRepository employeeRepository;
     private final UserRepository userRepository;
+    private final BookingMapper bookingMapper;
 
     @Transactional
     public BookingAssignmentResponse assignEmployee(UUID bookingId, AssignEmployeeRequest request) {
@@ -101,13 +104,7 @@ public class BookingAssignmentService {
 
     @Transactional(readOnly = true)
     public List<BookingAssignmentResponse> getMyTodaysAssignedBookings() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Authenticated user not found"));
-
-        Employee employee = employeeRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "No employee profile found for the current user"));
+        Employee employee = findCurrentEmployee();
 
         LocalDate today = LocalDate.now();
         LocalDateTime startOfDay = today.atStartOfDay();
@@ -118,6 +115,32 @@ public class BookingAssignmentService {
                 .stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<BookingResponse> getMyTodaysAssignedBookingDetails() {
+        Employee employee = findCurrentEmployee();
+
+        LocalDate today = LocalDate.now();
+        LocalDateTime startOfDay = today.atStartOfDay();
+        LocalDateTime endOfDay = today.plusDays(1).atStartOfDay();
+
+        return assignmentRepository
+                .findTodaysAssignmentsByEmployeeId(employee.getId(), startOfDay, endOfDay)
+                .stream()
+                .map(BookingAssignment::getBooking)
+                .map(bookingMapper::toResponse)
+                .toList();
+    }
+
+    private Employee findCurrentEmployee() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Authenticated user not found"));
+
+        return employeeRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No employee profile found for the current user"));
     }
 
     public boolean isEmployeeAssignedToBooking(UUID bookingId, UUID employeeId) {

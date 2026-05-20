@@ -3,7 +3,7 @@ import type { UpdateStatusRequest } from './types'
 import type { BookingResponse } from '@/features/bookings/types'
 
 export async function fetchMyJobsToday(): Promise<BookingResponse[]> {
-  const { data } = await api.get<BookingResponse[]>('/bookings/today')
+  const { data } = await api.get<BookingResponse[]>('/employees/me/bookings/today/details')
   return data
 }
 
