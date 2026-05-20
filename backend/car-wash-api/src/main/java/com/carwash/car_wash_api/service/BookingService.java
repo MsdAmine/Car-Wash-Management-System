@@ -2,13 +2,16 @@ package com.carwash.car_wash_api.service;
 
 import com.carwash.car_wash_api.dto.request.BookingRequest;
 import com.carwash.car_wash_api.dto.request.UpdateBookingStatusRequest;
+import com.carwash.car_wash_api.dto.response.AvailableSlotsResponse;
 import com.carwash.car_wash_api.dto.response.BookingResponse;
+import com.carwash.car_wash_api.dto.response.TimeSlotResponse;
 import com.carwash.car_wash_api.exception.AccessDeniedException;
 import com.carwash.car_wash_api.exception.InvalidBookingException;
 import com.carwash.car_wash_api.exception.ResourceNotFoundException;
 import com.carwash.car_wash_api.mapper.BookingMapper;
 import com.carwash.car_wash_api.model.entity.Booking;
 import com.carwash.car_wash_api.model.entity.Employee;
+import com.carwash.car_wash_api.model.entity.OperatingHours;
 import com.carwash.car_wash_api.model.entity.User;
 import com.carwash.car_wash_api.model.entity.Vehicle;
 import com.carwash.car_wash_api.model.entity.WashService;
@@ -31,7 +34,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -176,6 +181,57 @@ public class BookingService {
         }
         booking.setStatus(BookingStatus.CANCELLED);
         return bookingMapper.toResponse(bookingRepository.save(booking));
+    }
+
+    @Transactional(readOnly = true)
+    public AvailableSlotsResponse getAvailableSlots(String date, UUID serviceId) {
+        WashService washService = washServiceRepository.findById(serviceId)
+                .filter(s -> Boolean.TRUE.equals(s.getActive()))
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Wash service not found with ID: " + serviceId));
+
+        LocalDate localDate = LocalDate.parse(date);
+        String dayOfWeek = localDate.getDayOfWeek().name();
+
+        Optional<OperatingHours> ohOpt = operatingHoursRepository.findByDayOfWeek(dayOfWeek);
+        if (ohOpt.isEmpty() || !ohOpt.get().isOpen()) {
+            return AvailableSlotsResponse.builder()
+                    .date(date)
+                    .serviceId(serviceId.toString())
+                    .serviceName(washService.getName())
+                    .durationMinutes(washService.getDurationMinutes())
+                    .slots(List.of())
+                    .build();
+        }
+
+        OperatingHours oh = ohOpt.get();
+        int duration = washService.getDurationMinutes();
+        LocalTime lastValidStart = oh.getCloseTime().minusMinutes(duration);
+        List<BookingStatus> activeStatuses = List.of(
+                BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS);
+
+        List<TimeSlotResponse> slots = new ArrayList<>();
+        LocalTime current = oh.getOpenTime();
+        while (!current.isAfter(lastValidStart)) {
+            LocalDateTime slotStart = localDate.atTime(current);
+            LocalDateTime slotEnd = slotStart.plusMinutes(duration);
+            boolean available = bookingRepository
+                    .findOverlappingBookings(slotStart, slotEnd, activeStatuses).isEmpty();
+            slots.add(TimeSlotResponse.builder()
+                    .time(current.format(DateTimeFormatter.ofPattern("HH:mm")))
+                    .available(available)
+                    .reason(available ? null : "Already booked")
+                    .build());
+            current = current.plusMinutes(30);
+        }
+
+        return AvailableSlotsResponse.builder()
+                .date(date)
+                .serviceId(serviceId.toString())
+                .serviceName(washService.getName())
+                .durationMinutes(duration)
+                .slots(slots)
+                .build();
     }
 
     // #217 — validate the vehicle belongs to the authenticated customer

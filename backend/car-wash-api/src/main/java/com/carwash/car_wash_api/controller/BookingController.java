@@ -2,6 +2,7 @@ package com.carwash.car_wash_api.controller;
 
 import com.carwash.car_wash_api.dto.request.BookingRequest;
 import com.carwash.car_wash_api.dto.request.UpdateBookingStatusRequest;
+import com.carwash.car_wash_api.dto.response.AvailableSlotsResponse;
 import com.carwash.car_wash_api.dto.response.BookingResponse;
 import com.carwash.car_wash_api.dto.response.ErrorResponse;
 import com.carwash.car_wash_api.service.BookingService;
@@ -51,6 +52,28 @@ public class BookingController {
     @PostMapping
     public ResponseEntity<BookingResponse> createBooking(@Valid @RequestBody BookingRequest request) {
         return new ResponseEntity<>(bookingService.createBooking(request), HttpStatus.CREATED);
+    }
+
+    // ── GET /api/v1/bookings/available-slots ─────────────────────────────────
+
+    @Operation(
+            summary = "Get available time slots",
+            description = "Returns all candidate time slots for the given date and wash service. Each slot indicates whether it is available or already booked. Returns an empty list when the business is closed on that day.",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Slots retrieved successfully",
+                    content = @Content(schema = @Schema(implementation = AvailableSlotsResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Authentication required",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Wash service not found or inactive",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @GetMapping("/available-slots")
+    public ResponseEntity<AvailableSlotsResponse> getAvailableSlots(
+            @RequestParam String date,
+            @RequestParam UUID serviceId) {
+        return ResponseEntity.ok(bookingService.getAvailableSlots(date, serviceId));
     }
 
     // ── GET /api/v1/bookings/my ───────────────────────────────────────────────

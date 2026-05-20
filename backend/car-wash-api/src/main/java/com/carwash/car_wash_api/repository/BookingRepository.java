@@ -69,4 +69,13 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
     // #328 — most requested services: returns [serviceName, count] pairs ordered by count desc
     @Query("SELECT b.washService.name, COUNT(b) FROM Booking b GROUP BY b.washService.name ORDER BY COUNT(b) DESC")
     List<Object[]> findTopRequestedServices(Pageable pageable);
+
+    @Query("SELECT b FROM Booking b WHERE b.status IN :statuses " +
+           "AND b.appointmentDateTime < :slotEnd " +
+           "AND b.endDateTime > :slotStart")
+    List<Booking> findOverlappingBookings(
+            @Param("slotStart") LocalDateTime slotStart,
+            @Param("slotEnd") LocalDateTime slotEnd,
+            @Param("statuses") List<BookingStatus> statuses
+    );
 }
