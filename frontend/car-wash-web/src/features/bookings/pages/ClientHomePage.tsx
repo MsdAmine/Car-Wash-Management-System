@@ -1,33 +1,18 @@
 import { CalendarPlus, Plus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/components/ui/Button';
 import { Badge } from '@/shared/components/ui/Badge';
 import { ImagePlaceholder } from '@/shared/components/ui/ImagePlaceholder';
 import { ClientLayout } from '@/shared/components/layout/ClientLayout';
+import { ErrorState } from '@/shared/components/feedback/ErrorState';
+import { useAuth } from '@/shared/context/AuthContext';
+import { ROUTES } from '@/router/routes';
+import { useMyBookings } from '../hooks/useMyBookings';
+import { useMyVehicles } from '@/features/vehicles/hooks/useMyVehicles';
+import { formatAppointmentDate, formatAppointmentDateTime, formatShortDate } from '@/shared/lib/formatDate';
+import type { BookingResponse } from '../types';
 
-// ─── Mock data (not exported) ────────────────────────────────────────────────
-
-const MOCK_USER = { firstName: 'Alex', lastName: 'Morgan' };
-
-const MOCK_UPCOMING_BOOKING: UpcomingBooking | null = {
-  id: '1',
-  service: 'Full Detail',
-  date: 'Monday, 19 May 2025',
-  time: '10:00',
-  vehicle: 'Toyota Camry',
-  washer: 'James K.',
-  status: 'confirmed',
-};
-
-const MOCK_VEHICLES: Vehicle[] = [
-  { id: '1', make: 'Toyota', model: 'Camry', plate: 'ABC-1234' },
-  { id: '2', make: 'Ford', model: 'F-150', plate: 'XYZ-9876' },
-];
-
-const MOCK_RECENT_BOOKINGS: RecentBooking[] = [
-  { id: '1', service: 'Basic Wash', date: 'May 12, 2025', status: 'completed' },
-  { id: '2', service: 'Express Wash', date: 'May 5, 2025', status: 'completed' },
-  { id: '3', service: 'Full Detail', date: 'Apr 28, 2025', status: 'cancelled' },
-];
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const MOCK_QUICK_SERVICES: QuickService[] = [
   { id: '1', name: 'Basic Wash', price: 15, duration: 30 },
@@ -42,8 +27,7 @@ type BookingStatus = 'pending' | 'confirmed' | 'inProgress' | 'completed' | 'can
 interface UpcomingBooking {
   id: string;
   service: string;
-  date: string;
-  time: string;
+  dateTime: string;
   vehicle: string;
   washer: string;
   status: BookingStatus;
@@ -72,23 +56,20 @@ interface QuickService {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
-
-function formatTodayDate(): string {
-  const d = new Date();
-  return `${DAY_NAMES[d.getDay()]}, ${d.getDate()} ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
-}
-
 function getGreeting(): string {
   const h = new Date().getHours();
   if (h < 12) return 'Good morning';
   if (h < 18) return 'Good afternoon';
   return 'Good evening';
 }
+
+const STATUS_MAP: Record<BookingResponse['status'], BookingStatus> = {
+  PENDING: 'pending',
+  CONFIRMED: 'confirmed',
+  IN_PROGRESS: 'inProgress',
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled',
+};
 
 const statusBorderClass: Record<BookingStatus, string> = {
   confirmed: 'border-l-indigo-500',
@@ -111,9 +92,7 @@ function UpcomingBookingCard({ booking }: UpcomingBookingCardProps) {
     >
       <div>
         <p className="text-base font-semibold text-gray-900">{booking.service}</p>
-        <p className="text-sm text-gray-500 mt-1">
-          {booking.date} at {booking.time}
-        </p>
+        <p className="text-sm text-gray-500 mt-1">{booking.dateTime}</p>
         <p className="text-sm text-gray-500 mt-0.5">{booking.vehicle}</p>
         <p className="text-sm text-gray-500 mt-0.5">Washer: {booking.washer}</p>
       </div>
@@ -140,14 +119,18 @@ function UpcomingBookingCard({ booking }: UpcomingBookingCardProps) {
   );
 }
 
-function UpcomingEmptyState() {
+interface UpcomingEmptyStateProps {
+  onBook: () => void;
+}
+
+function UpcomingEmptyState({ onBook }: UpcomingEmptyStateProps) {
   return (
     <div className="border-dashed border-2 border-gray-300 bg-white rounded-xl p-8 text-center">
       <CalendarPlus className="w-8 h-8 text-gray-400 mx-auto" />
       <p className="text-base font-semibold text-gray-900 mt-3">No upcoming bookings</p>
       <p className="text-sm text-gray-500 mt-1">Book your first wash to get started.</p>
       <div className="mt-4 flex justify-center">
-        <Button variant="primary" size="sm" onClick={() => console.log('book a wash')}>
+        <Button variant="primary" size="sm" onClick={onBook}>
           Book a wash
         </Button>
       </div>
@@ -159,18 +142,19 @@ function UpcomingEmptyState() {
 
 interface QuickServiceCardProps {
   service: QuickService;
+  onBook: () => void;
 }
 
-function QuickServiceCard({ service }: QuickServiceCardProps) {
+function QuickServiceCard({ service, onBook }: QuickServiceCardProps) {
   return (
     <div
       role="button"
       tabIndex={0}
-      onClick={() => console.log('quick book', service.id)}
+      onClick={onBook}
       onKeyDown={e => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          console.log('quick book', service.id);
+          onBook();
         }
       }}
       className="bg-white rounded-xl border border-gray-200 p-4 hover:border-indigo-300 hover:shadow-sm cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
@@ -189,7 +173,7 @@ function QuickServiceCard({ service }: QuickServiceCardProps) {
         className="w-full mt-3"
         onClick={e => {
           e.stopPropagation();
-          console.log('quick book', service.id);
+          onBook();
         }}
       >
         Book
@@ -216,11 +200,15 @@ function VehicleCard({ vehicle }: VehicleCardProps) {
   );
 }
 
-function AddVehicleCard() {
+interface AddVehicleCardProps {
+  onAdd: () => void;
+}
+
+function AddVehicleCard({ onAdd }: AddVehicleCardProps) {
   return (
     <button
       type="button"
-      onClick={() => console.log('add vehicle')}
+      onClick={onAdd}
       className="flex-shrink-0 w-48 bg-white rounded-xl border-2 border-dashed border-gray-300 p-4 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
     >
       <Plus className="w-6 h-6 text-gray-400" />
@@ -250,8 +238,46 @@ function RecentBookingRow({ booking }: RecentBookingRowProps) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function ClientHomePage() {
-  const todayDate = formatTodayDate();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { data: bookings, isLoading, isError } = useMyBookings();
+  const { data: vehicles, isLoading: vehiclesLoading } = useMyVehicles();
+
+  const todayDate = formatAppointmentDate(new Date().toISOString());
   const greeting = getGreeting();
+
+  const rawUpcoming = bookings?.find(
+    b => b.status === 'CONFIRMED' || b.status === 'PENDING'
+  ) ?? null;
+
+  const upcomingBooking: UpcomingBooking | null = rawUpcoming
+    ? {
+        id: rawUpcoming.id,
+        service: rawUpcoming.washServiceName,
+        dateTime: formatAppointmentDateTime(rawUpcoming.appointmentDateTime),
+        vehicle: rawUpcoming.vehicleLicensePlate,
+        washer: rawUpcoming.status === 'CONFIRMED' ? 'Assigned' : 'Unassigned',
+        status: STATUS_MAP[rawUpcoming.status],
+      }
+    : null;
+
+  const recentBookings: RecentBooking[] = (bookings ?? [])
+    .slice()
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 3)
+    .map(b => ({
+      id: b.id,
+      service: b.washServiceName,
+      date: formatShortDate(b.createdAt),
+      status: STATUS_MAP[b.status],
+    }));
+
+  const vehiclesList: Vehicle[] = (vehicles ?? []).map(v => ({
+    id: v.id,
+    make: v.brand,
+    model: v.model,
+    plate: v.licensePlate,
+  }));
 
   return (
     <ClientLayout>
@@ -259,7 +285,7 @@ export function ClientHomePage() {
         {/* Section 1 — Greeting */}
         <section>
           <h1 className="text-2xl font-semibold text-gray-900">
-            {greeting}, {MOCK_USER.firstName}
+            {greeting}, {user?.firstName}
           </h1>
           <p className="text-sm text-gray-500">{todayDate}</p>
         </section>
@@ -269,10 +295,14 @@ export function ClientHomePage() {
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
             Upcoming
           </p>
-          {MOCK_UPCOMING_BOOKING !== null ? (
-            <UpcomingBookingCard booking={MOCK_UPCOMING_BOOKING} />
+          {isLoading ? (
+            <div className="bg-gray-100 rounded-xl h-28 animate-pulse" />
+          ) : isError ? (
+            <ErrorState message="Could not load bookings." />
+          ) : upcomingBooking !== null ? (
+            <UpcomingBookingCard booking={upcomingBooking} />
           ) : (
-            <UpcomingEmptyState />
+            <UpcomingEmptyState onBook={() => navigate(ROUTES.CLIENT.BOOK)} />
           )}
         </section>
 
@@ -282,17 +312,21 @@ export function ClientHomePage() {
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
               Quick book
             </p>
-            <a
-              href="#"
-              onClick={e => e.preventDefault()}
+            <button
+              type="button"
+              onClick={() => navigate(ROUTES.CLIENT.BOOK)}
               className="text-sm text-indigo-600 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
             >
               See all services
-            </a>
+            </button>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {MOCK_QUICK_SERVICES.map(service => (
-              <QuickServiceCard key={service.id} service={service} />
+              <QuickServiceCard
+                key={service.id}
+                service={service}
+                onBook={() => navigate(ROUTES.CLIENT.BOOK)}
+              />
             ))}
           </div>
         </section>
@@ -303,19 +337,29 @@ export function ClientHomePage() {
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
               My vehicles
             </p>
-            <a
-              href="#"
-              onClick={e => e.preventDefault()}
+            <button
+              type="button"
+              onClick={() => navigate(ROUTES.CLIENT.VEHICLES)}
               className="text-sm text-indigo-600 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
             >
               Manage vehicles
-            </a>
+            </button>
           </div>
           <div className="flex gap-4 overflow-x-auto pb-2">
-            {MOCK_VEHICLES.map(vehicle => (
-              <VehicleCard key={vehicle.id} vehicle={vehicle} />
-            ))}
-            <AddVehicleCard />
+            {vehiclesLoading ? (
+              <>
+                {[0, 1, 2].map(i => (
+                  <div key={i} className="flex-shrink-0 w-48 h-32 bg-gray-100 animate-pulse rounded-xl" />
+                ))}
+              </>
+            ) : (
+              <>
+                {vehiclesList.map(vehicle => (
+                  <VehicleCard key={vehicle.id} vehicle={vehicle} />
+                ))}
+                <AddVehicleCard onAdd={() => navigate(ROUTES.CLIENT.VEHICLES)} />
+              </>
+            )}
           </div>
         </section>
 
@@ -325,19 +369,31 @@ export function ClientHomePage() {
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
               Recent activity
             </p>
-            <a
-              href="#"
-              onClick={e => e.preventDefault()}
+            <button
+              type="button"
+              onClick={() => navigate(ROUTES.CLIENT.BOOKINGS)}
               className="text-sm text-indigo-600 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
             >
               View all
-            </a>
+            </button>
           </div>
-          <div className="rounded-xl border border-gray-200 overflow-hidden divide-y divide-gray-100">
-            {MOCK_RECENT_BOOKINGS.map(booking => (
-              <RecentBookingRow key={booking.id} booking={booking} />
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="rounded-xl border border-gray-200 overflow-hidden divide-y divide-gray-100">
+              {[0, 1, 2].map(i => (
+                <div key={i} className="bg-white px-5 py-4 h-14 animate-pulse" />
+              ))}
+            </div>
+          ) : isError ? (
+            <ErrorState message="Could not load recent activity." />
+          ) : recentBookings.length === 0 ? (
+            <p className="text-sm text-gray-500">No recent activity.</p>
+          ) : (
+            <div className="rounded-xl border border-gray-200 overflow-hidden divide-y divide-gray-100">
+              {recentBookings.map(booking => (
+                <RecentBookingRow key={booking.id} booking={booking} />
+              ))}
+            </div>
+          )}
         </section>
       </main>
     </ClientLayout>

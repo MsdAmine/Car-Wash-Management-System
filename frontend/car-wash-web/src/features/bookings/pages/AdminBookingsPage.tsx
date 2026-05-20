@@ -18,87 +18,93 @@ import {
 } from '@/shared/components/ui/Table';
 import { Pagination } from '@/shared/components/ui/Pagination';
 import { EmptyState } from '@/shared/components/feedback/EmptyState';
+import { ErrorState } from '@/shared/components/feedback/ErrorState';
 import { AssignJobModal } from '@/features/bookings/components/AssignJobModal';
-
-// ─── Mock data ────────────────────────────────────────────────────────────────
-
-const MOCK_BOOKINGS = [
-  { id: '1', ref: 'CW-000101', client: { name: 'Alex Morgan', avatar: null }, service: 'Full Detail', vehicle: 'Toyota Camry', datetime: 'May 19, 2025 10:00', washer: 'James K.', status: 'inProgress' as const },
-  { id: '2', ref: 'CW-000103', client: { name: 'Sarah Chen', avatar: null }, service: 'Basic Wash', vehicle: 'Honda Civic', datetime: 'May 19, 2025 11:00', washer: 'Maria L.', status: 'confirmed' as const },
-  { id: '3', ref: 'CW-000105', client: { name: 'Mike Torres', avatar: null }, service: 'Express Wash', vehicle: 'BMW X5', datetime: 'May 19, 2025 11:30', washer: null, status: 'confirmed' as const },
-  { id: '4', ref: 'CW-000098', client: { name: 'Dana Wu', avatar: null }, service: 'Premium Detail', vehicle: 'Tesla Model 3', datetime: 'May 20, 2025 14:00', washer: 'James K.', status: 'confirmed' as const },
-  { id: '5', ref: 'CW-000085', client: { name: 'Alex Morgan', avatar: null }, service: 'Basic Wash', vehicle: 'Toyota Camry', datetime: 'May 12, 2025 09:00', washer: 'Maria L.', status: 'completed' as const },
-  { id: '6', ref: 'CW-000079', client: { name: 'Chris Park', avatar: null }, service: 'Full Detail', vehicle: 'Ford F-150', datetime: 'Apr 28, 2025 11:00', washer: 'James K.', status: 'cancelled' as const },
-];
+import { useAllBookings } from '@/features/admin/hooks/useAllBookings';
+import type { BookingResponse } from '../types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type BookingStatus = 'inProgress' | 'confirmed' | 'completed' | 'cancelled';
 type TabKey = 'all' | 'today' | 'upcoming' | 'inProgress' | 'completed' | 'cancelled';
-
-interface Booking {
-  id: string;
-  ref: string;
-  client: { name: string; avatar: string | null };
-  service: string;
-  vehicle: string;
-  datetime: string;
-  washer: string | null;
-  status: BookingStatus;
-}
 
 // ─── Tab config ───────────────────────────────────────────────────────────────
 
 const TABS: { key: TabKey; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'today', label: 'Today' },
-  { key: 'upcoming', label: 'Upcoming' },
+  { key: 'all',        label: 'All' },
+  { key: 'today',      label: 'Today' },
+  { key: 'upcoming',   label: 'Upcoming' },
   { key: 'inProgress', label: 'In Progress' },
-  { key: 'completed', label: 'Completed' },
-  { key: 'cancelled', label: 'Cancelled' },
+  { key: 'completed',  label: 'Completed' },
+  { key: 'cancelled',  label: 'Cancelled' },
 ];
 
 const EMPTY_COPY: Record<TabKey, { title: string; subtitle: string }> = {
-  all: { title: 'No bookings found', subtitle: 'Try adjusting your filters.' },
-  today: { title: 'No bookings today', subtitle: 'There are no bookings scheduled for today.' },
-  upcoming: { title: 'No bookings found', subtitle: 'Try adjusting your filters.' },
-  inProgress: { title: 'No active washes', subtitle: 'No bookings are currently in progress.' },
-  completed: { title: 'No completed bookings', subtitle: 'No bookings have been completed yet.' },
-  cancelled: { title: 'No cancelled bookings', subtitle: 'No bookings have been cancelled.' },
+  all:        { title: 'No bookings found',        subtitle: 'Try adjusting your filters.' },
+  today:      { title: 'No bookings today',        subtitle: 'There are no bookings scheduled for today.' },
+  upcoming:   { title: 'No upcoming bookings',     subtitle: 'Try adjusting your filters.' },
+  inProgress: { title: 'No active washes',         subtitle: 'No bookings are currently in progress.' },
+  completed:  { title: 'No completed bookings',    subtitle: 'No bookings have been completed yet.' },
+  cancelled:  { title: 'No cancelled bookings',    subtitle: 'No bookings have been cancelled.' },
 };
 
 // ─── Filter helpers ───────────────────────────────────────────────────────────
 
-function filterByTab(bookings: Booking[], tab: TabKey): Booking[] {
+function isSameDay(dateStr: string, target: Date): boolean {
+  const d = new Date(dateStr);
+  return (
+    d.getFullYear() === target.getFullYear() &&
+    d.getMonth() === target.getMonth() &&
+    d.getDate() === target.getDate()
+  );
+}
+
+function filterByTab(bookings: BookingResponse[], tab: TabKey): BookingResponse[] {
+  const today = new Date();
   switch (tab) {
     case 'all':        return bookings;
-    case 'today':      return bookings.filter(b => b.datetime.includes('May 19'));
-    case 'upcoming':   return bookings.filter(b => b.status === 'confirmed');
-    case 'inProgress': return bookings.filter(b => b.status === 'inProgress');
-    case 'completed':  return bookings.filter(b => b.status === 'completed');
-    case 'cancelled':  return bookings.filter(b => b.status === 'cancelled');
+    case 'today':      return bookings.filter((b) => isSameDay(b.appointmentDateTime, today));
+    case 'upcoming':   return bookings.filter((b) => b.status === 'PENDING' || b.status === 'CONFIRMED');
+    case 'inProgress': return bookings.filter((b) => b.status === 'IN_PROGRESS');
+    case 'completed':  return bookings.filter((b) => b.status === 'COMPLETED');
+    case 'cancelled':  return bookings.filter((b) => b.status === 'CANCELLED');
   }
 }
 
-function applySearch(bookings: Booking[], query: string): Booking[] {
+function applySearch(bookings: BookingResponse[], query: string): BookingResponse[] {
   const q = query.trim().toLowerCase();
   if (!q) return bookings;
   return bookings.filter(
-    b => b.client.name.toLowerCase().includes(q) || b.ref.toLowerCase().includes(q)
+    (b) =>
+      b.customerEmail.toLowerCase().includes(q) ||
+      b.id.toLowerCase().includes(q),
   );
+}
+
+function statusToVariant(
+  status: BookingResponse['status'],
+): 'pending' | 'confirmed' | 'inProgress' | 'completed' | 'cancelled' {
+  switch (status) {
+    case 'IN_PROGRESS': return 'inProgress';
+    case 'CONFIRMED':   return 'confirmed';
+    case 'COMPLETED':   return 'completed';
+    case 'CANCELLED':   return 'cancelled';
+    default:            return 'pending';
+  }
 }
 
 // ─── BookingRow ───────────────────────────────────────────────────────────────
 
 interface BookingRowProps {
-  booking: Booking;
+  booking: BookingResponse;
   selected: boolean;
   onToggle: () => void;
-  onOpenAssign: (data: { ref: string; service: string; datetime: string }) => void;
+  onOpenAssign: (data: { ref: string; service: string; datetime: string; bookingId: string }) => void;
 }
 
 function BookingRow({ booking, selected, onToggle, onOpenAssign }: BookingRowProps) {
-  const assignData = { ref: booking.ref, service: booking.service, datetime: booking.datetime };
+  const ref = booking.id.slice(-8).toUpperCase();
+  const datetime = new Date(booking.appointmentDateTime).toLocaleString();
+  const assignData = { ref, service: booking.washServiceName, datetime, bookingId: booking.id };
 
   return (
     <TableRow selected={selected}>
@@ -115,27 +121,25 @@ function BookingRow({ booking, selected, onToggle, onOpenAssign }: BookingRowPro
       <TableCell>
         <div className="flex items-center gap-3">
           <ImagePlaceholder label="Avatar" className="w-8 h-8 rounded-full flex-shrink-0" />
-          <span className="text-sm font-semibold text-gray-900">{booking.client.name}</span>
+          <span className="text-sm font-semibold text-gray-900">{booking.customerEmail}</span>
         </div>
       </TableCell>
 
-      <TableCell>{booking.service}</TableCell>
-      <TableCell>{booking.vehicle}</TableCell>
-      <TableCell>{booking.datetime}</TableCell>
+      <TableCell>{booking.washServiceName}</TableCell>
+      <TableCell>{booking.vehicleLicensePlate}</TableCell>
+      <TableCell>{datetime}</TableCell>
 
       <TableCell>
-        {booking.washer !== null ? (
-          <span className="text-sm text-gray-700">{booking.washer}</span>
-        ) : (
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-red-500 font-medium">Unassigned</span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-500">—</span>
+          {booking.status === 'PENDING' && (
             <Button size="sm" onClick={() => onOpenAssign(assignData)}>Assign</Button>
-          </div>
-        )}
+          )}
+        </div>
       </TableCell>
 
       <TableCell>
-        <Badge variant={booking.status} />
+        <Badge variant={statusToVariant(booking.status)} />
       </TableCell>
 
       <TableCell className="w-16 text-right">
@@ -152,30 +156,52 @@ function BookingRow({ booking, selected, onToggle, onOpenAssign }: BookingRowPro
   );
 }
 
+// ─── Skeleton rows ────────────────────────────────────────────────────────────
+
+function SkeletonRows() {
+  return (
+    <>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <tr key={i} className="border-b border-gray-100">
+          {Array.from({ length: 8 }).map((__, j) => (
+            <td key={j} className="px-4 py-3">
+              <div className="h-4 bg-gray-100 rounded animate-pulse" />
+            </td>
+          ))}
+        </tr>
+      ))}
+    </>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function AdminBookingsPage() {
-  const [activeTab, setActiveTab] = useState<TabKey>('today');
-  const [search, setSearch] = useState('');
+  const { data: bookings, isLoading, isError } = useAllBookings();
+
+  const [activeTab, setActiveTab]   = useState<TabKey>('today');
+  const [search, setSearch]         = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [assignModal, setAssignModal] = useState<{
     isOpen: boolean;
     booking: { ref: string; service: string; datetime: string } | null;
-  }>({ isOpen: false, booking: null });
+    bookingId: string | null;
+  }>({ isOpen: false, booking: null, bookingId: null });
 
-  const tabFiltered = filterByTab(MOCK_BOOKINGS, activeTab);
+  const allBookings = bookings ?? [];
+  const tabFiltered = filterByTab(allBookings, activeTab);
   const visibleBookings = applySearch(tabFiltered, search);
-  const allVisibleIds = visibleBookings.map(b => b.id);
+  const allVisibleIds = visibleBookings.map((b) => b.id);
   const allSelected =
-    allVisibleIds.length > 0 && allVisibleIds.every(id => selectedIds.has(id));
+    allVisibleIds.length > 0 && allVisibleIds.every((id) => selectedIds.has(id));
 
   function handleSelectAll() {
     setSelectedIds(allSelected ? new Set() : new Set(allVisibleIds));
   }
 
   function handleToggleRow(id: string) {
-    setSelectedIds(prev => {
+    setSelectedIds((prev) => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
@@ -187,16 +213,12 @@ export function AdminBookingsPage() {
     setCurrentPage(1);
   }
 
-  function handleOpenAssign(booking: { ref: string; service: string; datetime: string }) {
-    setAssignModal({ isOpen: true, booking });
+  function handleOpenAssign(data: { ref: string; service: string; datetime: string; bookingId: string }) {
+    setAssignModal({ isOpen: true, booking: data, bookingId: data.bookingId });
   }
 
   function handleCloseAssign() {
-    setAssignModal(prev => ({ ...prev, isOpen: false }));
-  }
-
-  function handleAssign(washerId: string) {
-    console.log('assigned', washerId);
+    setAssignModal((prev) => ({ ...prev, isOpen: false }));
   }
 
   const topBar = (
@@ -236,8 +258,8 @@ export function AdminBookingsPage() {
             <input
               type="text"
               value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search by client or booking ref"
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by email or booking ref"
               className="w-64 pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
             />
           </div>
@@ -255,11 +277,10 @@ export function AdminBookingsPage() {
 
         {/* Table card */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          {visibleBookings.length === 0 ? (
-            <EmptyState
-              title={EMPTY_COPY[activeTab].title}
-              subtitle={EMPTY_COPY[activeTab].subtitle}
-            />
+          {isError ? (
+            <div className="py-12">
+              <ErrorState message="Could not load bookings." />
+            </div>
           ) : (
             <Table>
               <TableHead>
@@ -285,15 +306,28 @@ export function AdminBookingsPage() {
                 </tr>
               </TableHead>
               <TableBody>
-                {visibleBookings.map(booking => (
-                  <BookingRow
-                    key={booking.id}
-                    booking={booking}
-                    selected={selectedIds.has(booking.id)}
-                    onToggle={() => handleToggleRow(booking.id)}
-                    onOpenAssign={handleOpenAssign}
-                  />
-                ))}
+                {isLoading ? (
+                  <SkeletonRows />
+                ) : visibleBookings.length === 0 ? (
+                  <tr>
+                    <td colSpan={8}>
+                      <EmptyState
+                        title={EMPTY_COPY[activeTab].title}
+                        subtitle={EMPTY_COPY[activeTab].subtitle}
+                      />
+                    </td>
+                  </tr>
+                ) : (
+                  visibleBookings.map((booking) => (
+                    <BookingRow
+                      key={booking.id}
+                      booking={booking}
+                      selected={selectedIds.has(booking.id)}
+                      onToggle={() => handleToggleRow(booking.id)}
+                      onOpenAssign={handleOpenAssign}
+                    />
+                  ))
+                )}
               </TableBody>
             </Table>
           )}
@@ -302,7 +336,7 @@ export function AdminBookingsPage() {
           <div className="border-t border-gray-200 px-4 py-3 bg-white">
             <Pagination
               currentPage={currentPage}
-              totalPages={3}
+              totalPages={Math.max(1, Math.ceil(visibleBookings.length / 20))}
               onPageChange={setCurrentPage}
             />
           </div>
@@ -312,8 +346,8 @@ export function AdminBookingsPage() {
       <AssignJobModal
         isOpen={assignModal.isOpen}
         onClose={handleCloseAssign}
-        onAssign={handleAssign}
         booking={assignModal.booking}
+        bookingId={assignModal.bookingId}
       />
     </>
   );

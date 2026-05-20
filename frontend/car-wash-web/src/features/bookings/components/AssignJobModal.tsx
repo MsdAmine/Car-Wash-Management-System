@@ -1,54 +1,43 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { Modal } from '@/shared/components/ui/Modal';
 import { Button } from '@/shared/components/ui/Button';
 import { ImagePlaceholder } from '@/shared/components/ui/ImagePlaceholder';
-
-const MOCK_WASHERS = [
-  { id: '1', name: 'James K.', jobsToday: 3, available: true },
-  { id: '2', name: 'Maria L.', jobsToday: 2, available: true },
-  { id: '3', name: 'Tony B.', jobsToday: 4, available: false },
-  { id: '4', name: 'Priya S.', jobsToday: 1, available: true },
-];
+import { LoadingSpinner } from '@/shared/components/feedback/LoadingSpinner';
+import { useAllEmployees } from '@/features/staff/hooks/useAllEmployees';
+import { useAssignWasher } from '@/features/admin/hooks/useAssignWasher';
 
 interface AssignJobModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAssign: (washerId: string) => void;
   booking: {
     ref: string;
     service: string;
     datetime: string;
   } | null;
+  bookingId: string | null;
 }
 
-export function AssignJobModal({ isOpen, onClose, onAssign, booking }: AssignJobModalProps) {
+export function AssignJobModal({ isOpen, onClose, booking, bookingId }: AssignJobModalProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current !== null) clearTimeout(timeoutRef.current);
-    };
-  }, []);
+  const { data: employees, isLoading: employeesLoading } = useAllEmployees();
+  const assignWasher = useAssignWasher();
 
   useEffect(() => {
     if (isOpen) {
       setSelectedId(null);
-      setIsLoading(false);
     }
   }, [isOpen]);
 
   if (!booking) return null;
 
   function handleAssign() {
-    if (!selectedId) return;
-    setIsLoading(true);
-    timeoutRef.current = setTimeout(() => {
-      onAssign(selectedId);
-      onClose();
-    }, 1000);
+    if (!selectedId || !bookingId) return;
+    assignWasher.mutate(
+      { bookingId, employeeId: selectedId },
+      { onSuccess: onClose },
+    );
   }
 
   return (
@@ -75,57 +64,66 @@ export function AssignJobModal({ isOpen, onClose, onAssign, booking }: AssignJob
       <p className="text-sm font-medium text-gray-700 mb-3">Select a washer</p>
 
       {/* Washer list */}
-      <div className="flex flex-col gap-3">
-        {MOCK_WASHERS.map(washer => {
-          const isSelected = selectedId === washer.id;
+      {employeesLoading ? (
+        <div className="py-6">
+          <LoadingSpinner />
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {(employees ?? []).map((employee) => {
+            const isAvailable = employee.status === 'ACTIVE';
+            const isSelected = selectedId === employee.id;
 
-          const rowClass = !washer.available
-            ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-60'
-            : isSelected
-              ? 'border-indigo-600 bg-indigo-50'
-              : 'border-gray-200 bg-white hover:border-gray-300';
+            const rowClass = !isAvailable
+              ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-60'
+              : isSelected
+                ? 'border-indigo-600 bg-indigo-50'
+                : 'border-gray-200 bg-white hover:border-gray-300';
 
-          return (
-            <div
-              key={washer.id}
-              role={washer.available ? 'radio' : undefined}
-              aria-checked={washer.available ? isSelected : undefined}
-              tabIndex={washer.available ? 0 : undefined}
-              className={`border-2 rounded-xl p-4 ${rowClass} ${washer.available ? 'cursor-pointer' : ''}`}
-              onClick={() => { if (washer.available) setSelectedId(washer.id); }}
-              onKeyDown={e => {
-                if (washer.available && (e.key === 'Enter' || e.key === ' ')) {
-                  e.preventDefault();
-                  setSelectedId(washer.id);
-                }
-              }}
-            >
-              <div className="flex items-center gap-4">
-                <ImagePlaceholder label="Avatar" className="w-10 h-10 rounded-full flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-gray-900">{washer.name}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{washer.jobsToday} jobs today</p>
-                </div>
-                <div>
-                  {washer.available ? (
-                    isSelected ? (
-                      <CheckCircle2 className="w-5 h-5 text-indigo-600" />
+            return (
+              <div
+                key={employee.id}
+                role={isAvailable ? 'radio' : undefined}
+                aria-checked={isAvailable ? isSelected : undefined}
+                tabIndex={isAvailable ? 0 : undefined}
+                className={`border-2 rounded-xl p-4 ${rowClass} ${isAvailable ? 'cursor-pointer' : ''}`}
+                onClick={() => { if (isAvailable) setSelectedId(employee.id); }}
+                onKeyDown={(e) => {
+                  if (isAvailable && (e.key === 'Enter' || e.key === ' ')) {
+                    e.preventDefault();
+                    setSelectedId(employee.id);
+                  }
+                }}
+              >
+                <div className="flex items-center gap-4">
+                  <ImagePlaceholder label="Avatar" className="w-10 h-10 rounded-full flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-gray-900">
+                      {employee.firstName} {employee.lastName}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">{employee.position}</p>
+                  </div>
+                  <div>
+                    {isAvailable ? (
+                      isSelected ? (
+                        <CheckCircle2 className="w-5 h-5 text-indigo-600" />
+                      ) : (
+                        <span className="bg-green-50 text-green-700 text-xs font-medium px-2 py-0.5 rounded-full">
+                          Available
+                        </span>
+                      )
                     ) : (
-                      <span className="bg-green-50 text-green-700 text-xs font-medium px-2 py-0.5 rounded-full">
-                        Available
+                      <span className="bg-amber-50 text-amber-700 text-xs font-medium px-2 py-0.5 rounded-full">
+                        {employee.status === 'PENDING' ? 'Pending' : 'Inactive'}
                       </span>
-                    )
-                  ) : (
-                    <span className="bg-amber-50 text-amber-700 text-xs font-medium px-2 py-0.5 rounded-full">
-                      Busy
-                    </span>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Footer */}
       <div className="mt-6 flex justify-end gap-3">
@@ -135,7 +133,7 @@ export function AssignJobModal({ isOpen, onClose, onAssign, booking }: AssignJob
         <Button
           size="sm"
           disabled={selectedId === null}
-          isLoading={isLoading}
+          isLoading={assignWasher.isPending}
           onClick={handleAssign}
         >
           Assign washer

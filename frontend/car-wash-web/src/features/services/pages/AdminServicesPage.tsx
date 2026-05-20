@@ -6,30 +6,38 @@ import { Input } from '@/shared/components/ui/Input';
 import { Textarea } from '@/shared/components/ui/Textarea';
 import { ImagePlaceholder } from '@/shared/components/ui/ImagePlaceholder';
 import { ToggleSwitch } from '@/shared/components/ui/ToggleSwitch';
-
-// ─── Mock data ───────────────────────────────────────────────────────────────
-
-const MOCK_SERVICES = [
-  { id: '1', name: 'Basic Wash', description: 'Exterior hand wash and dry.', duration: 30, price: 15, isActive: true },
-  { id: '2', name: 'Full Detail', description: 'Interior + exterior full detail.', duration: 90, price: 65, isActive: true },
-  { id: '3', name: 'Express Wash', description: 'Quick exterior rinse and dry.', duration: 20, price: 10, isActive: true },
-  { id: '4', name: 'Premium Detail', description: 'Full detail + paint protection.', duration: 120, price: 95, isActive: false },
-];
+import { ErrorState } from '@/shared/components/feedback/ErrorState';
+import { useAllServices } from '../hooks/useAllServices';
+import { useCreateService } from '../hooks/useCreateService';
+import { useUpdateService } from '../hooks/useUpdateService';
+import { useDeactivateService } from '../hooks/useDeactivateService';
+import type { WashServiceResponse, WashServiceRequest } from '../types';
 
 // ─── Slide-over panel ─────────────────────────────────────────────────────────
 
 interface ServicePanelProps {
   isOpen: boolean;
   onClose: () => void;
-  service: (typeof MOCK_SERVICES)[0] | null;
+  service: WashServiceResponse | null;
 }
 
 function ServicePanel({ isOpen, onClose, service }: ServicePanelProps) {
-  const [panelActive, setPanelActive] = useState(service?.isActive ?? true);
+  const createService  = useCreateService();
+  const updateService  = useUpdateService();
+
+  const [name, setName]               = useState('');
+  const [description, setDescription] = useState('');
+  const [duration, setDuration]       = useState('');
+  const [price, setPrice]             = useState('');
+  const [active, setActive]           = useState(true);
 
   useEffect(() => {
-    setPanelActive(service?.isActive ?? true);
-  }, [service]);
+    setName(service?.name ?? '');
+    setDescription(service?.description ?? '');
+    setDuration(service ? String(service.durationMinutes) : '');
+    setPrice(service ? String(service.price) : '');
+    setActive(service?.active ?? true);
+  }, [service, isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -39,6 +47,24 @@ function ServicePanel({ isOpen, onClose, service }: ServicePanelProps) {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
+
+  const isSaving = createService.isPending || updateService.isPending;
+
+  function handleSave() {
+    const body: WashServiceRequest = {
+      name: name.trim(),
+      description: description.trim(),
+      price: parseFloat(price),
+      durationMinutes: parseInt(duration, 10),
+      active,
+    };
+
+    if (service) {
+      updateService.mutate({ id: service.id, data: body }, { onSuccess: onClose });
+    } else {
+      createService.mutate(body, { onSuccess: onClose });
+    }
+  }
 
   return (
     <>
@@ -80,37 +106,37 @@ function ServicePanel({ isOpen, onClose, service }: ServicePanelProps) {
           <Input
             label="Service name"
             required
-            defaultValue={service?.name ?? ''}
-            onChange={(e) => console.log('name:', e.target.value)}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
           />
 
           <Textarea
             label="Description"
             rows={3}
-            defaultValue={service?.description ?? ''}
-            onChange={(e) => console.log('description:', e.target.value)}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
           />
 
           <div className="grid grid-cols-2 gap-3">
             <Input
               label="Duration (min)"
               type="number"
-              defaultValue={service?.duration ?? ''}
-              onChange={(e) => console.log('duration:', e.target.value)}
+              value={duration}
+              onChange={(e) => setDuration(e.target.value)}
             />
             <Input
               label="Price ($)"
               type="number"
-              defaultValue={service?.price ?? ''}
-              onChange={(e) => console.log('price:', e.target.value)}
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
             />
           </div>
 
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-gray-700">Active</span>
             <ToggleSwitch
-              checked={panelActive}
-              onChange={() => setPanelActive((v) => !v)}
+              checked={active}
+              onChange={() => setActive((v) => !v)}
               label="Toggle service active state"
             />
           </div>
@@ -119,7 +145,7 @@ function ServicePanel({ isOpen, onClose, service }: ServicePanelProps) {
         {/* Footer */}
         <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3 flex-shrink-0">
           <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
-          <Button variant="primary" size="sm" onClick={() => console.log('save service')}>
+          <Button variant="primary" size="sm" isLoading={isSaving} onClick={handleSave}>
             Save service
           </Button>
         </div>
@@ -128,31 +154,46 @@ function ServicePanel({ isOpen, onClose, service }: ServicePanelProps) {
   );
 }
 
+// ─── Skeleton cards ───────────────────────────────────────────────────────────
+
+function SkeletonCards() {
+  return (
+    <>
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div key={i} className="bg-white rounded-xl border border-gray-200 overflow-hidden animate-pulse">
+          <div className="w-full aspect-video bg-gray-100" />
+          <div className="p-4 flex flex-col gap-2">
+            <div className="h-4 bg-gray-100 rounded w-2/3" />
+            <div className="h-3 bg-gray-100 rounded w-full" />
+            <div className="h-3 bg-gray-100 rounded w-3/4" />
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function AdminServicesPage() {
-  const [panelOpen, setPanelOpen] = useState(false);
-  const [editingService, setEditingService] = useState<(typeof MOCK_SERVICES)[0] | null>(null);
-  const [activeStates, setActiveStates] = useState<Record<string, boolean>>(
-    () => Object.fromEntries(MOCK_SERVICES.map((s) => [s.id, s.isActive]))
-  );
+  const { data: services, isLoading, isError } = useAllServices();
+  const deactivateService = useDeactivateService();
+
+  const [panelOpen, setPanelOpen]             = useState(false);
+  const [editingService, setEditingService]   = useState<WashServiceResponse | null>(null);
 
   function openAdd() {
     setEditingService(null);
     setPanelOpen(true);
   }
 
-  function openEdit(service: (typeof MOCK_SERVICES)[0]) {
+  function openEdit(service: WashServiceResponse) {
     setEditingService(service);
     setPanelOpen(true);
   }
 
   function closePanel() {
     setPanelOpen(false);
-  }
-
-  function toggleActive(id: string) {
-    setActiveStates((prev) => ({ ...prev, [id]: !prev[id] }));
   }
 
   const topBar = (
@@ -162,31 +203,46 @@ export function AdminServicesPage() {
     </>
   );
 
+  if (isError) {
+    return (
+      <AdminLayout topBar={topBar}>
+        <div className="flex justify-center py-20">
+          <ErrorState message="Could not load services." />
+        </div>
+      </AdminLayout>
+    );
+  }
+
   return (
     <AdminLayout topBar={topBar}>
       <div className="grid grid-cols-3 gap-4">
-        {MOCK_SERVICES.map((service) => {
-          const isActive = activeStates[service.id];
-          return (
+        {isLoading ? (
+          <SkeletonCards />
+        ) : (
+          (services ?? []).map((service) => (
             <div
               key={service.id}
               className={`bg-white rounded-xl border border-gray-200 overflow-hidden transition-opacity ${
-                isActive ? '' : 'opacity-60'
+                service.active ? '' : 'opacity-60'
               }`}
             >
               <ImagePlaceholder label={service.name} aspectRatio="video" className="w-full" />
               <div className="p-4">
                 <div className="flex justify-between items-start">
                   <span className="text-base font-semibold text-gray-900">{service.name}</span>
+                  {/* TODO: no reactivate endpoint — toggle can only go active→inactive */}
                   <ToggleSwitch
-                    checked={isActive}
-                    onChange={() => toggleActive(service.id)}
+                    checked={service.active}
+                    onChange={() => {
+                      if (service.active) deactivateService.mutate(service.id);
+                    }}
+                    label={service.active ? 'Deactivate service' : 'Service is inactive (cannot reactivate)'}
                   />
                 </div>
                 <p className="text-sm text-gray-500 mt-1 line-clamp-2">{service.description}</p>
                 <div className="flex items-center gap-2 mt-3">
                   <span className="bg-gray-100 text-gray-600 text-xs px-2.5 py-1 rounded-full">
-                    {service.duration} min
+                    {service.durationMinutes} min
                   </span>
                   <span className="text-base font-bold text-gray-900 ml-auto">
                     ${service.price}
@@ -202,18 +258,20 @@ export function AdminServicesPage() {
                 </Button>
               </div>
             </div>
-          );
-        })}
+          ))
+        )}
 
         {/* Ghost add card */}
-        <button
-          type="button"
-          onClick={openAdd}
-          className="bg-white rounded-xl border-2 border-dashed border-gray-300 aspect-[4/3] flex flex-col items-center justify-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 transition-all"
-        >
-          <Plus className="w-8 h-8 text-gray-400" />
-          <span className="text-sm text-gray-500 mt-2">Add service</span>
-        </button>
+        {!isLoading && (
+          <button
+            type="button"
+            onClick={openAdd}
+            className="bg-white rounded-xl border-2 border-dashed border-gray-300 aspect-[4/3] flex flex-col items-center justify-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 transition-all"
+          >
+            <Plus className="w-8 h-8 text-gray-400" />
+            <span className="text-sm text-gray-500 mt-2">Add service</span>
+          </button>
+        )}
       </div>
 
       <ServicePanel isOpen={panelOpen} onClose={closePanel} service={editingService} />

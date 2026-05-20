@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { AxiosError } from 'axios';
 import { Plus } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
@@ -7,29 +8,57 @@ import { Modal } from '@/shared/components/ui/Modal';
 import { ConfirmDialog } from '@/shared/components/ui/ConfirmDialog';
 import { ImagePlaceholder } from '@/shared/components/ui/ImagePlaceholder';
 import { EmptyState } from '@/shared/components/feedback/EmptyState';
+import { ErrorState } from '@/shared/components/feedback/ErrorState';
 import { ClientLayout } from '@/shared/components/layout/ClientLayout';
+import type { VehicleResponse, VehicleRequest } from '../types';
+import { useMyVehicles } from '../hooks/useMyVehicles';
+import { useCreateVehicle } from '../hooks/useCreateVehicle';
+import { useUpdateVehicle } from '../hooks/useUpdateVehicle';
+import { useDeleteVehicle } from '../hooks/useDeleteVehicle';
 
-// ─── Mock data (not exported) ──────────────────────────────────────────────────
+// ─── Helpers ───────────────────────────────────────────────────────────────────
 
-const MOCK_VEHICLES = [
-  { id: '1', make: 'Toyota', model: 'Camry',  year: 2019, plate: 'ABC-1234', type: 'Sedan',  colour: 'Silver' },
-  { id: '2', make: 'Ford',   model: 'F-150',  year: 2021, plate: 'XYZ-9876', type: 'Truck',  colour: 'Black' },
-  { id: '3', make: 'Honda',  model: 'Civic',  year: 2022, plate: 'DEF-5678', type: 'Sedan',  colour: 'White' },
-];
+function extractMessage(error: unknown): string {
+  const err = error as AxiosError<{ message?: string }>;
+  return err?.response?.data?.message ?? 'Could not save vehicle.';
+}
 
-// ─── Types ─────────────────────────────────────────────────────────────────────
+// ─── SkeletonCard ──────────────────────────────────────────────────────────────
 
-type MockVehicle = (typeof MOCK_VEHICLES)[0];
+function SkeletonCard() {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden animate-pulse">
+      <div className="bg-gray-100 h-32 w-full" />
+      <div className="p-4 space-y-2">
+        <div className="bg-gray-100 h-4 rounded w-3/4" />
+        <div className="bg-gray-100 h-3 rounded w-1/2" />
+      </div>
+    </div>
+  );
+}
 
 // ─── VehicleModal ──────────────────────────────────────────────────────────────
 
 interface VehicleModalProps {
   isOpen: boolean;
   onClose: () => void;
-  vehicle: MockVehicle | null;
+  vehicle: VehicleResponse | null;
+  onSave: (data: VehicleRequest) => void;
+  isSaving: boolean;
+  saveError?: string | null;
 }
 
-function VehicleModal({ isOpen, onClose, vehicle }: VehicleModalProps) {
+function VehicleModal({ isOpen, onClose, vehicle, onSave, isSaving, saveError }: VehicleModalProps) {
+  const [brand, setBrand] = useState(vehicle?.brand ?? '');
+  const [model, setModel] = useState(vehicle?.model ?? '');
+  const [licensePlate, setLicensePlate] = useState(vehicle?.licensePlate ?? '');
+  const [type, setType] = useState<VehicleResponse['type'] | ''>(vehicle?.type ?? '');
+
+  function handleSave() {
+    if (!brand || !model || !licensePlate || !type) return;
+    onSave({ brand, model, licensePlate, type });
+  }
+
   return (
     <Modal
       isOpen={isOpen}
@@ -41,29 +70,18 @@ function VehicleModal({ isOpen, onClose, vehicle }: VehicleModalProps) {
       <form onSubmit={e => e.preventDefault()}>
         <div className="grid grid-cols-2 gap-3">
           <Input
-            label="Make"
+            label="Brand"
             required
             placeholder="e.g. Toyota"
-            defaultValue={vehicle?.make ?? ''}
+            value={brand}
+            onChange={e => setBrand(e.target.value)}
           />
           <Input
             label="Model"
             required
             placeholder="e.g. Camry"
-            defaultValue={vehicle?.model ?? ''}
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-3 mt-3">
-          <Input
-            label="Year"
-            type="number"
-            placeholder="e.g. 2022"
-            defaultValue={vehicle?.year ?? ''}
-          />
-          <Input
-            label="Colour"
-            placeholder="e.g. Silver"
-            defaultValue={vehicle?.colour ?? ''}
+            value={model}
+            onChange={e => setModel(e.target.value)}
           />
         </div>
         <div className="mt-3">
@@ -71,24 +89,29 @@ function VehicleModal({ isOpen, onClose, vehicle }: VehicleModalProps) {
             label="Plate number"
             required
             placeholder="e.g. ABC-1234"
-            defaultValue={vehicle?.plate ?? ''}
+            value={licensePlate}
+            onChange={e => setLicensePlate(e.target.value)}
           />
         </div>
         <div className="mt-3">
           <Select
             label="Vehicle type"
             required
-            defaultValue={vehicle?.type ?? ''}
+            value={type}
+            onChange={e => setType(e.target.value as VehicleResponse['type'])}
           >
             <option value="">Select type</option>
-            <option value="Sedan">Sedan</option>
+            <option value="SEDAN">Sedan</option>
             <option value="SUV">SUV</option>
-            <option value="Truck">Truck</option>
-            <option value="Hatchback">Hatchback</option>
-            <option value="Van">Van</option>
-            <option value="Other">Other</option>
+            <option value="TRUCK">Truck</option>
+            <option value="VAN">Van</option>
+            <option value="MOTORCYCLE">Motorcycle</option>
+            <option value="COUPE">Coupe</option>
           </Select>
         </div>
+        {saveError && (
+          <p className="text-sm text-red-600 mt-2">{saveError}</p>
+        )}
         <div className="flex justify-end gap-3 mt-6">
           <Button variant="ghost" size="sm" type="button" onClick={onClose}>
             Cancel
@@ -97,7 +120,8 @@ function VehicleModal({ isOpen, onClose, vehicle }: VehicleModalProps) {
             variant="primary"
             size="sm"
             type="button"
-            onClick={() => console.log('save vehicle')}
+            isLoading={isSaving}
+            onClick={handleSave}
           >
             Save vehicle
           </Button>
@@ -110,8 +134,8 @@ function VehicleModal({ isOpen, onClose, vehicle }: VehicleModalProps) {
 // ─── VehicleCard ──────────────────────────────────────────────────────────────
 
 interface VehicleCardProps {
-  vehicle: MockVehicle;
-  onEdit: (vehicle: MockVehicle) => void;
+  vehicle: VehicleResponse;
+  onEdit: (vehicle: VehicleResponse) => void;
   onDelete: (id: string) => void;
 }
 
@@ -122,16 +146,13 @@ function VehicleCard({ vehicle, onEdit, onDelete }: VehicleCardProps) {
       <div className="p-4">
         <div className="flex justify-between items-start">
           <p className="text-base font-semibold text-gray-900">
-            {vehicle.make} {vehicle.model}
+            {vehicle.brand} {vehicle.model}
           </p>
           <span className="bg-gray-100 text-gray-600 text-xs px-2.5 py-1 rounded-full">
             {vehicle.type}
           </span>
         </div>
-        <p className="text-sm text-gray-500 mt-1">
-          {vehicle.year} · {vehicle.colour}
-        </p>
-        <p className="font-mono text-sm text-gray-700 mt-1">{vehicle.plate}</p>
+        <p className="font-mono text-sm text-gray-700 mt-1">{vehicle.licensePlate}</p>
         <div className="flex gap-2 mt-4">
           <Button variant="ghost" size="sm" onClick={() => onEdit(vehicle)}>
             Edit
@@ -166,23 +187,93 @@ function AddVehicleGhostCard({ onClick }: AddVehicleGhostCardProps) {
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
+interface ModalState {
+  isOpen: boolean;
+  vehicle: VehicleResponse | null;
+}
+
 export function ClientVehiclesPage() {
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingVehicle, setEditingVehicle] = useState<MockVehicle | null>(null);
+  const [modalState, setModalState] = useState<ModalState>({ isOpen: false, vehicle: null });
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  const { data: vehicles, isLoading, isError } = useMyVehicles();
+  const createVehicle = useCreateVehicle();
+  const updateVehicle = useUpdateVehicle();
+  const deleteVehicle = useDeleteVehicle();
+
+  const isSaving = createVehicle.isPending || updateVehicle.isPending;
+  const rawSaveError = createVehicle.error ?? updateVehicle.error;
+  const saveError = rawSaveError ? extractMessage(rawSaveError) : null;
+
   function openAddModal() {
-    setEditingVehicle(null);
-    setModalOpen(true);
+    setModalState({ isOpen: true, vehicle: null });
   }
 
-  function openEditModal(vehicle: MockVehicle) {
-    setEditingVehicle(vehicle);
-    setModalOpen(true);
+  function openEditModal(vehicle: VehicleResponse) {
+    setModalState({ isOpen: true, vehicle });
   }
 
   function closeModal() {
-    setModalOpen(false);
+    setModalState({ isOpen: false, vehicle: null });
+  }
+
+  function handleSave(data: VehicleRequest) {
+    if (modalState.vehicle) {
+      updateVehicle.mutate(
+        { id: modalState.vehicle.id, data },
+        { onSuccess: () => setModalState({ isOpen: false, vehicle: null }) },
+      );
+    } else {
+      createVehicle.mutate(data, {
+        onSuccess: () => setModalState({ isOpen: false, vehicle: null }),
+      });
+    }
+  }
+
+  function renderContent() {
+    if (isLoading) {
+      return (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+      );
+    }
+
+    if (isError) {
+      return (
+        <div className="py-16 flex justify-center">
+          <ErrorState message="Could not load your vehicles." />
+        </div>
+      );
+    }
+
+    if (!vehicles || vehicles.length === 0) {
+      return (
+        <div className="py-16">
+          <EmptyState
+            title="No vehicles yet"
+            subtitle="Add your first vehicle to start booking."
+            action={{ label: '+ Add vehicle', onClick: openAddModal }}
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {vehicles.map(vehicle => (
+          <VehicleCard
+            key={vehicle.id}
+            vehicle={vehicle}
+            onEdit={openEditModal}
+            onDelete={id => setDeletingId(id)}
+          />
+        ))}
+        <AddVehicleGhostCard onClick={openAddModal} />
+      </div>
+    );
   }
 
   return (
@@ -195,46 +286,32 @@ export function ClientVehiclesPage() {
           </Button>
         </div>
 
-        {MOCK_VEHICLES.length === 0 ? (
-          <div className="py-16">
-            <EmptyState
-              title="No vehicles yet"
-              subtitle="Add your first vehicle to start booking."
-              action={{ label: '+ Add vehicle', onClick: openAddModal }}
-            />
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {MOCK_VEHICLES.map(vehicle => (
-              <VehicleCard
-                key={vehicle.id}
-                vehicle={vehicle}
-                onEdit={openEditModal}
-                onDelete={id => setDeletingId(id)}
-              />
-            ))}
-            <AddVehicleGhostCard onClick={openAddModal} />
-          </div>
-        )}
+        {renderContent()}
       </main>
 
       <VehicleModal
-        isOpen={modalOpen}
+        key={modalState.vehicle?.id ?? 'new'}
+        isOpen={modalState.isOpen}
         onClose={closeModal}
-        vehicle={editingVehicle}
+        vehicle={modalState.vehicle}
+        onSave={handleSave}
+        isSaving={isSaving}
+        saveError={saveError}
       />
 
       <ConfirmDialog
         isOpen={deletingId !== null}
         onClose={() => setDeletingId(null)}
         onConfirm={() => {
-          console.log('delete', deletingId);
-          setDeletingId(null);
+          deleteVehicle.mutate(deletingId!, {
+            onSuccess: () => setDeletingId(null),
+          });
         }}
         title="Delete vehicle"
         message="This vehicle will be removed. Bookings that used this vehicle will not be affected."
         confirmLabel="Delete vehicle"
         variant="danger"
+        isLoading={deleteVehicle.isPending}
       />
     </ClientLayout>
   );

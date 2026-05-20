@@ -17,6 +17,11 @@ export interface User {
   role: UserRole;
 }
 
+interface StoredAuthSession {
+  user: User;
+  token: string;
+}
+
 interface AuthContextValue {
   user: User | null;
   token: string | null;
@@ -26,38 +31,62 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+const AUTH_STORAGE_KEY = 'washflow.auth';
+
+function readStoredAuthSession(): StoredAuthSession | null {
+  try {
+    const raw = window.localStorage.getItem(AUTH_STORAGE_KEY);
+    if (!raw) return null;
+
+    const session = JSON.parse(raw) as Partial<StoredAuthSession>;
+    if (!session.token || !session.user?.email || !session.user.role) {
+      window.localStorage.removeItem(AUTH_STORAGE_KEY);
+      return null;
+    }
+
+    setAuthToken(session.token);
+    return session as StoredAuthSession;
+  } catch {
+    window.localStorage.removeItem(AUTH_STORAGE_KEY);
+    return null;
+  }
+}
 
 interface AuthProviderProps {
   children: ReactNode;
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  const [session, setSession] = useState<StoredAuthSession | null>(readStoredAuthSession);
 
   function login(authResponse: AuthResponse): void {
+    const nextSession: StoredAuthSession = {
+      token: authResponse.token,
+      user: {
+        email: authResponse.email,
+        firstName: authResponse.firstName,
+        lastName: authResponse.lastName,
+        role: authResponse.role as UserRole,
+      },
+    };
+
     setAuthToken(authResponse.token);
-    setUser({
-      email: authResponse.email,
-      firstName: authResponse.firstName,
-      lastName: authResponse.lastName,
-      role: authResponse.role as UserRole,
-    });
-    setToken(authResponse.token);
+    window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextSession));
+    setSession(nextSession);
   }
 
   function logout(): void {
-    setToken(null);
-    setUser(null);
     setAuthToken(null);
+    window.localStorage.removeItem(AUTH_STORAGE_KEY);
+    setSession(null);
   }
 
   return (
     <AuthContext.Provider
       value={{
-        user,
-        token,
-        isAuthenticated: !!token,
+        user: session?.user ?? null,
+        token: session?.token ?? null,
+        isAuthenticated: !!session?.token,
         login,
         logout,
       }}
