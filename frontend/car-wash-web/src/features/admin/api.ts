@@ -1,5 +1,14 @@
 import api from '@/shared/lib/axios'
-import type { AdminDashboardResponse, AssignEmployeeRequest, BookingAssignmentResponse, RevenueDataPoint } from './types'
+import type {
+  AdminDashboardResponse,
+  AssignEmployeeRequest,
+  BookingAssignmentResponse,
+  BusinessSettingsRequest,
+  BusinessSettingsResponse,
+  OperatingHoursResponse,
+  RevenueDataPoint,
+  UpdateOperatingHoursRequest,
+} from './types'
 import type { BookingResponse } from '@/features/bookings/types'
 import type { EmployeeResponse } from '@/features/staff/types'
 
@@ -56,5 +65,29 @@ export async function fetchAvailableEmployees(
   const { data } = await api.get<EmployeeResponse[]>('/employees/available', {
     params: { date, time, duration },
   })
+  return data
+}
+
+export async function fetchBusinessSettings(): Promise<BusinessSettingsResponse> {
+  const { data } = await api.get<BusinessSettingsResponse>('/settings/business')
+  return data
+}
+
+export async function updateBusinessSettings(
+  body: BusinessSettingsRequest,
+): Promise<BusinessSettingsResponse> {
+  const { data } = await api.put<BusinessSettingsResponse>('/settings/business', body)
+  return data
+}
+
+export async function fetchOperatingHours(): Promise<OperatingHoursResponse[]> {
+  const { data } = await api.get<OperatingHoursResponse[]>('/settings/hours')
+  return data
+}
+
+export async function updateOperatingHours(
+  body: UpdateOperatingHoursRequest,
+): Promise<OperatingHoursResponse[]> {
+  const { data } = await api.put<OperatingHoursResponse[]>('/settings/hours', body)
   return data
 }

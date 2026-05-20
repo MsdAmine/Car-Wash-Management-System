@@ -33,3 +33,39 @@ export interface BookingAssignmentResponse {
   assignedByEmail: string
   assignedAt: string
 }
+
+export interface BusinessSettingsResponse {
+  businessName: string
+  phone: string
+  address: string
+  city: string
+  cancellationHours: number
+  updatedAt: string
+}
+
+export interface BusinessSettingsRequest {
+  businessName: string
+  phone: string
+  address: string
+  city: string
+  cancellationHours: number
+}
+
+export interface OperatingHoursResponse {
+  id: number
+  dayOfWeek: string
+  openTime: string
+  closeTime: string
+  isOpen: boolean
+}
+
+export interface OperatingHoursDayRequest {
+  dayOfWeek: string
+  openTime: string
+  closeTime: string
+  isOpen: boolean
+}
+
+export interface UpdateOperatingHoursRequest {
+  days: OperatingHoursDayRequest[]
+}
