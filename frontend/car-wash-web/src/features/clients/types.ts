@@ -1,5 +1,8 @@
-export interface ClientSummary {
-  id: string
+export interface CustomerResponse {
+  id: number
   email: string
-  name: string
+  firstName: string
+  lastName: string
+  phone: string
+  role: string
 }

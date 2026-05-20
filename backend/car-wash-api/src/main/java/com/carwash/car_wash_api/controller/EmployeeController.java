@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
+
 @RestController
 @RequestMapping("/api/v1/employees")
 @RequiredArgsConstructor
@@ -183,5 +184,15 @@ public class EmployeeController {
     public ResponseEntity<Void> deactivateEmployee(@PathVariable UUID id) {
         employeeService.deactivateEmployee(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // ── GET /api/v1/employees/available ───────────────────────────────────────
+
+    @GetMapping("/available")
+    public ResponseEntity<List<EmployeeResponse>> getAvailableEmployees(
+            @RequestParam String date,
+            @RequestParam String time,
+            @RequestParam int duration) {
+        return ResponseEntity.ok(employeeService.getAvailableEmployees(date, time, duration));
     }
 }

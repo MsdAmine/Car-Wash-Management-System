@@ -3,8 +3,8 @@ import { CheckCircle2 } from 'lucide-react';
 import { Modal } from '@/shared/components/ui/Modal';
 import { Button } from '@/shared/components/ui/Button';
 import { ImagePlaceholder } from '@/shared/components/ui/ImagePlaceholder';
-import { LoadingSpinner } from '@/shared/components/feedback/LoadingSpinner';
-import { useAllEmployees } from '@/features/staff/hooks/useAllEmployees';
+import { ErrorState } from '@/shared/components/feedback/ErrorState';
+import { useAvailableEmployees } from '@/features/admin/hooks/useAvailableEmployees';
 import { useAssignWasher } from '@/features/admin/hooks/useAssignWasher';
 
 interface AssignJobModalProps {
@@ -14,14 +14,31 @@ interface AssignJobModalProps {
     ref: string;
     service: string;
     datetime: string;
+    appointmentDateTime: string;
+    durationMinutes: number;
   } | null;
   bookingId: string | null;
+}
+
+function parseDateTime(iso: string): { date: string; time: string } {
+  const d = new Date(iso);
+  const date = d.toISOString().slice(0, 10);
+  const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return { date, time };
 }
 
 export function AssignJobModal({ isOpen, onClose, booking, bookingId }: AssignJobModalProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const { data: employees, isLoading: employeesLoading } = useAllEmployees();
+  const parsed = booking ? parseDateTime(booking.appointmentDateTime) : { date: '', time: '' };
+  const duration = booking?.durationMinutes ?? 0;
+
+  const {
+    data: employees,
+    isLoading: employeesLoading,
+    isError: employeesError,
+  } = useAvailableEmployees(parsed.date, parsed.time, duration, isOpen);
+
   const assignWasher = useAssignWasher();
 
   useEffect(() => {
@@ -65,31 +82,37 @@ export function AssignJobModal({ isOpen, onClose, booking, bookingId }: AssignJo
 
       {/* Washer list */}
       {employeesLoading ? (
-        <div className="py-6">
-          <LoadingSpinner />
+        <div className="flex flex-col gap-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse" />
+          ))}
         </div>
+      ) : employeesError ? (
+        <div className="py-6">
+          <ErrorState message="Could not load available washers." />
+        </div>
+      ) : !employees || employees.length === 0 ? (
+        <p className="text-sm text-gray-500 text-center py-4">
+          No washers available for this time slot.
+        </p>
       ) : (
         <div className="flex flex-col gap-3">
-          {(employees ?? []).map((employee) => {
-            const isAvailable = employee.status === 'ACTIVE';
+          {employees.map((employee) => {
             const isSelected = selectedId === employee.id;
-
-            const rowClass = !isAvailable
-              ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-60'
-              : isSelected
-                ? 'border-indigo-600 bg-indigo-50'
-                : 'border-gray-200 bg-white hover:border-gray-300';
-
             return (
               <div
                 key={employee.id}
-                role={isAvailable ? 'radio' : undefined}
-                aria-checked={isAvailable ? isSelected : undefined}
-                tabIndex={isAvailable ? 0 : undefined}
-                className={`border-2 rounded-xl p-4 ${rowClass} ${isAvailable ? 'cursor-pointer' : ''}`}
-                onClick={() => { if (isAvailable) setSelectedId(employee.id); }}
+                role="radio"
+                aria-checked={isSelected}
+                tabIndex={0}
+                className={`border-2 rounded-xl p-4 cursor-pointer ${
+                  isSelected
+                    ? 'border-indigo-600 bg-indigo-50'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}
+                onClick={() => setSelectedId(employee.id)}
                 onKeyDown={(e) => {
-                  if (isAvailable && (e.key === 'Enter' || e.key === ' ')) {
+                  if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
                     setSelectedId(employee.id);
                   }
@@ -104,17 +127,11 @@ export function AssignJobModal({ isOpen, onClose, booking, bookingId }: AssignJo
                     <p className="text-xs text-gray-500 mt-0.5">{employee.position}</p>
                   </div>
                   <div>
-                    {isAvailable ? (
-                      isSelected ? (
-                        <CheckCircle2 className="w-5 h-5 text-indigo-600" />
-                      ) : (
-                        <span className="bg-green-50 text-green-700 text-xs font-medium px-2 py-0.5 rounded-full">
-                          Available
-                        </span>
-                      )
+                    {isSelected ? (
+                      <CheckCircle2 className="w-5 h-5 text-indigo-600" />
                     ) : (
-                      <span className="bg-amber-50 text-amber-700 text-xs font-medium px-2 py-0.5 rounded-full">
-                        {employee.status === 'PENDING' ? 'Pending' : 'Inactive'}
+                      <span className="bg-green-50 text-green-700 text-xs font-medium px-2 py-0.5 rounded-full">
+                        Available
                       </span>
                     )}
                   </div>

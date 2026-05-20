@@ -91,10 +91,18 @@ public class SecurityConfig {
                                                 .requestMatchers(HttpMethod.GET, "/api/v1/employees/*/bookings").hasAnyRole("ADMIN", "EMPLOYEE")
                                                 .requestMatchers("/api/v1/employees/**").hasRole("ADMIN")
 
+                                                // Customer list: admin only
+                                                .requestMatchers("/api/v1/customers/**").hasRole("ADMIN")
+
                                                 // Dashboard endpoints: each role sees only its own summary
                                                 .requestMatchers(HttpMethod.GET, "/api/v1/dashboard/admin").hasRole("ADMIN")
                                                 .requestMatchers(HttpMethod.GET, "/api/v1/dashboard/customer").hasRole("CUSTOMER")
                                                 .requestMatchers(HttpMethod.GET, "/api/v1/dashboard/employee").hasRole("EMPLOYEE")
+                                                .requestMatchers(HttpMethod.GET, "/api/v1/dashboard/revenue").hasRole("ADMIN")
+
+                                                // Settings endpoints: reads for admin/employee, writes for admin only
+                                                .requestMatchers(HttpMethod.GET, "/api/v1/settings/**").hasAnyRole("ADMIN", "EMPLOYEE")
+                                                .requestMatchers(HttpMethod.PUT, "/api/v1/settings/**").hasRole("ADMIN")
 
                                                 // Wash service management: write operations are admin-only, reads are public
                                                 .requestMatchers(HttpMethod.GET, "/api/v1/services/**").permitAll()

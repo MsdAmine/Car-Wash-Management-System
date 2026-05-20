@@ -1,6 +1,7 @@
-// TODO: no dedicated clients endpoint exists in the backend.
-// Derive from bookings or request a new endpoint.
-// Stub only.
-export async function fetchAllClients(): Promise<never[]> {
-  return []
+import api from '@/shared/lib/axios'
+import type { CustomerResponse } from './types'
+
+export async function fetchAllCustomers(): Promise<CustomerResponse[]> {
+  const { data } = await api.get<CustomerResponse[]>('/customers')
+  return data
 }

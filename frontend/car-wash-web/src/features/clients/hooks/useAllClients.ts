@@ -1,6 +1,14 @@
-// TODO: no dedicated clients endpoint exists in the backend.
-// Derive from bookings or request a new endpoint.
-// Stub only — returns an empty array.
+import { useQuery } from '@tanstack/react-query'
+import { fetchAllCustomers } from '../api'
+
+export const CLIENT_KEYS = {
+  all: ['clients'] as const,
+  list: () => [...CLIENT_KEYS.all, 'list'] as const,
+}
+
 export function useAllClients() {
-  return { data: [] as never[], isLoading: false, isError: false }
+  return useQuery({
+    queryKey: CLIENT_KEYS.list(),
+    queryFn: fetchAllCustomers,
+  })
 }

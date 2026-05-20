@@ -3,6 +3,7 @@ package com.carwash.car_wash_api.controller;
 import com.carwash.car_wash_api.dto.response.AdminDashboardResponse;
 import com.carwash.car_wash_api.dto.response.CustomerDashboardResponse;
 import com.carwash.car_wash_api.dto.response.EmployeeDashboardResponse;
+import com.carwash.car_wash_api.dto.response.RevenueDataPointResponse;
 import com.carwash.car_wash_api.dto.response.ServiceStatResponse;
 import com.carwash.car_wash_api.exception.ResourceNotFoundException;
 import com.carwash.car_wash_api.repository.UserRepository;
@@ -54,6 +55,7 @@ class DashboardControllerTest {
                             .requestMatchers(HttpMethod.GET, "/api/v1/dashboard/admin").hasRole("ADMIN")
                             .requestMatchers(HttpMethod.GET, "/api/v1/dashboard/customer").hasRole("CUSTOMER")
                             .requestMatchers(HttpMethod.GET, "/api/v1/dashboard/employee").hasRole("EMPLOYEE")
+                            .requestMatchers(HttpMethod.GET, "/api/v1/dashboard/revenue").hasRole("ADMIN")
                             .anyRequest().authenticated()
                     )
                     .exceptionHandling(ex -> ex
@@ -80,6 +82,7 @@ class DashboardControllerTest {
     private AdminDashboardResponse adminResponse;
     private CustomerDashboardResponse customerResponse;
     private EmployeeDashboardResponse employeeResponse;
+    private List<RevenueDataPointResponse> revenueResponse;
 
     @BeforeEach
     void setUp() {
@@ -106,6 +109,12 @@ class DashboardControllerTest {
                 .assignedBookings(15L)
                 .bookingsInProgress(3L)
                 .build();
+
+        revenueResponse = List.of(
+                new RevenueDataPointResponse("May 18", new BigDecimal("120.00")),
+                new RevenueDataPointResponse("May 19", new BigDecimal("250.00")),
+                new RevenueDataPointResponse("May 20", new BigDecimal("0.00"))
+        );
     }
 
     // ── GET /api/v1/dashboard/admin ───────────────────────────────────────────
@@ -222,6 +231,53 @@ class DashboardControllerTest {
     @Test
     void getEmployeeDashboard_whenUnauthenticated_returns401() throws Exception {
         mockMvc.perform(get("/api/v1/dashboard/employee"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    // ── GET /api/v1/dashboard/revenue ─────────────────────────────────────────
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void getRevenueSeries_asAdmin_withDailyPeriod_returns200() throws Exception {
+        when(dashboardService.getRevenueTimeSeries("daily", 3)).thenReturn(revenueResponse);
+
+        mockMvc.perform(get("/api/v1/dashboard/revenue")
+                        .param("period", "daily")
+                        .param("days", "3"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(3))
+                .andExpect(jsonPath("$[0].label").value("May 18"))
+                .andExpect(jsonPath("$[0].revenue").value(120.00))
+                .andExpect(jsonPath("$[1].label").value("May 19"))
+                .andExpect(jsonPath("$[2].revenue").value(0.00));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void getRevenueSeries_asAdmin_usesDefaults_returns200() throws Exception {
+        when(dashboardService.getRevenueTimeSeries("daily", 7)).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/v1/dashboard/revenue"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(roles = "CUSTOMER")
+    void getRevenueSeries_asCustomer_returns403() throws Exception {
+        mockMvc.perform(get("/api/v1/dashboard/revenue"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "EMPLOYEE")
+    void getRevenueSeries_asEmployee_returns403() throws Exception {
+        mockMvc.perform(get("/api/v1/dashboard/revenue"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void getRevenueSeries_whenUnauthenticated_returns401() throws Exception {
+        mockMvc.perform(get("/api/v1/dashboard/revenue"))
                 .andExpect(status().isUnauthorized());
     }
 }

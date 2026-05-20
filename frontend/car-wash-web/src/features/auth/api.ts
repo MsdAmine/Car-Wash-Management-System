@@ -1,5 +1,5 @@
 import api from '@/shared/lib/axios';
-import type { AuthResponse, LoginRequest, RegisterRequest, UserProfileResponse } from './types';
+import type { AuthResponse, LoginRequest, RegisterRequest, UpdateProfileRequest, UserProfileResponse } from './types';
 
 interface ApiWrapper<T> {
   success: boolean;
@@ -19,4 +19,8 @@ export async function registerUser(data: RegisterRequest): Promise<AuthResponse>
 
 export async function fetchUserProfile(): Promise<UserProfileResponse> {
   return (await api.get<UserProfileResponse>('/users/profile')).data;
+}
+
+export async function updateUserProfile(data: UpdateProfileRequest): Promise<UserProfileResponse> {
+  return (await api.put<UserProfileResponse>('/users/profile', data)).data;
 }

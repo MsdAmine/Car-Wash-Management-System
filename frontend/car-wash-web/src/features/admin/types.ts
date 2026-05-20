@@ -17,6 +17,11 @@ export interface AssignEmployeeRequest {
   employeeId: string
 }
 
+export interface RevenueDataPoint {
+  label: string
+  revenue: number
+}
+
 export interface BookingAssignmentResponse {
   id: string
   bookingId: string

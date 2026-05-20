@@ -3,9 +3,11 @@ package com.carwash.car_wash_api.service;
 import com.carwash.car_wash_api.dto.response.AdminDashboardResponse;
 import com.carwash.car_wash_api.dto.response.CustomerDashboardResponse;
 import com.carwash.car_wash_api.dto.response.EmployeeDashboardResponse;
+import com.carwash.car_wash_api.dto.response.RevenueDataPointResponse;
 import com.carwash.car_wash_api.dto.response.ServiceStatResponse;
 import com.carwash.car_wash_api.exception.ResourceNotFoundException;
 import com.carwash.car_wash_api.model.entity.Employee;
+import com.carwash.car_wash_api.model.entity.Payment;
 import com.carwash.car_wash_api.model.entity.User;
 import com.carwash.car_wash_api.model.enums.BookingStatus;
 import com.carwash.car_wash_api.model.enums.PaymentStatus;
@@ -22,10 +24,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAdjusters;
+import java.time.temporal.WeekFields;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -132,6 +141,79 @@ public class DashboardService {
                 .assignedBookings(assignedBookings)
                 .bookingsInProgress(bookingsInProgress)
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public List<RevenueDataPointResponse> getRevenueTimeSeries(String period, int days) {
+        int units = Math.min(Math.max(1, days), 90);
+
+        if ("monthly".equalsIgnoreCase(period)) {
+            LocalDate today = LocalDate.now();
+            LocalDate startDate = today.minusMonths(units - 1).withDayOfMonth(1);
+            List<Payment> payments = paymentRepository.findConfirmedInRange(
+                    PaymentStatus.CONFIRMED, startDate.atStartOfDay(), today.plusDays(1).atStartOfDay());
+            Map<YearMonth, BigDecimal> totals = payments.stream()
+                    .filter(p -> p.getPaidAt() != null)
+                    .collect(Collectors.groupingBy(
+                            p -> YearMonth.from(p.getPaidAt()),
+                            Collectors.reducing(BigDecimal.ZERO, Payment::getAmount, BigDecimal::add)));
+            DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MMM yyyy");
+            List<RevenueDataPointResponse> result = new ArrayList<>();
+            YearMonth cursor = YearMonth.from(startDate);
+            YearMonth end = YearMonth.now();
+            while (!cursor.isAfter(end)) {
+                result.add(RevenueDataPointResponse.builder()
+                        .label(cursor.atDay(1).format(fmt))
+                        .revenue(totals.getOrDefault(cursor, BigDecimal.ZERO))
+                        .build());
+                cursor = cursor.plusMonths(1);
+            }
+            return result;
+        }
+
+        if ("weekly".equalsIgnoreCase(period)) {
+            LocalDate today = LocalDate.now();
+            LocalDate firstMonday = today.minusWeeks(units - 1)
+                    .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+            List<Payment> payments = paymentRepository.findConfirmedInRange(
+                    PaymentStatus.CONFIRMED, firstMonday.atStartOfDay(), today.plusDays(1).atStartOfDay());
+            Map<LocalDate, BigDecimal> totals = payments.stream()
+                    .filter(p -> p.getPaidAt() != null)
+                    .collect(Collectors.groupingBy(
+                            p -> p.getPaidAt().toLocalDate().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)),
+                            Collectors.reducing(BigDecimal.ZERO, Payment::getAmount, BigDecimal::add)));
+            List<RevenueDataPointResponse> result = new ArrayList<>();
+            LocalDate cursor = firstMonday;
+            while (!cursor.isAfter(today)) {
+                int week = cursor.get(WeekFields.ISO.weekOfWeekBasedYear());
+                result.add(RevenueDataPointResponse.builder()
+                        .label("Week " + week)
+                        .revenue(totals.getOrDefault(cursor, BigDecimal.ZERO))
+                        .build());
+                cursor = cursor.plusWeeks(1);
+            }
+            return result;
+        }
+
+        // Default: daily
+        LocalDate today = LocalDate.now();
+        LocalDate startDate = today.minusDays(units - 1);
+        List<Payment> payments = paymentRepository.findConfirmedInRange(
+                PaymentStatus.CONFIRMED, startDate.atStartOfDay(), today.plusDays(1).atStartOfDay());
+        Map<LocalDate, BigDecimal> totals = payments.stream()
+                .filter(p -> p.getPaidAt() != null)
+                .collect(Collectors.groupingBy(
+                        p -> p.getPaidAt().toLocalDate(),
+                        Collectors.reducing(BigDecimal.ZERO, Payment::getAmount, BigDecimal::add)));
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MMM dd");
+        List<RevenueDataPointResponse> result = new ArrayList<>();
+        for (LocalDate date = startDate; !date.isAfter(today); date = date.plusDays(1)) {
+            result.add(RevenueDataPointResponse.builder()
+                    .label(date.format(fmt))
+                    .revenue(totals.getOrDefault(date, BigDecimal.ZERO))
+                    .build());
+        }
+        return result;
     }
 
     private User resolveCurrentUser() {

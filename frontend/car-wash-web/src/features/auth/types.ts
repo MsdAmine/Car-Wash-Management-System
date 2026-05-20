@@ -28,3 +28,9 @@ export interface UserProfileResponse {
   phone: string;
   role: string;
 }
+
+export interface UpdateProfileRequest {
+  firstName: string;
+  lastName: string;
+  phone?: string;
+}

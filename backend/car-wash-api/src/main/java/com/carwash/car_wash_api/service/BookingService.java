@@ -17,6 +17,7 @@ import com.carwash.car_wash_api.model.enums.Role;
 import com.carwash.car_wash_api.repository.BookingAssignmentRepository;
 import com.carwash.car_wash_api.repository.BookingRepository;
 import com.carwash.car_wash_api.repository.EmployeeRepository;
+import com.carwash.car_wash_api.repository.OperatingHoursRepository;
 import com.carwash.car_wash_api.repository.UserRepository;
 import com.carwash.car_wash_api.repository.VehicleRepository;
 import com.carwash.car_wash_api.repository.WashServiceRepository;
@@ -28,6 +29,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -45,6 +48,7 @@ public class BookingService {
     private final WashServiceRepository washServiceRepository;
     private final EmployeeRepository employeeRepository;
     private final BookingAssignmentRepository bookingAssignmentRepository;
+    private final OperatingHoursRepository operatingHoursRepository;
     private final BookingMapper bookingMapper;
 
     @Transactional
@@ -67,6 +71,7 @@ public class BookingService {
         LocalDateTime endDateTime = request.getAppointmentDateTime()
                 .plusMinutes(washService.getDurationMinutes());
 
+        validateOperatingHours(request.getAppointmentDateTime(), endDateTime);
         validateNoConflictingBooking(vehicle, request.getAppointmentDateTime(), endDateTime);
 
         // #221 — snapshot the service price as the booking total
@@ -199,6 +204,23 @@ public class BookingService {
             throw new InvalidBookingException(
                     "Appointment cannot be scheduled more than 90 days in advance");
         }
+    }
+
+    private void validateOperatingHours(LocalDateTime appointmentDateTime, LocalDateTime endDateTime) {
+        String dayOfWeek = appointmentDateTime.getDayOfWeek().name();
+        operatingHoursRepository.findByDayOfWeek(dayOfWeek).ifPresent(oh -> {
+            if (!oh.isOpen()) {
+                throw new InvalidBookingException("Bookings are not available on this day.");
+            }
+            LocalTime apptTime = appointmentDateTime.toLocalTime();
+            LocalTime endTime = endDateTime.toLocalTime();
+            if (apptTime.isBefore(oh.getOpenTime()) || endTime.isAfter(oh.getCloseTime())) {
+                throw new InvalidBookingException(String.format(
+                        "Bookings must be within operating hours (%s – %s).",
+                        oh.getOpenTime().format(DateTimeFormatter.ofPattern("HH:mm")),
+                        oh.getCloseTime().format(DateTimeFormatter.ofPattern("HH:mm"))));
+            }
+        });
     }
 
     // #220 — detect time-range overlaps instead of exact-time matches

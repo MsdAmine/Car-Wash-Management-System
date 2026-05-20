@@ -4,6 +4,7 @@ import com.carwash.car_wash_api.dto.response.AdminDashboardResponse;
 import com.carwash.car_wash_api.dto.response.CustomerDashboardResponse;
 import com.carwash.car_wash_api.dto.response.EmployeeDashboardResponse;
 import com.carwash.car_wash_api.dto.response.ErrorResponse;
+import com.carwash.car_wash_api.dto.response.RevenueDataPointResponse;
 import com.carwash.car_wash_api.service.DashboardService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -16,7 +17,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/dashboard")
@@ -86,5 +90,14 @@ public class DashboardController {
     @GetMapping("/employee")
     public ResponseEntity<EmployeeDashboardResponse> getEmployeeDashboard() {
         return ResponseEntity.ok(dashboardService.getEmployeeDashboard());
+    }
+
+    // ── GET /api/v1/dashboard/revenue ─────────────────────────────────────────
+
+    @GetMapping("/revenue")
+    public ResponseEntity<List<RevenueDataPointResponse>> getRevenueSeries(
+            @RequestParam(defaultValue = "daily") String period,
+            @RequestParam(defaultValue = "7") int days) {
+        return ResponseEntity.ok(dashboardService.getRevenueTimeSeries(period, days));
     }
 }

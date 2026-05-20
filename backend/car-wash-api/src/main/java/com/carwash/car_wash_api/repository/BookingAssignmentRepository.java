@@ -1,12 +1,14 @@
 package com.carwash.car_wash_api.repository;
 
 import com.carwash.car_wash_api.model.entity.BookingAssignment;
+import com.carwash.car_wash_api.model.enums.BookingStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -41,4 +43,16 @@ public interface BookingAssignmentRepository extends JpaRepository<BookingAssign
     // #333 — assignments where the booking is currently in progress
     @Query("SELECT COUNT(ba) FROM BookingAssignment ba WHERE ba.employee.id = :employeeId AND ba.booking.status = com.carwash.car_wash_api.model.enums.BookingStatus.IN_PROGRESS")
     long countInProgressByEmployeeId(@Param("employeeId") UUID employeeId);
+
+    @Query("""
+            SELECT DISTINCT ba.employee.id FROM BookingAssignment ba
+            WHERE ba.booking.status IN :statuses
+              AND ba.booking.appointmentDateTime < :windowEnd
+              AND ba.booking.endDateTime > :windowStart
+            """)
+    List<UUID> findBusyEmployeeIds(
+            @Param("statuses") Collection<BookingStatus> statuses,
+            @Param("windowStart") LocalDateTime windowStart,
+            @Param("windowEnd") LocalDateTime windowEnd
+    );
 }

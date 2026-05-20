@@ -98,13 +98,27 @@ interface BookingRowProps {
   booking: BookingResponse;
   selected: boolean;
   onToggle: () => void;
-  onOpenAssign: (data: { ref: string; service: string; datetime: string; bookingId: string }) => void;
+  onOpenAssign: (data: {
+    ref: string;
+    service: string;
+    datetime: string;
+    bookingId: string;
+    appointmentDateTime: string;
+    durationMinutes: number;
+  }) => void;
 }
 
 function BookingRow({ booking, selected, onToggle, onOpenAssign }: BookingRowProps) {
   const ref = booking.id.slice(-8).toUpperCase();
   const datetime = new Date(booking.appointmentDateTime).toLocaleString();
-  const assignData = { ref, service: booking.washServiceName, datetime, bookingId: booking.id };
+  const assignData = {
+    ref,
+    service: booking.washServiceName,
+    datetime,
+    bookingId: booking.id,
+    appointmentDateTime: booking.appointmentDateTime,
+    durationMinutes: booking.durationMinutes,
+  };
 
   return (
     <TableRow selected={selected}>
@@ -185,7 +199,13 @@ export function AdminBookingsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [assignModal, setAssignModal] = useState<{
     isOpen: boolean;
-    booking: { ref: string; service: string; datetime: string } | null;
+    booking: {
+      ref: string;
+      service: string;
+      datetime: string;
+      appointmentDateTime: string;
+      durationMinutes: number;
+    } | null;
     bookingId: string | null;
   }>({ isOpen: false, booking: null, bookingId: null });
 
@@ -213,7 +233,14 @@ export function AdminBookingsPage() {
     setCurrentPage(1);
   }
 
-  function handleOpenAssign(data: { ref: string; service: string; datetime: string; bookingId: string }) {
+  function handleOpenAssign(data: {
+    ref: string;
+    service: string;
+    datetime: string;
+    bookingId: string;
+    appointmentDateTime: string;
+    durationMinutes: number;
+  }) {
     setAssignModal({ isOpen: true, booking: data, bookingId: data.bookingId });
   }
 

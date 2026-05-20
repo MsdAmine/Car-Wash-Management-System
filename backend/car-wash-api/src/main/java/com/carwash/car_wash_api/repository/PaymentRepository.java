@@ -27,4 +27,11 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end
     );
+
+    @Query("SELECT p FROM Payment p WHERE p.status = :status AND p.paidAt >= :start AND p.paidAt < :end")
+    List<Payment> findConfirmedInRange(
+            @Param("status") PaymentStatus status,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end
+    );
 }
