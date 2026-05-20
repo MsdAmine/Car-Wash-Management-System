@@ -10,8 +10,8 @@ export function useLogin() {
 
   return useMutation({
     mutationFn: loginUser,
-    onSuccess: (data) => {
-      auth.login(data);
+    onSuccess: async (data) => {
+      await auth.login(data);
       if (data.role === 'ADMIN') {
         navigate(ROUTES.ADMIN.DASHBOARD);
       } else if (data.role === 'EMPLOYEE') {

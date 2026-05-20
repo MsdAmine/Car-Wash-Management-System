@@ -3,6 +3,7 @@ import { ChevronRight } from 'lucide-react';
 import { WasherLayout } from '@/shared/components/layout/WasherLayout';
 import { ImagePlaceholder } from '@/shared/components/ui/ImagePlaceholder';
 import { Button } from '@/shared/components/ui/Button';
+import { useAuth } from '@/shared/context/AuthContext';
 
 const MOCK_WASHER = {
   firstName: 'James',
@@ -14,6 +15,7 @@ const MOCK_WASHER = {
 
 export function WasherProfilePage() {
   const [editingField, setEditingField] = useState<'name' | 'phone' | 'email' | null>(null);
+  const { logout } = useAuth();
 
   return (
     <WasherLayout>
@@ -179,7 +181,7 @@ export function WasherProfilePage() {
           variant="ghost"
           size="sm"
           className="w-full mt-2 text-red-500 border border-red-200 hover:bg-red-50"
-          onClick={() => console.log('logout')}
+          onClick={logout}
         >
           Log out
         </Button>

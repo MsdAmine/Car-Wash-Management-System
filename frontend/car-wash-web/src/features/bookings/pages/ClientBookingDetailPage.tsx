@@ -1,46 +1,66 @@
 import { useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { isAxiosError } from 'axios';
 import { Loader } from 'lucide-react';
 import { Badge } from '@/shared/components/ui/Badge';
 import { Button } from '@/shared/components/ui/Button';
 import { StepTracker } from '@/shared/components/ui/StepTracker';
 import { ConfirmDialog } from '@/shared/components/ui/ConfirmDialog';
 import { ClientLayout } from '@/shared/components/layout/ClientLayout';
-
-// ─── Mock data (not exported) ─────────────────────────────────────────────────
-
-const MOCK_BOOKING = {
-  id: '1',
-  ref: 'CW-000101',
-  service: { name: 'Full Detail', price: 65, duration: 90 },
-  vehicle: { make: 'Toyota', model: 'Camry', plate: 'ABC-1234', type: 'Sedan' },
-  washer: { name: 'Maria L.' },
-  date: 'Monday, 19 May 2025',
-  time: '10:00',
-  status: 'confirmed' as const,
-  steps: [
-    { label: 'Pending',     completedAt: 'May 19, 09:30' },
-    { label: 'Confirmed',   completedAt: 'May 19, 09:45' },
-    { label: 'In Progress', completedAt: undefined },
-    { label: 'Completed',   completedAt: undefined },
-  ],
-};
+import { LoadingSpinner } from '@/shared/components/feedback/LoadingSpinner';
+import { ErrorState } from '@/shared/components/feedback/ErrorState';
+import { useMyBookings } from '../hooks/useMyBookings';
+import { useCancelBooking } from '../hooks/useCancelBooking';
+import type { BookingResponse } from '../types';
+import { formatAppointmentDate, formatAppointmentDateTime } from '@/shared/lib/formatDate';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type BookingStatus = 'pending' | 'confirmed' | 'inProgress' | 'completed' | 'cancelled';
+type BadgeVariant = 'pending' | 'confirmed' | 'inProgress' | 'completed' | 'cancelled';
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const STATUS_TO_BADGE: Record<BookingResponse['status'], BadgeVariant> = {
+  PENDING:     'pending',
+  CONFIRMED:   'confirmed',
+  IN_PROGRESS: 'inProgress',
+  COMPLETED:   'completed',
+  CANCELLED:   'cancelled',
+};
+
+const STATUS_TO_STEP: Record<BookingResponse['status'], number> = {
+  PENDING:     0,
+  CONFIRMED:   1,
+  IN_PROGRESS: 2,
+  COMPLETED:   3,
+  CANCELLED:   0,
+};
+
+const STEPS = [
+  { label: 'Pending' },
+  { label: 'Confirmed' },
+  { label: 'In Progress' },
+  { label: 'Completed' },
+];
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 interface InfoFieldProps {
   label: string;
   value: string;
+  italic?: boolean;
+  muted?: boolean;
 }
 
-function InfoField({ label, value }: InfoFieldProps) {
+function InfoField({ label, value, italic, muted }: InfoFieldProps) {
   return (
     <div className="flex flex-col gap-0.5">
       <span className="text-xs text-gray-500">{label}</span>
-      <span className="text-sm text-gray-900 font-medium">{value}</span>
+      <span
+        className={`text-sm font-medium ${muted ? 'text-gray-400' : 'text-gray-900'}${italic ? ' italic' : ''}`}
+      >
+        {value}
+      </span>
     </div>
   );
 }
@@ -48,13 +68,53 @@ function InfoField({ label, value }: InfoFieldProps) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function ClientBookingDetailPage() {
-  const [status, setStatus] = useState<BookingStatus>(MOCK_BOOKING.status);
+  const { id } = useParams<{ id: string }>();
+  const { data: bookings, isLoading, isError, refetch } = useMyBookings();
+  const cancelMutation = useCancelBooking();
   const [isCancelOpen, setIsCancelOpen] = useState(false);
 
-  const firstIncompleteIndex = MOCK_BOOKING.steps.findIndex((s) => s.completedAt === undefined);
-  const currentStep = firstIncompleteIndex === -1
-    ? MOCK_BOOKING.steps.length - 1
-    : firstIncompleteIndex - 1;
+  const booking = bookings?.find((b) => b.id === id) ?? null;
+
+  const cancelError = cancelMutation.error
+    ? isAxiosError(cancelMutation.error) && cancelMutation.error.response?.data?.message
+      ? (cancelMutation.error.response.data.message as string)
+      : 'Could not cancel this booking.'
+    : null;
+
+  if (isLoading) {
+    return (
+      <ClientLayout>
+        <div className="flex h-64 items-center justify-center">
+          <LoadingSpinner size="lg" />
+        </div>
+      </ClientLayout>
+    );
+  }
+
+  if (isError) {
+    return (
+      <ClientLayout>
+        <div className="flex h-64 items-center justify-center">
+          <ErrorState onRetry={() => refetch()} />
+        </div>
+      </ClientLayout>
+    );
+  }
+
+  if (!booking) {
+    return (
+      <ClientLayout>
+        <div className="flex h-64 items-center justify-center">
+          <ErrorState message="Booking not found." />
+        </div>
+      </ClientLayout>
+    );
+  }
+
+  const badgeVariant = STATUS_TO_BADGE[booking.status];
+  const currentStep = STATUS_TO_STEP[booking.status];
+  const dateLabel = formatAppointmentDate(booking.appointmentDateTime);
+  const timeLabel = formatAppointmentDateTime(booking.appointmentDateTime).split(' at ')[1] ?? '';
 
   return (
     <ClientLayout>
@@ -63,15 +123,15 @@ export function ClientBookingDetailPage() {
         {/* Section 1 — Title row */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">{MOCK_BOOKING.service.name}</h1>
-            <p className="font-mono text-sm text-gray-500 mt-0.5">{MOCK_BOOKING.ref}</p>
+            <h1 className="text-2xl font-semibold text-gray-900">{booking.washServiceName}</h1>
+            <p className="font-mono text-sm text-gray-500 mt-0.5">{booking.id}</p>
           </div>
-          <Badge variant={status} />
+          <Badge variant={badgeVariant} />
         </div>
 
         {/* Section 2 — Progress tracker */}
         <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <StepTracker steps={MOCK_BOOKING.steps} currentStep={currentStep} />
+          <StepTracker steps={STEPS} currentStep={currentStep} />
         </div>
 
         {/* Section 3 — Info grid */}
@@ -83,11 +143,11 @@ export function ClientBookingDetailPage() {
               Booking Info
             </p>
             <div className="flex flex-col gap-3">
-              <InfoField label="Date" value={MOCK_BOOKING.date} />
-              <InfoField label="Time" value={MOCK_BOOKING.time} />
-              <InfoField label="Service" value={MOCK_BOOKING.service.name} />
-              <InfoField label="Duration" value={`${MOCK_BOOKING.service.duration} min`} />
-              <InfoField label="Price" value={`$${MOCK_BOOKING.service.price}`} />
+              <InfoField label="Date" value={dateLabel} />
+              <InfoField label="Time" value={timeLabel} />
+              <InfoField label="Service" value={booking.washServiceName} />
+              <InfoField label="Duration" value={`${booking.durationMinutes} min`} />
+              <InfoField label="Price" value={`$${booking.totalPrice}`} />
             </div>
           </div>
 
@@ -97,12 +157,7 @@ export function ClientBookingDetailPage() {
               Vehicle
             </p>
             <div className="flex flex-col gap-3">
-              <InfoField
-                label="Make & Model"
-                value={`${MOCK_BOOKING.vehicle.make} ${MOCK_BOOKING.vehicle.model}`}
-              />
-              <InfoField label="Plate" value={MOCK_BOOKING.vehicle.plate} />
-              <InfoField label="Type" value={MOCK_BOOKING.vehicle.type} />
+              <InfoField label="Plate" value={booking.vehicleLicensePlate} />
             </div>
           </div>
 
@@ -111,14 +166,7 @@ export function ClientBookingDetailPage() {
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-4">
               Washer
             </p>
-            <div className="flex flex-col gap-0.5">
-              <span className="text-xs text-gray-500">Name</span>
-              {MOCK_BOOKING.washer ? (
-                <span className="text-sm text-gray-900 font-medium">{MOCK_BOOKING.washer.name}</span>
-              ) : (
-                <span className="text-sm text-gray-400 italic font-medium">Not yet assigned</span>
-              )}
-            </div>
+            <InfoField label="Name" value="To be confirmed" italic muted />
           </div>
 
         </div>
@@ -128,31 +176,36 @@ export function ClientBookingDetailPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <span className="text-base font-semibold text-gray-900">
-                {MOCK_BOOKING.service.name}
+                {booking.washServiceName}
               </span>
               <span className="bg-gray-100 text-gray-600 text-xs px-2.5 py-1 rounded-full ml-2">
-                {MOCK_BOOKING.service.duration} min
+                {booking.durationMinutes} min
               </span>
             </div>
             <span className="text-xl font-bold text-indigo-600">
-              ${MOCK_BOOKING.service.price}
+              ${booking.totalPrice}
             </span>
           </div>
         </div>
 
         {/* Section 5 — Contextual actions */}
-        {status === 'confirmed' && (
-          <div className="flex gap-3 justify-end">
-            <Button variant="ghost" size="sm" onClick={() => console.log('reschedule')}>
-              Reschedule
-            </Button>
-            <Button variant="danger" size="sm" onClick={() => setIsCancelOpen(true)}>
-              Cancel
-            </Button>
+        {booking.status === 'PENDING' && (
+          <div className="flex flex-col gap-2 items-end">
+            <div className="flex gap-3">
+              <Button variant="ghost" size="sm" onClick={() => console.log('reschedule')}>
+                Reschedule
+              </Button>
+              <Button variant="danger" size="sm" onClick={() => setIsCancelOpen(true)}>
+                Cancel
+              </Button>
+            </div>
+            {cancelError && (
+              <p className="text-sm text-red-600">{cancelError}</p>
+            )}
           </div>
         )}
 
-        {status === 'inProgress' && (
+        {booking.status === 'IN_PROGRESS' && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3">
             <Loader className="w-5 h-5 text-amber-500 animate-spin" />
             <div>
@@ -162,7 +215,7 @@ export function ClientBookingDetailPage() {
           </div>
         )}
 
-        {status === 'completed' && (
+        {booking.status === 'COMPLETED' && (
           <div className="flex gap-3 justify-end">
             <Button variant="ghost" size="sm" onClick={() => console.log('book again')}>
               Book again
@@ -173,7 +226,7 @@ export function ClientBookingDetailPage() {
           </div>
         )}
 
-        {status === 'cancelled' && (
+        {booking.status === 'CANCELLED' && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-4">
             <p className="text-sm text-red-600">This booking has been cancelled.</p>
           </div>
@@ -185,15 +238,16 @@ export function ClientBookingDetailPage() {
         isOpen={isCancelOpen}
         onClose={() => setIsCancelOpen(false)}
         onConfirm={() => {
-          console.log('cancelled');
-          setIsCancelOpen(false);
-          setStatus('cancelled');
+          cancelMutation.mutate(booking.id, {
+            onSuccess: () => setIsCancelOpen(false),
+          });
         }}
         title="Cancel booking"
         message="Are you sure you want to cancel this booking? This action cannot be undone."
         confirmLabel="Yes, cancel booking"
         cancelLabel="Keep booking"
         variant="danger"
+        isLoading={cancelMutation.isPending}
       />
     </ClientLayout>
   );

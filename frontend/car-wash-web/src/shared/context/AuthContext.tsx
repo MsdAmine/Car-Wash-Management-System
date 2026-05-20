@@ -1,7 +1,10 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { setAuthToken } from '@/shared/lib/axios';
 import type { AuthResponse } from '@/features/auth/types';
+import { fetchUserProfile } from '@/features/auth/api';
+import { ROUTES } from '@/router/routes';
 
 export const UserRole = {
   CUSTOMER: 'CUSTOMER',
@@ -11,82 +14,95 @@ export const UserRole = {
 export type UserRole = (typeof UserRole)[keyof typeof UserRole];
 
 export interface User {
+  id: number;
   email: string;
   firstName: string;
   lastName: string;
   role: UserRole;
 }
 
-interface StoredAuthSession {
-  user: User;
-  token: string;
-}
-
 interface AuthContextValue {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
-  login: (authResponse: AuthResponse) => void;
+  isInitialised: boolean;
+  login: (authResponse: AuthResponse) => Promise<void>;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
-const AUTH_STORAGE_KEY = 'washflow.auth';
 
-function readStoredAuthSession(): StoredAuthSession | null {
-  try {
-    const raw = window.localStorage.getItem(AUTH_STORAGE_KEY);
-    if (!raw) return null;
-
-    const session = JSON.parse(raw) as Partial<StoredAuthSession>;
-    if (!session.token || !session.user?.email || !session.user.role) {
-      window.localStorage.removeItem(AUTH_STORAGE_KEY);
-      return null;
-    }
-
-    setAuthToken(session.token);
-    return session as StoredAuthSession;
-  } catch {
-    window.localStorage.removeItem(AUTH_STORAGE_KEY);
-    return null;
-  }
-}
+const SESSION_TOKEN_KEY = 'auth_token';
+const SESSION_USER_KEY = 'auth_user';
 
 interface AuthProviderProps {
   children: ReactNode;
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [session, setSession] = useState<StoredAuthSession | null>(readStoredAuthSession);
+  const navigate = useNavigate();
+  const [token, setToken] = useState<string | null>(() =>
+    sessionStorage.getItem(SESSION_TOKEN_KEY),
+  );
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isInitialised, setIsInitialised] = useState(false);
 
-  function login(authResponse: AuthResponse): void {
-    const nextSession: StoredAuthSession = {
-      token: authResponse.token,
-      user: {
-        email: authResponse.email,
-        firstName: authResponse.firstName,
-        lastName: authResponse.lastName,
-        role: authResponse.role as UserRole,
-      },
-    };
+  async function hydrateFromProfile(tok: string): Promise<void> {
+    setAuthToken(tok);
+    try {
+      const profile = await fetchUserProfile();
+      setUser({
+        id: profile.id,
+        email: profile.email,
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        role: profile.role as UserRole,
+      });
+      setIsAuthenticated(true);
+    } catch {
+      sessionStorage.removeItem(SESSION_TOKEN_KEY);
+      sessionStorage.removeItem(SESSION_USER_KEY);
+      setAuthToken(null);
+      setToken(null);
+      setUser(null);
+      setIsAuthenticated(false);
+    }
+  }
 
+  useEffect(() => {
+    const storedToken = sessionStorage.getItem(SESSION_TOKEN_KEY);
+    if (storedToken) {
+      hydrateFromProfile(storedToken).finally(() => setIsInitialised(true));
+    } else {
+      setIsInitialised(true);
+    }
+  }, []);
+
+  async function login(authResponse: AuthResponse): Promise<void> {
+    sessionStorage.setItem(SESSION_TOKEN_KEY, authResponse.token);
+    setToken(authResponse.token);
     setAuthToken(authResponse.token);
-    window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextSession));
-    setSession(nextSession);
+    await hydrateFromProfile(authResponse.token);
   }
 
   function logout(): void {
     setAuthToken(null);
-    window.localStorage.removeItem(AUTH_STORAGE_KEY);
-    setSession(null);
+    sessionStorage.removeItem(SESSION_TOKEN_KEY);
+    sessionStorage.removeItem(SESSION_USER_KEY);
+    setToken(null);
+    setUser(null);
+    setIsAuthenticated(false);
+    navigate(ROUTES.PUBLIC.LOGIN);
   }
 
   return (
     <AuthContext.Provider
       value={{
-        user: session?.user ?? null,
-        token: session?.token ?? null,
-        isAuthenticated: !!session?.token,
+        user,
+        token,
+        isAuthenticated,
+        isInitialised,
         login,
         logout,
       }}

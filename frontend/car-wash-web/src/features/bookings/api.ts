@@ -10,3 +10,8 @@ export async function createBooking(payload: BookingRequest): Promise<BookingRes
   const { data } = await api.post<BookingResponse>('/bookings', payload)
   return data
 }
+
+export async function cancelBooking(id: string): Promise<BookingResponse> {
+  const { data } = await api.patch<BookingResponse>(`/bookings/${id}/cancel`)
+  return data
+}

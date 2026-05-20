@@ -19,3 +19,12 @@ export interface RegisterRequest {
   phone: string;
   role: 'CUSTOMER' | 'EMPLOYEE';
 }
+
+export interface UserProfileResponse {
+  id: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  role: string;
+}
