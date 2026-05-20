@@ -4,7 +4,9 @@ import com.carwash.car_wash_api.dto.response.AdminDashboardResponse;
 import com.carwash.car_wash_api.dto.response.CustomerDashboardResponse;
 import com.carwash.car_wash_api.dto.response.EmployeeDashboardResponse;
 import com.carwash.car_wash_api.dto.response.ErrorResponse;
+import com.carwash.car_wash_api.dto.response.HeatmapResponse;
 import com.carwash.car_wash_api.dto.response.RevenueDataPointResponse;
+import com.carwash.car_wash_api.dto.response.ServiceBookingStatResponse;
 import com.carwash.car_wash_api.service.DashboardService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -99,5 +101,43 @@ public class DashboardController {
             @RequestParam(defaultValue = "daily") String period,
             @RequestParam(defaultValue = "7") int days) {
         return ResponseEntity.ok(dashboardService.getRevenueTimeSeries(period, days));
+    }
+
+    // ── GET /api/v1/dashboard/bookings-by-service ─────────────────────────────
+
+    @Operation(
+            summary = "Bookings by service",
+            description = "Returns all-time booking counts per wash service, sorted by count descending, with percentage of total. Requires ADMIN role.",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Booking statistics per service retrieved successfully"),
+            @ApiResponse(responseCode = "401", description = "Authentication required",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Admin role required",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @GetMapping("/bookings-by-service")
+    public ResponseEntity<List<ServiceBookingStatResponse>> getBookingsByService() {
+        return ResponseEntity.ok(dashboardService.getBookingsByService());
+    }
+
+    // ── GET /api/v1/dashboard/activity-heatmap ────────────────────────────────
+
+    @Operation(
+            summary = "Booking activity heatmap",
+            description = "Returns a 10×7 heatmap of booking counts by hour-slot (rows) and day-of-week (columns) for the last 90 days. Status filter: CONFIRMED, IN_PROGRESS, COMPLETED. Requires ADMIN role.",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Activity heatmap retrieved successfully"),
+            @ApiResponse(responseCode = "401", description = "Authentication required",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Admin role required",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @GetMapping("/activity-heatmap")
+    public ResponseEntity<HeatmapResponse> getActivityHeatmap() {
+        return ResponseEntity.ok(dashboardService.getActivityHeatmap());
     }
 }

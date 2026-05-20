@@ -99,6 +99,8 @@ public class SecurityConfig {
                                                 .requestMatchers(HttpMethod.GET, "/api/v1/dashboard/customer").hasRole("CUSTOMER")
                                                 .requestMatchers(HttpMethod.GET, "/api/v1/dashboard/employee").hasRole("EMPLOYEE")
                                                 .requestMatchers(HttpMethod.GET, "/api/v1/dashboard/revenue").hasRole("ADMIN")
+                                                .requestMatchers(HttpMethod.GET, "/api/v1/dashboard/bookings-by-service").hasRole("ADMIN")
+                                                .requestMatchers(HttpMethod.GET, "/api/v1/dashboard/activity-heatmap").hasRole("ADMIN")
 
                                                 // Settings endpoints: reads for admin/employee, writes for admin only
                                                 .requestMatchers(HttpMethod.GET, "/api/v1/settings/**").hasAnyRole("ADMIN", "EMPLOYEE")

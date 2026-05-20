@@ -78,4 +78,15 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
             @Param("slotEnd") LocalDateTime slotEnd,
             @Param("statuses") List<BookingStatus> statuses
     );
+
+    // analytics: booking counts per service (all statuses)
+    @Query("SELECT b.washService.id, b.washService.name, COUNT(b) FROM Booking b GROUP BY b.washService.id, b.washService.name ORDER BY COUNT(b) DESC")
+    List<Object[]> countGroupedByService();
+
+    // analytics: bookings from a given date onward filtered by status
+    @Query("SELECT b FROM Booking b WHERE b.appointmentDateTime >= :since AND b.status IN :statuses")
+    List<Booking> findRecentByStatusIn(
+            @Param("since") LocalDateTime since,
+            @Param("statuses") List<BookingStatus> statuses
+    );
 }

@@ -69,3 +69,16 @@ export interface OperatingHoursDayRequest {
 export interface UpdateOperatingHoursRequest {
   days: OperatingHoursDayRequest[]
 }
+
+export interface ServiceBookingStatResponse {
+  serviceId: string
+  serviceName: string
+  bookingCount: number
+  percentage: number
+}
+
+export interface HeatmapResponse {
+  days: string[]
+  slots: string[]
+  data: number[][]
+}

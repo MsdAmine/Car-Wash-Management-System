@@ -5,8 +5,10 @@ import type {
   BookingAssignmentResponse,
   BusinessSettingsRequest,
   BusinessSettingsResponse,
+  HeatmapResponse,
   OperatingHoursResponse,
   RevenueDataPoint,
+  ServiceBookingStatResponse,
   UpdateOperatingHoursRequest,
 } from './types'
 import type { BookingResponse } from '@/features/bookings/types'
@@ -89,5 +91,15 @@ export async function updateOperatingHours(
   body: UpdateOperatingHoursRequest,
 ): Promise<OperatingHoursResponse[]> {
   const { data } = await api.put<OperatingHoursResponse[]>('/settings/hours', body)
+  return data
+}
+
+export async function fetchBookingsByService(): Promise<ServiceBookingStatResponse[]> {
+  const { data } = await api.get<ServiceBookingStatResponse[]>('/dashboard/bookings-by-service')
+  return data
+}
+
+export async function fetchActivityHeatmap(): Promise<HeatmapResponse> {
+  const { data } = await api.get<HeatmapResponse>('/dashboard/activity-heatmap')
   return data
 }

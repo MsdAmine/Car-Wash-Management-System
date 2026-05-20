@@ -3,9 +3,12 @@ package com.carwash.car_wash_api.service;
 import com.carwash.car_wash_api.dto.response.AdminDashboardResponse;
 import com.carwash.car_wash_api.dto.response.CustomerDashboardResponse;
 import com.carwash.car_wash_api.dto.response.EmployeeDashboardResponse;
+import com.carwash.car_wash_api.dto.response.HeatmapResponse;
 import com.carwash.car_wash_api.dto.response.RevenueDataPointResponse;
+import com.carwash.car_wash_api.dto.response.ServiceBookingStatResponse;
 import com.carwash.car_wash_api.dto.response.ServiceStatResponse;
 import com.carwash.car_wash_api.exception.ResourceNotFoundException;
+import com.carwash.car_wash_api.model.entity.Booking;
 import com.carwash.car_wash_api.model.entity.Employee;
 import com.carwash.car_wash_api.model.entity.Payment;
 import com.carwash.car_wash_api.model.entity.User;
@@ -214,6 +217,63 @@ public class DashboardService {
                     .build());
         }
         return result;
+    }
+
+    // analytics: all-time booking counts per service
+    @Transactional(readOnly = true)
+    public List<ServiceBookingStatResponse> getBookingsByService() {
+        List<Object[]> rows = bookingRepository.countGroupedByService();
+        long total = rows.stream().mapToLong(r -> (Long) r[2]).sum();
+        return rows.stream()
+                .map(r -> {
+                    long count = (Long) r[2];
+                    double pct = total == 0 ? 0.0 : Math.round((double) count / total * 1000.0) / 10.0;
+                    return ServiceBookingStatResponse.builder()
+                            .serviceId(r[0].toString())
+                            .serviceName((String) r[1])
+                            .bookingCount(count)
+                            .percentage(pct)
+                            .build();
+                })
+                .toList();
+    }
+
+    // analytics: 10×7 booking heatmap for the last 90 days (CONFIRMED, IN_PROGRESS, COMPLETED)
+    @Transactional(readOnly = true)
+    public HeatmapResponse getActivityHeatmap() {
+        LocalDateTime since = LocalDateTime.now().minusDays(90);
+        List<BookingStatus> statuses = List.of(
+                BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS, BookingStatus.COMPLETED);
+        List<Booking> bookings = bookingRepository.findRecentByStatusIn(since, statuses);
+
+        List<String> days = List.of("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun");
+        List<String> slots = List.of(
+                "08:00", "09:00", "10:00", "11:00", "12:00",
+                "13:00", "14:00", "15:00", "16:00", "17:00");
+
+        int[][] matrix = new int[10][7];
+        for (var booking : bookings) {
+            LocalDateTime dt = booking.getAppointmentDateTime();
+            if (dt == null) continue;
+            int hour = dt.getHour();
+            if (hour < 8 || hour > 17) continue;
+            int slotIndex = hour - 8;
+            int dayIndex = dt.getDayOfWeek().getValue() - 1; // Mon=0 … Sun=6
+            matrix[slotIndex][dayIndex]++;
+        }
+
+        List<List<Integer>> data = new ArrayList<>();
+        for (int[] row : matrix) {
+            List<Integer> rowList = new ArrayList<>();
+            for (int val : row) rowList.add(val);
+            data.add(rowList);
+        }
+
+        return HeatmapResponse.builder()
+                .days(days)
+                .slots(slots)
+                .data(data)
+                .build();
     }
 
     private User resolveCurrentUser() {
