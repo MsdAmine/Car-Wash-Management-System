@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AxiosError } from 'axios';
 import { AlertTriangle, LogOut } from 'lucide-react';
@@ -8,8 +8,12 @@ import { Input } from '@/shared/components/ui/Input';
 import { ToggleSwitch } from '@/shared/components/ui/ToggleSwitch';
 import { NavItem } from '@/shared/components/ui/NavItem';
 import { useAuth } from '@/shared/context/AuthContext';
-import { fetchUserProfile } from '@/features/auth/api';
+import { fetchUserProfile, fetchNotificationPreferences } from '@/features/auth/api';
 import { useUpdateProfile } from '@/features/auth/hooks/useUpdateProfile';
+import { useChangePassword } from '@/features/auth/hooks/useChangePassword';
+import { useDeleteAccount } from '@/features/auth/hooks/useDeleteAccount';
+import { useUpdateNotifications } from '@/features/auth/hooks/useUpdateNotifications';
+import { useUploadAvatar } from '@/features/auth/hooks/useUploadAvatar';
 
 // ─── Personal info section ────────────────────────────────────────────────────
 
@@ -17,6 +21,8 @@ function PersonalInfoSection() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const updateProfile = useUpdateProfile();
+  const uploadAvatar = useUploadAvatar();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: profile } = useQuery({
     queryKey: ['userProfile'],
@@ -28,6 +34,7 @@ function PersonalInfoSection() {
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
 
   useEffect(() => {
     if (profile) {
@@ -54,6 +61,34 @@ function PersonalInfoSection() {
     );
   }
 
+  function handleAvatarClick() {
+    fileInputRef.current?.click();
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarError(null);
+
+    if (file.size > 2 * 1024 * 1024) {
+      setAvatarError('Image must be smaller than 2 MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      uploadAvatar.mutate(dataUrl, {
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['userProfile'] }),
+        onError: () => setAvatarError('Failed to upload photo.'),
+      });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  }
+
+  const avatarSrc = profile?.avatarUrl ?? '/images/avatar-customer.png';
+
   return (
     <div className="bg-white rounded-xl border border-gray-200">
       <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
@@ -67,20 +102,35 @@ function PersonalInfoSection() {
 
       <div className="px-6 py-6">
         <div className="flex items-center gap-4 pb-6 mb-6 border-b border-gray-100">
-          <img src="/images/avatar-customer.png" alt="Profile photo" className="w-16 h-16 rounded-full object-cover" />
+          <img
+            src={avatarSrc}
+            alt="Profile photo"
+            className="w-16 h-16 rounded-full object-cover"
+          />
           <div>
             <p className="text-base font-semibold text-gray-900">
               {profile?.firstName ?? user?.firstName} {profile?.lastName ?? user?.lastName}
             </p>
             <p className="text-sm text-gray-500 mt-0.5">{profile?.email ?? user?.email}</p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileChange}
+            />
             <Button
               variant="ghost"
               size="sm"
               className="mt-2"
-              onClick={() => console.log('upload photo')}
+              isLoading={uploadAvatar.isPending}
+              onClick={handleAvatarClick}
             >
               Upload photo
             </Button>
+            {avatarError && (
+              <p className="text-xs text-red-600 mt-1">{avatarError}</p>
+            )}
           </div>
         </div>
 
@@ -164,25 +214,60 @@ function PersonalInfoSection() {
 // ─── Notifications section ────────────────────────────────────────────────────
 
 const NOTIFICATION_ROWS = [
-  { key: 'booking_confirmed', label: 'Booking confirmed', description: 'Get notified when a booking is confirmed.' },
-  { key: 'wash_in_progress',  label: 'Wash in progress',  description: 'Get notified when your wash starts.' },
-  { key: 'wash_completed',    label: 'Wash completed',    description: 'Get notified when your wash is done.' },
-  { key: 'booking_reminders', label: 'Booking reminders', description: 'Reminder 24 hours before your appointment.' },
-  { key: 'promotions',        label: 'Promotions',        description: 'Occasional offers and service updates.' },
-];
+  { key: 'bookingConfirmed', label: 'Booking confirmed', description: 'Get notified when a booking is confirmed.' },
+  { key: 'washInProgress',  label: 'Wash in progress',  description: 'Get notified when your wash starts.' },
+  { key: 'washCompleted',   label: 'Wash completed',    description: 'Get notified when your wash is done.' },
+  { key: 'bookingReminders', label: 'Booking reminders', description: 'Reminder 24 hours before your appointment.' },
+  { key: 'promotions',      label: 'Promotions',        description: 'Occasional offers and service updates.' },
+] as const;
+
+type NotifKey = (typeof NOTIFICATION_ROWS)[number]['key'];
+
+const DEFAULT_PREFS: Record<NotifKey, boolean> = {
+  bookingConfirmed: true,
+  washInProgress: true,
+  washCompleted: true,
+  bookingReminders: true,
+  promotions: false,
+};
 
 function NotificationsSection() {
-  // TODO: no backend endpoint for notification preferences yet — local state only
-  const [toggleStates, setToggleStates] = useState<Record<string, boolean>>({
-    booking_confirmed: true,
-    wash_in_progress: true,
-    wash_completed: true,
-    booking_reminders: true,
-    promotions: false,
+  const queryClient = useQueryClient();
+  const updateNotifications = useUpdateNotifications();
+
+  const { data: serverPrefs } = useQuery({
+    queryKey: ['notificationPreferences'],
+    queryFn: fetchNotificationPreferences,
   });
 
-  function handleToggle(key: string) {
-    setToggleStates((prev) => ({ ...prev, [key]: !prev[key] }));
+  const [prefs, setPrefs] = useState<Record<NotifKey, boolean>>(DEFAULT_PREFS);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (serverPrefs) {
+      setPrefs({
+        bookingConfirmed: serverPrefs.bookingConfirmed,
+        washInProgress: serverPrefs.washInProgress,
+        washCompleted: serverPrefs.washCompleted,
+        bookingReminders: serverPrefs.bookingReminders,
+        promotions: serverPrefs.promotions,
+      });
+    }
+  }, [serverPrefs]);
+
+  function handleToggle(key: NotifKey) {
+    const next = { ...prefs, [key]: !prefs[key] };
+    setPrefs(next);
+    setSaveError(null);
+
+    updateNotifications.mutate(next, {
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notificationPreferences'] }),
+      onError: (err) => {
+        const axiosErr = err as AxiosError<{ message?: string }>;
+        setSaveError(axiosErr.response?.data?.message ?? 'Failed to save preferences.');
+        setPrefs(prefs); // revert
+      },
+    });
   }
 
   return (
@@ -196,13 +281,14 @@ function NotificationsSection() {
               <p className="text-xs text-gray-500 mt-0.5">{description}</p>
             </div>
             <ToggleSwitch
-              checked={toggleStates[key]}
+              checked={prefs[key]}
               onChange={() => handleToggle(key)}
               label={`Toggle ${label}`}
             />
           </div>
         ))}
       </div>
+      {saveError && <p className="text-sm text-red-600 mt-3">{saveError}</p>}
     </div>
   );
 }
@@ -210,17 +296,71 @@ function NotificationsSection() {
 // ─── Change password section ──────────────────────────────────────────────────
 
 function ChangePasswordSection() {
-  // TODO: no change-password endpoint yet
+  const changePassword = useChangePassword();
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  function handleSubmit() {
+    setError(null);
+    setSuccess(false);
+
+    if (newPassword !== confirmPassword) {
+      setError('New passwords do not match.');
+      return;
+    }
+
+    changePassword.mutate(
+      { currentPassword, newPassword },
+      {
+        onSuccess: () => {
+          setSuccess(true);
+          setCurrentPassword('');
+          setNewPassword('');
+          setConfirmPassword('');
+        },
+        onError: (err) => {
+          const axiosErr = err as AxiosError<{ message?: string }>;
+          setError(axiosErr.response?.data?.message ?? 'Failed to change password.');
+        },
+      },
+    );
+  }
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6">
       <h2 className="text-base font-semibold text-gray-900 mb-6">Change password</h2>
       <div className="flex flex-col gap-4">
-        <Input label="Current password" type="password" />
-        <Input label="New password" type="password" />
-        <Input label="Confirm new password" type="password" />
+        <Input
+          label="Current password"
+          type="password"
+          value={currentPassword}
+          onChange={(e) => setCurrentPassword(e.target.value)}
+        />
+        <Input
+          label="New password"
+          type="password"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+        />
+        <Input
+          label="Confirm new password"
+          type="password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+        />
       </div>
+      {error && <p className="text-sm text-red-600 mt-3">{error}</p>}
+      {success && <p className="text-sm text-green-600 mt-3">Password updated successfully.</p>}
       <div className="flex justify-end mt-6">
-        <Button variant="primary" size="sm" onClick={() => console.log('update password')}>
+        <Button
+          variant="primary"
+          size="sm"
+          isLoading={changePassword.isPending}
+          onClick={handleSubmit}
+        >
           Update password
         </Button>
       </div>
@@ -231,8 +371,21 @@ function ChangePasswordSection() {
 // ─── Delete account section ───────────────────────────────────────────────────
 
 function DeleteAccountSection() {
-  // TODO: no delete-account endpoint yet
+  const { logout } = useAuth();
+  const deleteAccount = useDeleteAccount();
   const [confirmValue, setConfirmValue] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  function handleDelete() {
+    setError(null);
+    deleteAccount.mutate(undefined, {
+      onSuccess: () => logout(),
+      onError: (err) => {
+        const axiosErr = err as AxiosError<{ message?: string }>;
+        setError(axiosErr.response?.data?.message ?? 'Failed to delete account.');
+      },
+    });
+  }
 
   return (
     <div className="bg-white rounded-xl border border-red-200 p-6">
@@ -255,12 +408,14 @@ function DeleteAccountSection() {
           className="border border-gray-200 rounded-lg px-3 py-2 text-sm w-full mt-2 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
         />
       </div>
+      {error && <p className="text-sm text-red-600 mt-3">{error}</p>}
       <div className="mt-4">
         <Button
           variant="danger"
           size="sm"
           disabled={confirmValue !== 'DELETE'}
-          onClick={() => console.log('delete account')}
+          isLoading={deleteAccount.isPending}
+          onClick={handleDelete}
         >
           Delete my account
         </Button>

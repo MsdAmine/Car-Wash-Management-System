@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Plus, X } from 'lucide-react';
 import { AdminLayout } from '@/shared/components/layout/AdminLayout';
 import { Button } from '@/shared/components/ui/Button';
@@ -13,6 +13,18 @@ const SERVICE_IMAGES: Record<string, string> = {
   'Premium Detail': '/images/service-premium-detail.png',
 };
 const DEFAULT_SERVICE_IMAGE = '/images/service-basic-wash.png';
+
+function serviceImageKey(id: string) {
+  return `service_img_${id}`;
+}
+
+function getServiceImage(name: string, id?: string): string {
+  if (id) {
+    const stored = localStorage.getItem(serviceImageKey(id));
+    if (stored) return stored;
+  }
+  return SERVICE_IMAGES[name] ?? DEFAULT_SERVICE_IMAGE;
+}
 import { ErrorState } from '@/shared/components/feedback/ErrorState';
 import { useAllServices } from '../hooks/useAllServices';
 import { useCreateService } from '../hooks/useCreateService';
@@ -30,12 +42,14 @@ interface ServicePanelProps {
 function ServicePanel({ isOpen, onClose, service }: ServicePanelProps) {
   const createService  = useCreateService();
   const updateService  = useUpdateService();
+  const imageInputRef  = useRef<HTMLInputElement>(null);
 
   const [name, setName]               = useState('');
   const [description, setDescription] = useState('');
   const [duration, setDuration]       = useState('');
   const [price, setPrice]             = useState('');
   const [active, setActive]           = useState(true);
+  const [imageSrc, setImageSrc]       = useState('');
 
   useEffect(() => {
     setName(service?.name ?? '');
@@ -43,7 +57,23 @@ function ServicePanel({ isOpen, onClose, service }: ServicePanelProps) {
     setDuration(service ? String(service.durationMinutes) : '');
     setPrice(service ? String(service.price) : '');
     setActive(service?.active ?? true);
+    setImageSrc(getServiceImage(service?.name ?? '', service?.id));
   }, [service, isOpen]);
+
+  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      setImageSrc(dataUrl);
+      if (service?.id) {
+        localStorage.setItem(serviceImageKey(service.id), dataUrl);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  }
 
   useEffect(() => {
     if (!isOpen) return;
@@ -106,11 +136,24 @@ function ServicePanel({ isOpen, onClose, service }: ServicePanelProps) {
         <div className="px-6 py-6 flex flex-col gap-4 overflow-y-auto flex-1">
           <div>
             <img
-              src={SERVICE_IMAGES[name] ?? DEFAULT_SERVICE_IMAGE}
+              src={imageSrc || DEFAULT_SERVICE_IMAGE}
               alt="Service photo"
-              className="w-full aspect-video object-cover"
+              className="w-full aspect-video object-cover rounded-lg"
             />
-            <p className="text-xs text-gray-400 mt-1">Image upload coming soon.</p>
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageChange}
+            />
+            <button
+              type="button"
+              onClick={() => imageInputRef.current?.click()}
+              className="mt-1.5 text-xs text-indigo-600 hover:text-indigo-700 focus-visible:outline-none focus-visible:underline"
+            >
+              Upload image
+            </button>
           </div>
 
           <Input
@@ -250,7 +293,7 @@ export function AdminServicesPage() {
               }`}
             >
               <img
-                src={SERVICE_IMAGES[service.name] ?? DEFAULT_SERVICE_IMAGE}
+                src={getServiceImage(service.name, service.id)}
                 alt={service.name}
                 className="w-full aspect-video object-cover"
               />

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Car, CheckCircle2, Plus, ChevronLeft, ChevronRight, Info } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/shared/components/ui/Button';
 import { StepTracker } from '@/shared/components/ui/StepTracker';
 import { ErrorState } from '@/shared/components/feedback/ErrorState';
@@ -442,6 +442,7 @@ const STEPS = [
 
 export function BookingFlowPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const { data: services = [], isLoading: servicesLoading, isError: servicesError } = useActiveServices();
   const { data: vehicles = [], isLoading: vehiclesLoading } = useMyVehicles();
@@ -450,7 +451,9 @@ export function BookingFlowPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const [confirmedBookingId, setConfirmedBookingId] = useState<string | null>(null);
 
-  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(
+    searchParams.get('serviceId'),
+  );
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);

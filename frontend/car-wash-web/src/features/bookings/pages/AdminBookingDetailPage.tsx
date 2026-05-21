@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, UserX } from 'lucide-react';
@@ -9,7 +10,10 @@ import { LoadingSpinner } from '@/shared/components/feedback/LoadingSpinner';
 import { ErrorState } from '@/shared/components/feedback/ErrorState';
 import { ADMIN_KEYS } from '@/features/admin/hooks/useAdminDashboard';
 import { useBookingDetail } from '@/features/admin/hooks/useBookingDetail';
+import { useCancelBooking } from '@/features/admin/hooks/useCancelBooking';
 import { fetchBookingAssignments } from '@/features/admin/api';
+import { AssignJobModal } from '@/features/bookings/components/AssignJobModal';
+import { RescheduleBookingModal } from '@/features/bookings/components/RescheduleBookingModal';
 import { ROUTES } from '@/router/routes';
 import type { BookingResponse } from '../types';
 
@@ -65,6 +69,10 @@ function InfoField({ label, value }: InfoFieldProps) {
 export function AdminBookingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [isAssignOpen, setIsAssignOpen] = useState(false);
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  const cancelMutation = useCancelBooking();
 
   const { data: booking, isLoading, isError } = useBookingDetail(id!);
 
@@ -92,13 +100,32 @@ export function AdminBookingDetailPage() {
           <span className="font-mono text-sm text-gray-900">{ref}</span>
         </nav>
       </div>
-      <div className="flex gap-2">
-        <Button variant="ghost" size="sm" onClick={() => console.log('reschedule')}>
-          Reschedule
-        </Button>
-        <Button variant="danger" size="sm" onClick={() => console.log('cancel')}>
-          Cancel
-        </Button>
+      <div className="flex items-center gap-2">
+        {confirmingCancel ? (
+          <>
+            <span className="text-sm text-gray-600">Cancel this booking?</span>
+            <Button variant="ghost" size="sm" onClick={() => setConfirmingCancel(false)}>
+              Keep it
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              isLoading={cancelMutation.isPending}
+              onClick={() => cancelMutation.mutate(id!, { onSuccess: () => navigate(ROUTES.ADMIN.BOOKINGS) })}
+            >
+              Yes, cancel
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button variant="ghost" size="sm" onClick={() => setRescheduleOpen(true)}>
+              Reschedule
+            </Button>
+            <Button variant="danger" size="sm" onClick={() => setConfirmingCancel(true)}>
+              Cancel
+            </Button>
+          </>
+        )}
       </div>
     </div>
   );
@@ -126,6 +153,13 @@ export function AdminBookingDetailPage() {
   const currentStep = deriveCurrentStep(booking.status);
   const assignedWasher = assignments && assignments.length > 0 ? assignments[0] : null;
   const appointmentDate = new Date(booking.appointmentDateTime);
+  const assignBooking = {
+    ref,
+    service: booking.washServiceName,
+    datetime: appointmentDate.toLocaleString(),
+    appointmentDateTime: booking.appointmentDateTime,
+    durationMinutes: booking.durationMinutes,
+  };
 
   return (
     <AdminLayout topBar={topBar}>
@@ -199,7 +233,7 @@ export function AdminBookingDetailPage() {
                   </p>
                 </div>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => console.log('reassign')}>
+              <Button variant="ghost" size="sm" onClick={() => setIsAssignOpen(true)}>
                 Reassign
               </Button>
             </div>
@@ -209,7 +243,7 @@ export function AdminBookingDetailPage() {
               <p className="text-sm font-semibold text-gray-700 mt-2">No washer assigned</p>
               <p className="text-xs text-gray-500 mt-1">Assign a washer to this booking.</p>
               <div className="mt-3 flex justify-center">
-                <Button variant="primary" size="sm" onClick={() => console.log('assign')}>
+                <Button variant="primary" size="sm" onClick={() => setIsAssignOpen(true)}>
                   Assign washer
                 </Button>
               </div>
@@ -235,6 +269,18 @@ export function AdminBookingDetailPage() {
         </div>
 
       </div>
+      <AssignJobModal
+        isOpen={isAssignOpen}
+        onClose={() => setIsAssignOpen(false)}
+        booking={assignBooking}
+        bookingId={booking.id}
+      />
+      <RescheduleBookingModal
+        isOpen={rescheduleOpen}
+        onClose={() => setRescheduleOpen(false)}
+        bookingId={booking.id}
+        washServiceId={booking.washServiceId}
+      />
     </AdminLayout>
   );
 }

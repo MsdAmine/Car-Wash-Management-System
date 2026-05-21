@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { isAxiosError } from 'axios';
 import { Loader } from 'lucide-react';
 import { Badge } from '@/shared/components/ui/Badge';
@@ -9,8 +9,10 @@ import { ConfirmDialog } from '@/shared/components/ui/ConfirmDialog';
 import { ClientLayout } from '@/shared/components/layout/ClientLayout';
 import { LoadingSpinner } from '@/shared/components/feedback/LoadingSpinner';
 import { ErrorState } from '@/shared/components/feedback/ErrorState';
+import { RescheduleBookingModal } from '../components/RescheduleBookingModal';
 import { useMyBookings } from '../hooks/useMyBookings';
 import { useCancelBooking } from '../hooks/useCancelBooking';
+import { ROUTES } from '@/router/routes';
 import type { BookingResponse } from '../types';
 import { formatAppointmentDate, formatAppointmentDateTime } from '@/shared/lib/formatDate';
 
@@ -19,6 +21,55 @@ import { formatAppointmentDate, formatAppointmentDateTime } from '@/shared/lib/f
 type BadgeVariant = 'pending' | 'confirmed' | 'inProgress' | 'completed' | 'cancelled';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function printReceipt(booking: BookingResponse) {
+  const date = new Date(booking.appointmentDateTime).toLocaleDateString('en-US', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+  });
+  const time = new Date(booking.appointmentDateTime).toLocaleTimeString('en-US', {
+    hour: '2-digit', minute: '2-digit',
+  });
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Receipt</title>
+  <style>
+    body{font-family:ui-sans-serif,system-ui,sans-serif;padding:48px;max-width:480px;margin:0 auto;color:#111827}
+    h1{font-size:22px;font-weight:700;margin:0 0 4px}
+    .id{font-size:12px;color:#6b7280;font-family:monospace;margin-bottom:24px}
+    hr{border:none;border-top:1px solid #e5e7eb;margin:16px 0}
+    .row{display:flex;justify-content:space-between;padding:6px 0;font-size:14px}
+    .label{color:#6b7280}
+    .total{display:flex;justify-content:space-between;padding:12px 0;font-weight:700;font-size:16px;border-top:2px solid #111827;margin-top:8px}
+    @media print{.no-print{display:none}}
+  </style>
+</head>
+<body>
+  <h1>Car Wash Receipt</h1>
+  <p class="id">${booking.id}</p>
+  <hr/>
+  <div class="row"><span class="label">Service</span><span>${booking.washServiceName}</span></div>
+  <div class="row"><span class="label">Date</span><span>${date}</span></div>
+  <div class="row"><span class="label">Time</span><span>${time}</span></div>
+  <div class="row"><span class="label">Duration</span><span>${booking.durationMinutes} min</span></div>
+  <div class="row"><span class="label">Vehicle</span><span>${booking.vehicleLicensePlate}</span></div>
+  <hr/>
+  <div class="total"><span>Total</span><span>$${booking.totalPrice}</span></div>
+  <script>window.onload=function(){window.print();}</script>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const w = window.open(url, '_blank', 'width=620,height=520');
+  if (w) {
+    w.addEventListener('afterprint', () => URL.revokeObjectURL(url));
+  } else {
+    URL.revokeObjectURL(url);
+  }
+}
 
 const STATUS_TO_BADGE: Record<BookingResponse['status'], BadgeVariant> = {
   PENDING:     'pending',
@@ -42,6 +93,14 @@ const STEPS = [
   { label: 'In Progress' },
   { label: 'Completed' },
 ];
+
+function getAssignedWasherName(booking: BookingResponse): string | null {
+  const name = [booking.assignedEmployeeFirstName, booking.assignedEmployeeLastName]
+    .filter(Boolean)
+    .join(' ')
+    .trim();
+  return name || null;
+}
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -69,9 +128,11 @@ function InfoField({ label, value, italic, muted }: InfoFieldProps) {
 
 export function ClientBookingDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { data: bookings, isLoading, isError, refetch } = useMyBookings();
   const cancelMutation = useCancelBooking();
   const [isCancelOpen, setIsCancelOpen] = useState(false);
+  const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
 
   const booking = bookings?.find((b) => b.id === id) ?? null;
 
@@ -115,6 +176,7 @@ export function ClientBookingDetailPage() {
   const currentStep = STATUS_TO_STEP[booking.status];
   const dateLabel = formatAppointmentDate(booking.appointmentDateTime);
   const timeLabel = formatAppointmentDateTime(booking.appointmentDateTime).split(' at ')[1] ?? '';
+  const assignedWasherName = getAssignedWasherName(booking);
 
   return (
     <ClientLayout>
@@ -166,7 +228,12 @@ export function ClientBookingDetailPage() {
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-4">
               Washer
             </p>
-            <InfoField label="Name" value="To be confirmed" italic muted />
+            <InfoField
+              label="Name"
+              value={assignedWasherName ?? 'To be confirmed'}
+              italic={!assignedWasherName}
+              muted={!assignedWasherName}
+            />
           </div>
 
         </div>
@@ -189,10 +256,10 @@ export function ClientBookingDetailPage() {
         </div>
 
         {/* Section 5 — Contextual actions */}
-        {booking.status === 'PENDING' && (
+        {(booking.status === 'PENDING' || booking.status === 'CONFIRMED') && (
           <div className="flex flex-col gap-2 items-end">
             <div className="flex gap-3">
-              <Button variant="ghost" size="sm" onClick={() => console.log('reschedule')}>
+              <Button variant="ghost" size="sm" onClick={() => setIsRescheduleOpen(true)}>
                 Reschedule
               </Button>
               <Button variant="danger" size="sm" onClick={() => setIsCancelOpen(true)}>
@@ -217,10 +284,14 @@ export function ClientBookingDetailPage() {
 
         {booking.status === 'COMPLETED' && (
           <div className="flex gap-3 justify-end">
-            <Button variant="ghost" size="sm" onClick={() => console.log('book again')}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate(`${ROUTES.CLIENT.BOOK}?serviceId=${booking.washServiceId}`)}
+            >
               Book again
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => console.log('receipt')}>
+            <Button variant="ghost" size="sm" onClick={() => printReceipt(booking)}>
               Receipt
             </Button>
           </div>
@@ -233,6 +304,13 @@ export function ClientBookingDetailPage() {
         )}
 
       </main>
+
+      <RescheduleBookingModal
+        isOpen={isRescheduleOpen}
+        onClose={() => setIsRescheduleOpen(false)}
+        bookingId={booking.id}
+        washServiceId={booking.washServiceId}
+      />
 
       <ConfirmDialog
         isOpen={isCancelOpen}

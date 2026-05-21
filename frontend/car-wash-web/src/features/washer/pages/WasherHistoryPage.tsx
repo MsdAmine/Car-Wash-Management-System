@@ -38,10 +38,21 @@ function HistorySkeleton() {
 interface FilterSheetProps {
   isOpen: boolean;
   onClose: () => void;
+  activeFilter: ServiceFilter;
+  onApply: (filter: ServiceFilter) => void;
 }
 
-function FilterSheet({ isOpen, onClose }: FilterSheetProps) {
-  const [selected, setSelected] = useState<ServiceFilter>('All');
+function FilterSheet({ isOpen, onClose, activeFilter, onApply }: FilterSheetProps) {
+  const [selected, setSelected] = useState<ServiceFilter>(activeFilter);
+
+  function handleApply() {
+    onApply(selected);
+    onClose();
+  }
+
+  function handleClear() {
+    setSelected('All');
+  }
 
   return (
     <>
@@ -83,11 +94,11 @@ function FilterSheet({ isOpen, onClose }: FilterSheetProps) {
               variant="ghost"
               size="sm"
               className="flex-1"
-              onClick={() => setSelected('All')}
+              onClick={handleClear}
             >
               Clear filters
             </Button>
-            <Button variant="primary" size="sm" className="flex-1" onClick={onClose}>
+            <Button variant="primary" size="sm" className="flex-1" onClick={handleApply}>
               Apply
             </Button>
           </div>
@@ -139,6 +150,7 @@ function HistoryJobCard({ booking }: HistoryJobCardProps) {
 export function WasherHistoryPage() {
   const [search, setSearch] = useState('');
   const [filterOpen, setFilterOpen] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<ServiceFilter>('All');
 
   // The today endpoint returns all statuses; filter to completed only.
   // TODO: replace with a real history endpoint when available
@@ -156,15 +168,18 @@ export function WasherHistoryPage() {
   );
 
   const filtered = useMemo(() => {
+    let result = activeFilter === 'All'
+      ? completed
+      : completed.filter(b => b.washServiceName === activeFilter);
     const q = search.trim().toLowerCase();
-    if (!q) return completed;
-    return completed.filter(
+    if (!q) return result;
+    return result.filter(
       b =>
         b.customerEmail.toLowerCase().includes(q) ||
         b.vehicleLicensePlate.toLowerCase().includes(q) ||
         b.washServiceName.toLowerCase().includes(q),
     );
-  }, [search, completed]);
+  }, [search, completed, activeFilter]);
 
   const grouped = useMemo<JobGroup[]>(() => {
     const map = new Map<string, BookingResponse[]>();
@@ -238,7 +253,12 @@ export function WasherHistoryPage() {
           )}
         </div>
 
-        <FilterSheet isOpen={filterOpen} onClose={() => setFilterOpen(false)} />
+        <FilterSheet
+          isOpen={filterOpen}
+          onClose={() => setFilterOpen(false)}
+          activeFilter={activeFilter}
+          onApply={setActiveFilter}
+        />
       </>
     </WasherLayout>
   );

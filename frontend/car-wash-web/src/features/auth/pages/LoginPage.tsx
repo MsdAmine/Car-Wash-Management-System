@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { AxiosError } from 'axios';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -9,18 +10,21 @@ import { ROUTES } from '@/router/routes';
 import { useLogin } from '../hooks/useLogin';
 
 export function LoginPage() {
+  const [showForgotMsg, setShowForgotMsg] = useState(false);
+
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
+    defaultValues: { rememberMe: false },
   });
 
   const { mutate: login, isPending, error } = useLogin();
 
   const onSubmit = (values: LoginFormValues) => {
-    login({ email: values.email, password: values.password });
+    login({ email: values.email, password: values.password, rememberMe: values.rememberMe });
   };
 
   return (
@@ -65,14 +69,20 @@ export function LoginPage() {
             </div>
 
             <div className="flex justify-between items-center mt-3">
-              <Checkbox label="Remember me" />
-              <a
-                href="#"
+              <Checkbox label="Remember me" {...register('rememberMe')} />
+              <button
+                type="button"
                 className="text-sm text-indigo-600 hover:text-indigo-700 focus-visible:outline-none focus-visible:underline"
+                onClick={() => setShowForgotMsg((v) => !v)}
               >
                 Forgot password?
-              </a>
+              </button>
             </div>
+            {showForgotMsg && (
+              <p className="text-sm text-gray-500 mt-2">
+                Please contact support to reset your password.
+              </p>
+            )}
 
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 mt-4">

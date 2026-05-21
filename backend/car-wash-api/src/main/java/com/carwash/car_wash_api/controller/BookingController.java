@@ -1,6 +1,7 @@
 package com.carwash.car_wash_api.controller;
 
 import com.carwash.car_wash_api.dto.request.BookingRequest;
+import com.carwash.car_wash_api.dto.request.RescheduleBookingRequest;
 import com.carwash.car_wash_api.dto.request.UpdateBookingStatusRequest;
 import com.carwash.car_wash_api.dto.response.AvailableSlotsResponse;
 import com.carwash.car_wash_api.dto.response.BookingResponse;
@@ -180,6 +181,32 @@ public class BookingController {
             @PathVariable UUID id,
             @Valid @RequestBody UpdateBookingStatusRequest request) {
         return ResponseEntity.ok(bookingService.updateBookingStatus(id, request));
+    }
+
+    // ── PATCH /api/v1/bookings/{id}/reschedule ───────────────────────────────
+
+    @Operation(
+            summary = "Reschedule my booking",
+            description = "Customer reschedules their own PENDING or CONFIRMED booking to a new date and time.",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Booking rescheduled successfully",
+                    content = @Content(schema = @Schema(implementation = BookingResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid time or booking cannot be rescheduled",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Authentication required",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Booking belongs to a different customer",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Booking not found",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @PatchMapping("/{id}/reschedule")
+    public ResponseEntity<BookingResponse> rescheduleMyBooking(
+            @PathVariable UUID id,
+            @Valid @RequestBody RescheduleBookingRequest request) {
+        return ResponseEntity.ok(bookingService.rescheduleMyBooking(id, request));
     }
 
     // ── PATCH /api/v1/bookings/{id}/cancel ───────────────────────────────────

@@ -27,13 +27,13 @@ interface AuthContextValue {
   token: string | null;
   isAuthenticated: boolean;
   isInitialised: boolean;
-  login: (authResponse: AuthResponse) => Promise<void>;
+  login: (authResponse: AuthResponse, rememberMe?: boolean) => Promise<void>;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const SESSION_TOKEN_KEY = 'auth_token';
+const TOKEN_KEY = 'auth_token';
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -41,8 +41,8 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const navigate = useNavigate();
-  const [token, setToken] = useState<string | null>(() =>
-    sessionStorage.getItem(SESSION_TOKEN_KEY),
+  const [token, setToken] = useState<string | null>(
+    () => localStorage.getItem(TOKEN_KEY) ?? sessionStorage.getItem(TOKEN_KEY),
   );
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -50,7 +50,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   function clearSession(): void {
     setAuthToken(null);
-    sessionStorage.clear();
+    localStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(TOKEN_KEY);
     queryClient.clear();
     setToken(null);
     setUser(null);
@@ -75,7 +76,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   useEffect(() => {
-    const storedToken = sessionStorage.getItem(SESSION_TOKEN_KEY);
+    const storedToken = localStorage.getItem(TOKEN_KEY) ?? sessionStorage.getItem(TOKEN_KEY);
     if (storedToken) {
       hydrateFromProfile(storedToken).finally(() => setIsInitialised(true));
     } else {
@@ -83,8 +84,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, []);
 
-  async function login(authResponse: AuthResponse): Promise<void> {
-    sessionStorage.setItem(SESSION_TOKEN_KEY, authResponse.token);
+  async function login(authResponse: AuthResponse, rememberMe = false): Promise<void> {
+    if (rememberMe) {
+      localStorage.setItem(TOKEN_KEY, authResponse.token);
+    } else {
+      sessionStorage.setItem(TOKEN_KEY, authResponse.token);
+    }
     setToken(authResponse.token);
     setAuthToken(authResponse.token);
     await hydrateFromProfile(authResponse.token);

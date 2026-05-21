@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import { AdminLayout } from '@/shared/components/layout/AdminLayout';
 import { Button } from '@/shared/components/ui/Button';
@@ -13,6 +14,7 @@ import {
   TableCell,
 } from '@/shared/components/ui/Table';
 import { useAllClients } from '@/features/clients/hooks/useAllClients';
+import { ROUTES } from '@/router/routes';
 import type { CustomerResponse } from '../types';
 
 // ─── Skeleton rows ────────────────────────────────────────────────────────────
@@ -41,6 +43,13 @@ interface ClientDetailPanelProps {
 }
 
 function ClientDetailPanel({ client, onClose }: ClientDetailPanelProps) {
+  const navigate = useNavigate();
+
+  function handleCreateBooking() {
+    onClose();
+    navigate(`${ROUTES.ADMIN.BOOKINGS}?clientId=${client.id}`);
+  }
+
   return (
     <div className="fixed inset-y-0 right-0 w-96 bg-white border-l border-gray-200 shadow-xl z-30 flex flex-col">
       <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
@@ -85,7 +94,7 @@ function ClientDetailPanel({ client, onClose }: ClientDetailPanelProps) {
           {/* TODO: enrich with booking counts when a dedicated customer detail endpoint is added */}
         </div>
 
-        <Button variant="primary" size="sm" onClick={() => console.log('create booking for', client.id)}>
+        <Button variant="primary" size="sm" onClick={handleCreateBooking}>
           Create booking for this client
         </Button>
       </div>

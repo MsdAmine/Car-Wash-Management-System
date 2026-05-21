@@ -3,7 +3,6 @@ package com.carwash.car_wash_api.service;
 import com.carwash.car_wash_api.dto.request.AssignEmployeeRequest;
 import com.carwash.car_wash_api.dto.response.BookingAssignmentResponse;
 import com.carwash.car_wash_api.dto.response.BookingResponse;
-import com.carwash.car_wash_api.exception.DuplicateResourceException;
 import com.carwash.car_wash_api.exception.InvalidEmployeeOperationException;
 import com.carwash.car_wash_api.exception.ResourceNotFoundException;
 import com.carwash.car_wash_api.mapper.BookingMapper;
@@ -24,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -54,9 +54,23 @@ public class BookingAssignmentService {
                     "Cannot assign an employee with status " + employee.getStatus() + " to a booking");
         }
 
-        if (assignmentRepository.existsByBookingIdAndEmployeeId(bookingId, employee.getId())) {
-            throw new DuplicateResourceException(
-                    "Employee is already assigned to this booking");
+        List<BookingAssignment> existingAssignments = assignmentRepository.findByBookingId(bookingId);
+        Optional<BookingAssignment> existingForEmployee = existingAssignments.stream()
+                .filter(existing -> existing.getEmployee().getId().equals(employee.getId()))
+                .findFirst();
+
+        if (booking.getStatus() == BookingStatus.PENDING) {
+            booking.setStatus(BookingStatus.CONFIRMED);
+            bookingRepository.save(booking);
+        }
+
+        if (existingForEmployee.isPresent()) {
+            return toResponse(existingForEmployee.get());
+        }
+
+        if (!existingAssignments.isEmpty()) {
+            assignmentRepository.deleteAll(existingAssignments);
+            assignmentRepository.flush();
         }
 
         User assignedBy = resolveCurrentUser();

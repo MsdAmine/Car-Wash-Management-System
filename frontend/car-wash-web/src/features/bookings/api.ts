@@ -16,6 +16,11 @@ export async function cancelBooking(id: string): Promise<BookingResponse> {
   return data
 }
 
+export async function rescheduleMyBooking(id: string, appointmentDateTime: string): Promise<BookingResponse> {
+  const { data } = await api.patch<BookingResponse>(`/bookings/${id}/reschedule`, { appointmentDateTime })
+  return data
+}
+
 export async function fetchAvailableSlots(
   date: string,
   serviceId: string,

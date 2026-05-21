@@ -77,8 +77,20 @@ export interface ServiceBookingStatResponse {
   percentage: number
 }
 
+export interface AdminBookingRequest {
+  customerId: number
+  vehicleId: string
+  washServiceId: string
+  appointmentDateTime: string
+  notes?: string
+}
+
 export interface HeatmapResponse {
   days: string[]
   slots: string[]
   data: number[][]
+}
+
+export interface RescheduleBookingRequest {
+  appointmentDateTime: string
 }

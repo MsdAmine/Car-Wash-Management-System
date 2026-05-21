@@ -27,10 +27,24 @@ export interface UserProfileResponse {
   lastName: string;
   phone: string;
   role: string;
+  avatarUrl?: string;
 }
 
 export interface UpdateProfileRequest {
   firstName: string;
   lastName: string;
   phone?: string;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface NotificationPreferences {
+  bookingConfirmed: boolean;
+  washInProgress: boolean;
+  washCompleted: boolean;
+  bookingReminders: boolean;
+  promotions: boolean;
 }

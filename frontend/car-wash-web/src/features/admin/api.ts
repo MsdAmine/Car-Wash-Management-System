@@ -1,5 +1,6 @@
 import api from '@/shared/lib/axios'
 import type {
+  AdminBookingRequest,
   AdminDashboardResponse,
   AssignEmployeeRequest,
   BookingAssignmentResponse,
@@ -7,6 +8,7 @@ import type {
   BusinessSettingsResponse,
   HeatmapResponse,
   OperatingHoursResponse,
+  RescheduleBookingRequest,
   RevenueDataPoint,
   ServiceBookingStatResponse,
   UpdateOperatingHoursRequest,
@@ -52,9 +54,11 @@ export async function cancelBooking(id: string): Promise<BookingResponse> {
 export async function fetchRevenueTimeSeries(
   period: 'daily' | 'weekly' | 'monthly',
   days: number,
+  from?: string,
+  to?: string,
 ): Promise<RevenueDataPoint[]> {
   const { data } = await api.get<RevenueDataPoint[]>('/dashboard/revenue', {
-    params: { period, days },
+    params: { period, days, ...(from && { from }), ...(to && { to }) },
   })
   return data
 }
@@ -94,12 +98,31 @@ export async function updateOperatingHours(
   return data
 }
 
-export async function fetchBookingsByService(): Promise<ServiceBookingStatResponse[]> {
-  const { data } = await api.get<ServiceBookingStatResponse[]>('/dashboard/bookings-by-service')
+export async function fetchBookingsByService(from?: string, to?: string): Promise<ServiceBookingStatResponse[]> {
+  const { data } = await api.get<ServiceBookingStatResponse[]>('/dashboard/bookings-by-service', {
+    params: { ...(from && { from }), ...(to && { to }) },
+  })
   return data
 }
 
-export async function fetchActivityHeatmap(): Promise<HeatmapResponse> {
-  const { data } = await api.get<HeatmapResponse>('/dashboard/activity-heatmap')
+export async function adminCreateBooking(body: AdminBookingRequest): Promise<BookingResponse> {
+  const { data } = await api.post<BookingResponse>('/admin/bookings', body)
+  return data
+}
+
+export async function fetchActivityHeatmap(from?: string, to?: string): Promise<HeatmapResponse> {
+  const { data } = await api.get<HeatmapResponse>('/dashboard/activity-heatmap', {
+    params: { ...(from && { from }), ...(to && { to }) },
+  })
+  return data
+}
+
+export async function adminCancelBooking(id: string): Promise<BookingResponse> {
+  const { data } = await api.patch<BookingResponse>(`/bookings/${id}/status`, { status: 'CANCELLED' })
+  return data
+}
+
+export async function rescheduleBooking(id: string, body: RescheduleBookingRequest): Promise<BookingResponse> {
+  const { data } = await api.patch<BookingResponse>(`/admin/bookings/${id}/reschedule`, body)
   return data
 }

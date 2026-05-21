@@ -22,6 +22,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.springframework.format.annotation.DateTimeFormat;
+
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -99,8 +102,10 @@ public class DashboardController {
     @GetMapping("/revenue")
     public ResponseEntity<List<RevenueDataPointResponse>> getRevenueSeries(
             @RequestParam(defaultValue = "daily") String period,
-            @RequestParam(defaultValue = "7") int days) {
-        return ResponseEntity.ok(dashboardService.getRevenueTimeSeries(period, days));
+            @RequestParam(defaultValue = "7") int days,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return ResponseEntity.ok(dashboardService.getRevenueTimeSeries(period, days, from, to));
     }
 
     // ── GET /api/v1/dashboard/bookings-by-service ─────────────────────────────
@@ -118,8 +123,10 @@ public class DashboardController {
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @GetMapping("/bookings-by-service")
-    public ResponseEntity<List<ServiceBookingStatResponse>> getBookingsByService() {
-        return ResponseEntity.ok(dashboardService.getBookingsByService());
+    public ResponseEntity<List<ServiceBookingStatResponse>> getBookingsByService(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return ResponseEntity.ok(dashboardService.getBookingsByService(from, to));
     }
 
     // ── GET /api/v1/dashboard/activity-heatmap ────────────────────────────────
@@ -137,7 +144,9 @@ public class DashboardController {
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @GetMapping("/activity-heatmap")
-    public ResponseEntity<HeatmapResponse> getActivityHeatmap() {
-        return ResponseEntity.ok(dashboardService.getActivityHeatmap());
+    public ResponseEntity<HeatmapResponse> getActivityHeatmap(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return ResponseEntity.ok(dashboardService.getActivityHeatmap(from, to));
     }
 }

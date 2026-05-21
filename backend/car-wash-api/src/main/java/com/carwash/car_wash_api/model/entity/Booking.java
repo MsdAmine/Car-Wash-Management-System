@@ -6,6 +6,8 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -58,6 +60,11 @@ public class Booking {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Builder.Default
+    @OneToMany(mappedBy = "booking", fetch = FetchType.LAZY)
+    @OrderBy("assignedAt DESC")
+    private List<BookingAssignment> assignments = new ArrayList<>();
 
     @PrePersist
     protected void onCreate() {

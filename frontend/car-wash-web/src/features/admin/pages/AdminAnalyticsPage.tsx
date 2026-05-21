@@ -6,6 +6,7 @@ import { ErrorState } from '@/shared/components/feedback/ErrorState';
 import { useRevenueTimeSeries } from '@/features/admin/hooks/useRevenueTimeSeries';
 import { useBookingsByService } from '@/features/admin/hooks/useBookingsByService';
 import { useActivityHeatmap } from '@/features/admin/hooks/useActivityHeatmap';
+import { fetchRevenueTimeSeries, fetchBookingsByService } from '@/features/admin/api';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -64,10 +65,16 @@ const PERIODS: { key: ChartPeriod; label: string }[] = [
   { key: 'monthly', label: 'Monthly' },
 ];
 
-function RevenueChart() {
-  const [period, setPeriod] = useState<ChartPeriod>('daily');
+interface RevenueChartProps {
+  period: ChartPeriod;
+  onPeriodChange: (p: ChartPeriod) => void;
+  from?: string;
+  to?: string;
+}
+
+function RevenueChart({ period, onPeriodChange, from, to }: RevenueChartProps) {
   const { data: revenueData, isLoading: revenueLoading, isError: revenueError } =
-    useRevenueTimeSeries(period, 7);
+    useRevenueTimeSeries(period, 7, from, to);
 
   const slotWidth = 700 / Math.max(revenueData?.length ?? 1, 1);
   const barWidth = 60;
@@ -85,7 +92,7 @@ function RevenueChart() {
           {PERIODS.map(({ key, label }) => (
             <button
               key={key}
-              onClick={() => setPeriod(key)}
+              onClick={() => onPeriodChange(key)}
               className={`text-sm px-3 py-1 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                 period === key
                   ? 'bg-indigo-50 text-indigo-700'
@@ -134,9 +141,9 @@ function RevenueChart() {
   );
 }
 
-function BookingsByService() {
+function BookingsByService({ from, to }: { from?: string; to?: string }) {
   const { data: serviceStats, isLoading: serviceStatsLoading, isError: serviceStatsError } =
-    useBookingsByService();
+    useBookingsByService(from, to);
 
   const cx = 100;
   const cy = 100;
@@ -234,9 +241,9 @@ function BookingsByService() {
   );
 }
 
-function ActivityHeatmap() {
+function ActivityHeatmap({ from, to }: { from?: string; to?: string }) {
   const { data: heatmapData, isLoading: heatmapLoading, isError: heatmapError } =
-    useActivityHeatmap();
+    useActivityHeatmap(from, to);
 
   const days = heatmapData?.days ?? [];
   const slots = heatmapData?.slots ?? [];
@@ -320,22 +327,67 @@ function ActivityHeatmap() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function AdminAnalyticsPage() {
+  const [period, setPeriod]     = useState<ChartPeriod>('daily');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo]     = useState('');
+  const [exporting, setExporting] = useState(false);
+
+  const from = dateFrom || undefined;
+  const to   = dateTo   || undefined;
+
+  async function handleExportCSV() {
+    setExporting(true);
+    try {
+      const [revenue, services] = await Promise.all([
+        fetchRevenueTimeSeries(period, 7, from, to),
+        fetchBookingsByService(from, to),
+      ]);
+
+      const rows: string[][] = [
+        ['Revenue over Time'],
+        ['Date', 'Revenue'],
+        ...revenue.map((r) => [r.label, String(r.revenue)]),
+        [],
+        ['Bookings by Service'],
+        ['Service', 'Count', 'Percentage'],
+        ...services.map((s) => [s.serviceName, String(s.bookingCount), `${s.percentage}%`]),
+      ];
+
+      const csv = '﻿' + rows.map((r) => r.map((v) => `"${v}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `analytics${dateFrom ? `-${dateFrom}` : ''}${dateTo ? `-to-${dateTo}` : ''}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
+  }
+
   const topBar = (
     <>
       <h1 className="text-lg font-semibold text-gray-900">Analytics</h1>
       <div className="flex items-center gap-3">
         <input
           type="date"
+          value={dateFrom}
+          max={dateTo || undefined}
+          onChange={(e) => setDateFrom(e.target.value)}
           className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
         />
         <span className="text-sm text-gray-500">to</span>
         <input
           type="date"
+          value={dateTo}
+          min={dateFrom || undefined}
+          onChange={(e) => setDateTo(e.target.value)}
           className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
         />
-        <Button variant="ghost" size="sm" onClick={() => console.log('export')}>
+        <Button variant="ghost" size="sm" onClick={handleExportCSV} disabled={exporting}>
           <Download className="w-4 h-4" />
-          Export CSV
+          {exporting ? 'Exporting…' : 'Export CSV'}
         </Button>
       </div>
     </>
@@ -344,10 +396,10 @@ export function AdminAnalyticsPage() {
   return (
     <AdminLayout topBar={topBar}>
       <div className="flex flex-col gap-6">
-        <RevenueChart />
+        <RevenueChart period={period} onPeriodChange={setPeriod} from={from} to={to} />
         <div className="grid grid-cols-2 gap-6">
-          <BookingsByService />
-          <ActivityHeatmap />
+          <BookingsByService from={from} to={to} />
+          <ActivityHeatmap from={from} to={to} />
         </div>
       </div>
     </AdminLayout>

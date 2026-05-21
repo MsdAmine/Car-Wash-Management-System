@@ -4,14 +4,20 @@ import { useAuth } from '@/shared/context/AuthContext';
 import { loginUser } from '../api';
 import { ROUTES } from '@/router/routes';
 
+interface LoginVariables {
+  email: string;
+  password: string;
+  rememberMe?: boolean;
+}
+
 export function useLogin() {
   const navigate = useNavigate();
   const auth = useAuth();
 
   return useMutation({
-    mutationFn: loginUser,
-    onSuccess: async (data) => {
-      await auth.login(data);
+    mutationFn: ({ email, password }: LoginVariables) => loginUser({ email, password }),
+    onSuccess: async (data, variables) => {
+      await auth.login(data, variables.rememberMe ?? false);
       if (data.role === 'ADMIN') {
         navigate(ROUTES.ADMIN.DASHBOARD);
       } else if (data.role === 'EMPLOYEE') {

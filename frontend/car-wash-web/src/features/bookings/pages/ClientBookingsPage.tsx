@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { Calendar, Car } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Badge } from '@/shared/components/ui/Badge';
 import { Button } from '@/shared/components/ui/Button';
+import { ConfirmDialog } from '@/shared/components/ui/ConfirmDialog';
 import { EmptyState } from '@/shared/components/feedback/EmptyState';
 import { ErrorState } from '@/shared/components/feedback/ErrorState';
 import { ClientLayout } from '@/shared/components/layout/ClientLayout';
 import { ROUTES } from '@/router/routes';
 import { useMyBookings } from '../hooks/useMyBookings';
+import { useCancelBooking } from '../hooks/useCancelBooking';
+import { RescheduleBookingModal } from '../components/RescheduleBookingModal';
 import { formatAppointmentDateTime } from '@/shared/lib/formatDate';
 import type { BookingResponse } from '../types';
 
@@ -22,7 +25,9 @@ interface Booking {
   service: string;
   dateTime: string;
   vehicle: string;
+  washer: string | null;
   status: BookingStatus;
+  washServiceId: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -43,13 +48,25 @@ const statusBorderClass: Record<BookingStatus, string> = {
   cancelled: 'border-l-gray-300',
 };
 
+function getAssignedWasherName(booking: BookingResponse): string | null {
+  const name = [booking.assignedEmployeeFirstName, booking.assignedEmployeeLastName]
+    .filter(Boolean)
+    .join(' ')
+    .trim();
+  return name || null;
+}
+
 // ─── Booking card bottom ──────────────────────────────────────────────────────
 
 interface BookingCardBottomProps {
   booking: Booking;
+  onReschedule: () => void;
+  onCancel: () => void;
+  onBookAgain: () => void;
+  onReceipt: () => void;
 }
 
-function BookingCardBottom({ booking }: BookingCardBottomProps) {
+function BookingCardBottom({ booking, onReschedule, onCancel, onBookAgain, onReceipt }: BookingCardBottomProps) {
   if (booking.status === 'inProgress') {
     return (
       <div className="mt-4">
@@ -67,10 +84,10 @@ function BookingCardBottom({ booking }: BookingCardBottomProps) {
   if (booking.status === 'pending' || booking.status === 'confirmed') {
     return (
       <div className="mt-4 flex gap-2">
-        <Button variant="ghost" size="sm" onClick={() => console.log('reschedule', booking.id)}>
+        <Button variant="ghost" size="sm" onClick={onReschedule}>
           Reschedule
         </Button>
-        <Button variant="danger" size="sm" onClick={() => console.log('cancel', booking.id)}>
+        <Button variant="danger" size="sm" onClick={onCancel}>
           Cancel
         </Button>
       </div>
@@ -80,10 +97,10 @@ function BookingCardBottom({ booking }: BookingCardBottomProps) {
   if (booking.status === 'completed') {
     return (
       <div className="mt-4 flex gap-2">
-        <Button variant="ghost" size="sm" onClick={() => console.log('book-again', booking.id)}>
+        <Button variant="ghost" size="sm" onClick={onBookAgain}>
           Book again
         </Button>
-        <Button variant="ghost" size="sm" onClick={() => console.log('receipt', booking.id)}>
+        <Button variant="ghost" size="sm" onClick={onReceipt}>
           Receipt
         </Button>
       </div>
@@ -97,9 +114,13 @@ function BookingCardBottom({ booking }: BookingCardBottomProps) {
 
 interface BookingCardProps {
   booking: Booking;
+  onReschedule: () => void;
+  onCancel: () => void;
+  onBookAgain: () => void;
+  onReceipt: () => void;
 }
 
-function BookingCard({ booking }: BookingCardProps) {
+function BookingCard({ booking, onReschedule, onCancel, onBookAgain, onReceipt }: BookingCardProps) {
   return (
     <div
       className={`bg-white rounded-xl border border-gray-200 border-l-4 ${statusBorderClass[booking.status]} overflow-hidden`}
@@ -107,7 +128,12 @@ function BookingCard({ booking }: BookingCardProps) {
       <div className="p-5">
         <div className="flex justify-between items-start">
           <div>
-            <p className="text-base font-semibold text-gray-900">{booking.service}</p>
+            <Link
+              to={ROUTES.CLIENT.BOOKING_DETAIL(booking.id)}
+              className="text-base font-semibold text-gray-900 hover:text-indigo-600"
+            >
+              {booking.service}
+            </Link>
             <p className="font-mono text-xs text-gray-500 mt-0.5">{booking.ref}</p>
           </div>
           <Badge variant={booking.status} />
@@ -122,9 +148,18 @@ function BookingCard({ booking }: BookingCardProps) {
             <Car className="w-4 h-4" />
             {booking.vehicle}
           </span>
+          <span className="text-sm text-gray-500">
+            Washer: {booking.washer ?? 'To be confirmed'}
+          </span>
         </div>
 
-        <BookingCardBottom booking={booking} />
+        <BookingCardBottom
+          booking={booking}
+          onReschedule={onReschedule}
+          onCancel={onCancel}
+          onBookAgain={onBookAgain}
+          onReceipt={onReceipt}
+        />
       </div>
     </div>
   );
@@ -136,6 +171,10 @@ export function ClientBookingsPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabId>('upcoming');
   const { data: bookings, isLoading, isError } = useMyBookings();
+  const cancelMutation = useCancelBooking();
+
+  const [rescheduleBooking, setRescheduleBooking] = useState<{ id: string; washServiceId: string } | null>(null);
+  const [cancelBookingId, setCancelBookingId] = useState<string | null>(null);
 
   const allBookings: Booking[] = (bookings ?? []).map(b => ({
     id: b.id,
@@ -143,7 +182,9 @@ export function ClientBookingsPage() {
     service: b.washServiceName,
     dateTime: formatAppointmentDateTime(b.appointmentDateTime),
     vehicle: b.vehicleLicensePlate,
+    washer: getAssignedWasherName(b),
     status: STATUS_MAP[b.status],
+    washServiceId: b.washServiceId,
   }));
 
   const upcomingCount = (bookings ?? []).filter(
@@ -219,11 +260,43 @@ export function ClientBookingsPage() {
         ) : (
           <div className="flex flex-col gap-4">
             {filtered.map(booking => (
-              <BookingCard key={booking.id} booking={booking} />
+              <BookingCard
+                key={booking.id}
+                booking={booking}
+                onReschedule={() => setRescheduleBooking({ id: booking.id, washServiceId: booking.washServiceId })}
+                onCancel={() => setCancelBookingId(booking.id)}
+                onBookAgain={() => navigate(`${ROUTES.CLIENT.BOOK}?serviceId=${booking.washServiceId}`)}
+                onReceipt={() => navigate(ROUTES.CLIENT.BOOKING_DETAIL(booking.id))}
+              />
             ))}
           </div>
         )}
       </main>
+
+      <RescheduleBookingModal
+        isOpen={rescheduleBooking !== null}
+        onClose={() => setRescheduleBooking(null)}
+        bookingId={rescheduleBooking?.id ?? ''}
+        washServiceId={rescheduleBooking?.washServiceId ?? ''}
+      />
+
+      <ConfirmDialog
+        isOpen={cancelBookingId !== null}
+        onClose={() => setCancelBookingId(null)}
+        onConfirm={() => {
+          if (cancelBookingId) {
+            cancelMutation.mutate(cancelBookingId, {
+              onSuccess: () => setCancelBookingId(null),
+            });
+          }
+        }}
+        title="Cancel booking"
+        message="Are you sure you want to cancel this booking? This action cannot be undone."
+        confirmLabel="Yes, cancel booking"
+        cancelLabel="Keep booking"
+        variant="danger"
+        isLoading={cancelMutation.isPending}
+      />
     </ClientLayout>
   );
 }

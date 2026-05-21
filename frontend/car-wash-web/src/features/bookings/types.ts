@@ -29,6 +29,11 @@ export interface BookingResponse {
   washServiceName: string
   washServicePrice: number
   durationMinutes: number
+  assignedEmployeeId: string | null
+  assignedEmployeeFirstName: string | null
+  assignedEmployeeLastName: string | null
+  assignedEmployeePosition: string | null
+  assignedAt: string | null
   totalPrice: number
   status: 'PENDING' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
   appointmentDateTime: string

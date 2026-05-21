@@ -147,14 +147,14 @@ public class DashboardService {
     }
 
     @Transactional(readOnly = true)
-    public List<RevenueDataPointResponse> getRevenueTimeSeries(String period, int days) {
+    public List<RevenueDataPointResponse> getRevenueTimeSeries(String period, int days, LocalDate from, LocalDate to) {
         int units = Math.min(Math.max(1, days), 90);
+        LocalDate rangeEnd = to != null ? to : LocalDate.now();
 
         if ("monthly".equalsIgnoreCase(period)) {
-            LocalDate today = LocalDate.now();
-            LocalDate startDate = today.minusMonths(units - 1).withDayOfMonth(1);
+            LocalDate rangeStart = from != null ? from.withDayOfMonth(1) : rangeEnd.minusMonths(units - 1).withDayOfMonth(1);
             List<Payment> payments = paymentRepository.findConfirmedInRange(
-                    PaymentStatus.CONFIRMED, startDate.atStartOfDay(), today.plusDays(1).atStartOfDay());
+                    PaymentStatus.CONFIRMED, rangeStart.atStartOfDay(), rangeEnd.plusDays(1).atStartOfDay());
             Map<YearMonth, BigDecimal> totals = payments.stream()
                     .filter(p -> p.getPaidAt() != null)
                     .collect(Collectors.groupingBy(
@@ -162,8 +162,8 @@ public class DashboardService {
                             Collectors.reducing(BigDecimal.ZERO, Payment::getAmount, BigDecimal::add)));
             DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MMM yyyy");
             List<RevenueDataPointResponse> result = new ArrayList<>();
-            YearMonth cursor = YearMonth.from(startDate);
-            YearMonth end = YearMonth.now();
+            YearMonth cursor = YearMonth.from(rangeStart);
+            YearMonth end = YearMonth.from(rangeEnd);
             while (!cursor.isAfter(end)) {
                 result.add(RevenueDataPointResponse.builder()
                         .label(cursor.atDay(1).format(fmt))
@@ -175,19 +175,19 @@ public class DashboardService {
         }
 
         if ("weekly".equalsIgnoreCase(period)) {
-            LocalDate today = LocalDate.now();
-            LocalDate firstMonday = today.minusWeeks(units - 1)
-                    .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+            LocalDate rangeStart = from != null
+                    ? from.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                    : rangeEnd.minusWeeks(units - 1).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
             List<Payment> payments = paymentRepository.findConfirmedInRange(
-                    PaymentStatus.CONFIRMED, firstMonday.atStartOfDay(), today.plusDays(1).atStartOfDay());
+                    PaymentStatus.CONFIRMED, rangeStart.atStartOfDay(), rangeEnd.plusDays(1).atStartOfDay());
             Map<LocalDate, BigDecimal> totals = payments.stream()
                     .filter(p -> p.getPaidAt() != null)
                     .collect(Collectors.groupingBy(
                             p -> p.getPaidAt().toLocalDate().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)),
                             Collectors.reducing(BigDecimal.ZERO, Payment::getAmount, BigDecimal::add)));
             List<RevenueDataPointResponse> result = new ArrayList<>();
-            LocalDate cursor = firstMonday;
-            while (!cursor.isAfter(today)) {
+            LocalDate cursor = rangeStart;
+            while (!cursor.isAfter(rangeEnd)) {
                 int week = cursor.get(WeekFields.ISO.weekOfWeekBasedYear());
                 result.add(RevenueDataPointResponse.builder()
                         .label("Week " + week)
@@ -199,10 +199,9 @@ public class DashboardService {
         }
 
         // Default: daily
-        LocalDate today = LocalDate.now();
-        LocalDate startDate = today.minusDays(units - 1);
+        LocalDate rangeStart = from != null ? from : rangeEnd.minusDays(units - 1);
         List<Payment> payments = paymentRepository.findConfirmedInRange(
-                PaymentStatus.CONFIRMED, startDate.atStartOfDay(), today.plusDays(1).atStartOfDay());
+                PaymentStatus.CONFIRMED, rangeStart.atStartOfDay(), rangeEnd.plusDays(1).atStartOfDay());
         Map<LocalDate, BigDecimal> totals = payments.stream()
                 .filter(p -> p.getPaidAt() != null)
                 .collect(Collectors.groupingBy(
@@ -210,7 +209,7 @@ public class DashboardService {
                         Collectors.reducing(BigDecimal.ZERO, Payment::getAmount, BigDecimal::add)));
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MMM dd");
         List<RevenueDataPointResponse> result = new ArrayList<>();
-        for (LocalDate date = startDate; !date.isAfter(today); date = date.plusDays(1)) {
+        for (LocalDate date = rangeStart; !date.isAfter(rangeEnd); date = date.plusDays(1)) {
             result.add(RevenueDataPointResponse.builder()
                     .label(date.format(fmt))
                     .revenue(totals.getOrDefault(date, BigDecimal.ZERO))
@@ -219,10 +218,17 @@ public class DashboardService {
         return result;
     }
 
-    // analytics: all-time booking counts per service
+    // analytics: booking counts per service, optionally filtered by date range
     @Transactional(readOnly = true)
-    public List<ServiceBookingStatResponse> getBookingsByService() {
-        List<Object[]> rows = bookingRepository.countGroupedByService();
+    public List<ServiceBookingStatResponse> getBookingsByService(LocalDate from, LocalDate to) {
+        List<Object[]> rows;
+        if (from != null || to != null) {
+            LocalDateTime start = from != null ? from.atStartOfDay() : LocalDate.of(2000, 1, 1).atStartOfDay();
+            LocalDateTime end   = to   != null ? to.plusDays(1).atStartOfDay() : LocalDate.now().plusDays(1).atStartOfDay();
+            rows = bookingRepository.countGroupedByServiceInRange(start, end);
+        } else {
+            rows = bookingRepository.countGroupedByService();
+        }
         long total = rows.stream().mapToLong(r -> (Long) r[2]).sum();
         return rows.stream()
                 .map(r -> {
@@ -238,13 +244,14 @@ public class DashboardService {
                 .toList();
     }
 
-    // analytics: 10×7 booking heatmap for the last 90 days (CONFIRMED, IN_PROGRESS, COMPLETED)
+    // analytics: 10×7 booking heatmap, optionally filtered by date range (defaults to last 90 days)
     @Transactional(readOnly = true)
-    public HeatmapResponse getActivityHeatmap() {
-        LocalDateTime since = LocalDateTime.now().minusDays(90);
+    public HeatmapResponse getActivityHeatmap(LocalDate from, LocalDate to) {
+        LocalDateTime start = from != null ? from.atStartOfDay() : LocalDateTime.now().minusDays(90);
+        LocalDateTime end   = to   != null ? to.plusDays(1).atStartOfDay() : LocalDate.now().plusDays(1).atStartOfDay();
         List<BookingStatus> statuses = List.of(
                 BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS, BookingStatus.COMPLETED);
-        List<Booking> bookings = bookingRepository.findRecentByStatusIn(since, statuses);
+        List<Booking> bookings = bookingRepository.findInRangeByStatusIn(start, end, statuses);
 
         List<String> days = List.of("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun");
         List<String> slots = List.of(

@@ -43,7 +43,7 @@ export function LandingPage() {
           <div className="hidden md:flex items-center gap-6">
             <a href="#services" className="text-sm text-gray-600 hover:text-gray-900">Services</a>
             <a href="#how-it-works" className="text-sm text-gray-600 hover:text-gray-900">How it works</a>
-            <a href="#pricing" className="text-sm text-gray-600 hover:text-gray-900">Pricing</a>
+            <a href="#services" className="text-sm text-gray-600 hover:text-gray-900">Pricing</a>
           </div>
 
           <div className="flex items-center">
@@ -119,9 +119,10 @@ export function LandingPage() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {MOCK_SERVICES.map((service) => (
-            <div
+            <a
               key={service.id}
-              className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
+              href={ROUTES.PUBLIC.REGISTER}
+              className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow block"
             >
               <img
                 src={SERVICE_IMAGES[service.name] ?? DEFAULT_SERVICE_IMAGE}
@@ -131,9 +132,9 @@ export function LandingPage() {
               <p className="text-lg font-semibold text-gray-900">{service.name}</p>
               <p className="text-sm text-gray-500 mt-1">{service.description}</p>
               <span className="text-sm text-indigo-600 hover:text-indigo-700 font-medium mt-4 inline-block">
-                Learn more →
+                Book now →
               </span>
-            </div>
+            </a>
           ))}
         </div>
       </section>
@@ -189,16 +190,16 @@ export function LandingPage() {
               <p className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-3">Product</p>
               <a href="#services" className="text-sm text-gray-400 hover:text-white block mb-2">Services</a>
               <a href="#how-it-works" className="text-sm text-gray-400 hover:text-white block mb-2">How it works</a>
-              <a href="#pricing" className="text-sm text-gray-400 hover:text-white block mb-2">Pricing</a>
+              <a href="#services" className="text-sm text-gray-400 hover:text-white block mb-2">Pricing</a>
               <a href={ROUTES.PUBLIC.REGISTER} className="text-sm text-gray-400 hover:text-white block mb-2">Book now</a>
             </div>
 
             <div>
               <p className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-3">Company</p>
-              <a href="#" className="text-sm text-gray-400 hover:text-white block mb-2">About</a>
-              <a href="#" className="text-sm text-gray-400 hover:text-white block mb-2">Contact</a>
-              <a href="#" className="text-sm text-gray-400 hover:text-white block mb-2">Privacy</a>
-              <a href="#" className="text-sm text-gray-400 hover:text-white block mb-2">Terms</a>
+              <span className="text-sm text-gray-600 block mb-2">About</span>
+              <span className="text-sm text-gray-600 block mb-2">Contact</span>
+              <span className="text-sm text-gray-600 block mb-2">Privacy</span>
+              <span className="text-sm text-gray-600 block mb-2">Terms</span>
             </div>
           </div>
 

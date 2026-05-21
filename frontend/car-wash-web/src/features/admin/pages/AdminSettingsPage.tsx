@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Info, LogOut } from 'lucide-react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import { AdminLayout } from '@/shared/components/layout/AdminLayout';
 import { Button } from '@/shared/components/ui/Button';
@@ -12,6 +12,11 @@ import { useBusinessSettings, SETTINGS_KEYS } from '../hooks/useBusinessSettings
 import { useUpdateBusinessSettings } from '../hooks/useUpdateBusinessSettings';
 import { useOperatingHours } from '../hooks/useOperatingHours';
 import { useUpdateOperatingHours } from '../hooks/useUpdateOperatingHours';
+import { fetchNotificationPreferences } from '@/features/auth/api';
+import { useUpdateNotifications } from '@/features/auth/hooks/useUpdateNotifications';
+import type { NotificationPreferences } from '@/features/auth/types';
+
+const LOGO_STORAGE_KEY = 'business_logo';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -45,11 +50,15 @@ function BusinessInfoSection() {
   const { data: settings, isLoading: settingsLoading } = useBusinessSettings();
   const updateSettings = useUpdateBusinessSettings();
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
+  const [logoSrc, setLogoSrc] = useState<string>(
+    () => localStorage.getItem(LOGO_STORAGE_KEY) ?? '/images/logo-business.png',
+  );
 
   useEffect(() => {
     if (settings) {
@@ -59,6 +68,43 @@ function BusinessInfoSection() {
       setCity(settings.city);
     }
   }, [settings]);
+
+  function handleLogoFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      localStorage.setItem(LOGO_STORAGE_KEY, dataUrl);
+      setLogoSrc(dataUrl);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  }
+
+  const logoBlock = (
+    <div className="flex items-center gap-4 pb-6 mb-2 border-b border-gray-100">
+      <img src={logoSrc} alt="Business logo" className="w-16 h-16 rounded-xl object-cover" />
+      <div>
+        <p className="text-base font-semibold text-gray-900">{settings?.businessName}</p>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleLogoFileChange}
+        />
+        <Button
+          variant="ghost"
+          size="sm"
+          className="mt-1"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          Upload logo
+        </Button>
+      </div>
+    </div>
+  );
 
   if (settingsLoading) {
     return <div className="bg-gray-100 animate-pulse h-48 rounded-xl" />;
@@ -77,20 +123,7 @@ function BusinessInfoSection() {
 
       {!isEditing ? (
         <div className="px-6 py-6 flex flex-col gap-4">
-          <div className="flex items-center gap-4 pb-6 mb-2 border-b border-gray-100">
-            <img src="/images/logo-business.png" alt="Business logo" className="w-16 h-16 rounded-xl object-cover" />
-            <div>
-              <p className="text-base font-semibold text-gray-900">{settings?.businessName}</p>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="mt-1"
-                onClick={() => console.log('upload logo')}
-              >
-                Upload logo
-              </Button>
-            </div>
-          </div>
+          {logoBlock}
           <div className="grid grid-cols-2 gap-6">
             <div>
               <p className="text-xs text-gray-500 uppercase tracking-wide">Business name</p>
@@ -112,20 +145,7 @@ function BusinessInfoSection() {
         </div>
       ) : (
         <div className="px-6 py-6">
-          <div className="flex items-center gap-4 pb-6 mb-2 border-b border-gray-100">
-            <img src="/images/logo-business.png" alt="Business logo" className="w-16 h-16 rounded-xl object-cover" />
-            <div>
-              <p className="text-base font-semibold text-gray-900">{settings?.businessName}</p>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="mt-1"
-                onClick={() => console.log('upload logo')}
-              >
-                Upload logo
-              </Button>
-            </div>
-          </div>
+          {logoBlock}
           <div className="flex flex-col gap-4 mt-4">
             <Input
               label="Business name"
@@ -320,24 +340,42 @@ function OperatingHoursSection() {
 
 // ─── Notifications section ────────────────────────────────────────────────────
 
-const ADMIN_NOTIFICATION_ROWS = [
-  { key: 'new_booking',         label: 'New booking',         description: 'Alert when a new booking is created.' },
-  { key: 'booking_cancelled',   label: 'Booking cancelled',   description: 'Alert when a client cancels.' },
-  { key: 'unassigned_bookings', label: 'Unassigned bookings', description: 'Daily digest of unassigned jobs.' },
-  { key: 'staff_activity',      label: 'Staff activity',      description: 'Updates when washers start or complete jobs.' },
+const ADMIN_NOTIFICATION_ROWS: { key: keyof NotificationPreferences; label: string; description: string }[] = [
+  { key: 'bookingConfirmed', label: 'New booking confirmed', description: 'Alert when a new booking is created.' },
+  { key: 'washInProgress',   label: 'Wash in progress',     description: 'Alert when a washer starts a job.' },
+  { key: 'washCompleted',    label: 'Wash completed',        description: 'Alert when a job is marked complete.' },
+  { key: 'bookingReminders', label: 'Booking reminders',    description: 'Daily digest of upcoming bookings.' },
 ];
 
+const NOTIFICATIONS_KEY = ['notifications', 'preferences'] as const;
+
 function NotificationsSection() {
-  // TODO: wire to a notifications preferences endpoint when available
-  const [notifications, setNotifications] = useState<Record<string, boolean>>({
-    new_booking: true,
-    booking_cancelled: true,
-    unassigned_bookings: true,
-    staff_activity: true,
+  const updateNotifications = useUpdateNotifications();
+  const { data, isLoading } = useQuery({
+    queryKey: NOTIFICATIONS_KEY,
+    queryFn: fetchNotificationPreferences,
   });
 
-  function handleToggle(key: string) {
-    setNotifications((prev) => ({ ...prev, [key]: !prev[key] }));
+  const [prefs, setPrefs] = useState<NotificationPreferences>({
+    bookingConfirmed: true,
+    washInProgress: true,
+    washCompleted: true,
+    bookingReminders: true,
+    promotions: false,
+  });
+
+  useEffect(() => {
+    if (data) setPrefs(data);
+  }, [data]);
+
+  function handleToggle(key: keyof NotificationPreferences) {
+    const updated = { ...prefs, [key]: !prefs[key] };
+    setPrefs(updated);
+    updateNotifications.mutate(updated);
+  }
+
+  if (isLoading) {
+    return <div className="bg-gray-100 animate-pulse h-48 rounded-xl" />;
   }
 
   return (
@@ -351,7 +389,7 @@ function NotificationsSection() {
               <p className="text-xs text-gray-500 mt-0.5">{description}</p>
             </div>
             <ToggleSwitch
-              checked={notifications[key]}
+              checked={prefs[key] as boolean}
               onChange={() => handleToggle(key)}
               label={`Toggle ${label}`}
             />

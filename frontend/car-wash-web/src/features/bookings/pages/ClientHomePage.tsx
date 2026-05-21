@@ -1,12 +1,17 @@
+import { useState } from 'react';
 import { CalendarPlus, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { isAxiosError } from 'axios';
 import { Button } from '@/shared/components/ui/Button';
 import { Badge } from '@/shared/components/ui/Badge';
+import { ConfirmDialog } from '@/shared/components/ui/ConfirmDialog';
 import { ClientLayout } from '@/shared/components/layout/ClientLayout';
 import { ErrorState } from '@/shared/components/feedback/ErrorState';
 import { useAuth } from '@/shared/context/AuthContext';
 import { ROUTES } from '@/router/routes';
 import { useMyBookings } from '../hooks/useMyBookings';
+import { useCancelBooking } from '../hooks/useCancelBooking';
+import { RescheduleBookingModal } from '../components/RescheduleBookingModal';
 
 const SERVICE_IMAGES: Record<string, string> = {
   'Basic Wash':     '/images/service-basic-wash.png',
@@ -16,16 +21,10 @@ const SERVICE_IMAGES: Record<string, string> = {
 };
 const DEFAULT_SERVICE_IMAGE = '/images/service-basic-wash.png';
 import { useMyVehicles } from '@/features/vehicles/hooks/useMyVehicles';
+import { useActiveServices } from '@/features/services/hooks/useActiveServices';
 import { formatAppointmentDate, formatAppointmentDateTime, formatShortDate } from '@/shared/lib/formatDate';
 import type { BookingResponse } from '../types';
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const MOCK_QUICK_SERVICES: QuickService[] = [
-  { id: '1', name: 'Basic Wash', price: 15, duration: 30 },
-  { id: '2', name: 'Express Wash', price: 10, duration: 20 },
-  { id: '3', name: 'Full Detail', price: 65, duration: 90 },
-];
+import type { WashServiceResponse } from '@/features/services/types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -33,6 +32,7 @@ type BookingStatus = 'pending' | 'confirmed' | 'inProgress' | 'completed' | 'can
 
 interface UpcomingBooking {
   id: string;
+  washServiceId: string;
   service: string;
   dateTime: string;
   vehicle: string;
@@ -52,13 +52,6 @@ interface RecentBooking {
   service: string;
   date: string;
   status: BookingStatus;
-}
-
-interface QuickService {
-  id: string;
-  name: string;
-  price: number;
-  duration: number;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -86,13 +79,23 @@ const statusBorderClass: Record<BookingStatus, string> = {
   cancelled: 'border-l-red-500',
 };
 
+function getAssignedWasherName(booking: BookingResponse): string {
+  const name = [booking.assignedEmployeeFirstName, booking.assignedEmployeeLastName]
+    .filter(Boolean)
+    .join(' ')
+    .trim();
+  return name || 'Unassigned';
+}
+
 // ─── Upcoming booking card ────────────────────────────────────────────────────
 
 interface UpcomingBookingCardProps {
   booking: UpcomingBooking;
+  onReschedule: () => void;
+  onCancel: () => void;
 }
 
-function UpcomingBookingCard({ booking }: UpcomingBookingCardProps) {
+function UpcomingBookingCard({ booking, onReschedule, onCancel }: UpcomingBookingCardProps) {
   return (
     <div
       className={`bg-white rounded-xl border border-gray-200 border-l-4 ${statusBorderClass[booking.status]} p-5 flex justify-between items-start`}
@@ -106,18 +109,10 @@ function UpcomingBookingCard({ booking }: UpcomingBookingCardProps) {
       <div className="flex flex-col items-end gap-2">
         <Badge variant={booking.status} />
         <div className="flex flex-col gap-2 mt-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => console.log('reschedule', booking.id)}
-          >
+          <Button variant="ghost" size="sm" onClick={onReschedule}>
             Reschedule
           </Button>
-          <Button
-            variant="danger"
-            size="sm"
-            onClick={() => console.log('cancel', booking.id)}
-          >
+          <Button variant="danger" size="sm" onClick={onCancel}>
             Cancel
           </Button>
         </div>
@@ -148,7 +143,7 @@ function UpcomingEmptyState({ onBook }: UpcomingEmptyStateProps) {
 // ─── Quick book ───────────────────────────────────────────────────────────────
 
 interface QuickServiceCardProps {
-  service: QuickService;
+  service: WashServiceResponse;
   onBook: () => void;
 }
 
@@ -175,7 +170,7 @@ function QuickServiceCard({ service, onBook }: QuickServiceCardProps) {
       <div className="flex justify-between items-center mt-1">
         <span className="text-sm text-gray-900">${service.price}</span>
         <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">
-          {service.duration} min
+          {service.durationMinutes} min
         </span>
       </div>
       <Button
@@ -253,6 +248,16 @@ export function ClientHomePage() {
   const { user } = useAuth();
   const { data: bookings, isLoading, isError } = useMyBookings();
   const { data: vehicles, isLoading: vehiclesLoading } = useMyVehicles();
+  const { data: quickServices = [], isLoading: servicesLoading } = useActiveServices();
+  const cancelMutation = useCancelBooking();
+  const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
+  const [isCancelOpen, setIsCancelOpen] = useState(false);
+
+  const cancelError = cancelMutation.error
+    ? isAxiosError(cancelMutation.error) && cancelMutation.error.response?.data?.message
+      ? (cancelMutation.error.response.data.message as string)
+      : 'Could not cancel this booking.'
+    : null;
 
   const todayDate = formatAppointmentDate(new Date().toISOString());
   const greeting = getGreeting();
@@ -264,10 +269,11 @@ export function ClientHomePage() {
   const upcomingBooking: UpcomingBooking | null = rawUpcoming
     ? {
         id: rawUpcoming.id,
+        washServiceId: rawUpcoming.washServiceId,
         service: rawUpcoming.washServiceName,
         dateTime: formatAppointmentDateTime(rawUpcoming.appointmentDateTime),
         vehicle: rawUpcoming.vehicleLicensePlate,
-        washer: rawUpcoming.status === 'CONFIRMED' ? 'Assigned' : 'Unassigned',
+        washer: getAssignedWasherName(rawUpcoming),
         status: STATUS_MAP[rawUpcoming.status],
       }
     : null;
@@ -311,7 +317,16 @@ export function ClientHomePage() {
           ) : isError ? (
             <ErrorState message="Could not load bookings." />
           ) : upcomingBooking !== null ? (
-            <UpcomingBookingCard booking={upcomingBooking} />
+            <>
+              <UpcomingBookingCard
+                booking={upcomingBooking}
+                onReschedule={() => setIsRescheduleOpen(true)}
+                onCancel={() => setIsCancelOpen(true)}
+              />
+              {cancelError && (
+                <p className="text-sm text-red-600 mt-1">{cancelError}</p>
+              )}
+            </>
           ) : (
             <UpcomingEmptyState onBook={() => navigate(ROUTES.CLIENT.BOOK)} />
           )}
@@ -332,13 +347,17 @@ export function ClientHomePage() {
             </button>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {MOCK_QUICK_SERVICES.map(service => (
-              <QuickServiceCard
-                key={service.id}
-                service={service}
-                onBook={() => navigate(ROUTES.CLIENT.BOOK)}
-              />
-            ))}
+            {servicesLoading
+              ? [0, 1, 2].map(i => (
+                  <div key={i} className="bg-gray-100 rounded-xl h-48 animate-pulse" />
+                ))
+              : quickServices.slice(0, 3).map(service => (
+                  <QuickServiceCard
+                    key={service.id}
+                    service={service}
+                    onBook={() => navigate(`${ROUTES.CLIENT.BOOK}?serviceId=${service.id}`)}
+                  />
+                ))}
           </div>
         </section>
 
@@ -407,6 +426,32 @@ export function ClientHomePage() {
           )}
         </section>
       </main>
+
+      {upcomingBooking && (
+        <>
+          <RescheduleBookingModal
+            isOpen={isRescheduleOpen}
+            onClose={() => setIsRescheduleOpen(false)}
+            bookingId={upcomingBooking.id}
+            washServiceId={upcomingBooking.washServiceId}
+          />
+          <ConfirmDialog
+            isOpen={isCancelOpen}
+            onClose={() => setIsCancelOpen(false)}
+            onConfirm={() => {
+              cancelMutation.mutate(upcomingBooking.id, {
+                onSuccess: () => setIsCancelOpen(false),
+              });
+            }}
+            title="Cancel booking"
+            message="Are you sure you want to cancel this booking? This action cannot be undone."
+            confirmLabel="Yes, cancel booking"
+            cancelLabel="Keep booking"
+            variant="danger"
+            isLoading={cancelMutation.isPending}
+          />
+        </>
+      )}
     </ClientLayout>
   );
 }

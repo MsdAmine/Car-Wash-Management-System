@@ -18,6 +18,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -57,7 +58,10 @@ public class SecurityConfig {
                                                 
                                                 // Admin management routes
                                                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-                                                
+
+                                                // Users may delete their own account (must come before the broad DELETE rule)
+                                                .requestMatchers(HttpMethod.DELETE, "/api/v1/users/me").authenticated()
+
                                                 // Broad restriction: Only ADMIN can perform DELETE operations across the API
                                                 .requestMatchers(HttpMethod.DELETE, "/api/v1/**").hasRole("ADMIN")
 

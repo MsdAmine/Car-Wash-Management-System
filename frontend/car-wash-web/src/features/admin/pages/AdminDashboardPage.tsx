@@ -1,12 +1,16 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 import { AdminLayout } from '@/shared/components/layout/AdminLayout';
 import { Button } from '@/shared/components/ui/Button';
 import { Badge } from '@/shared/components/ui/Badge';
 import { LoadingSpinner } from '@/shared/components/feedback/LoadingSpinner';
 import { ErrorState } from '@/shared/components/feedback/ErrorState';
+import { ROUTES } from '@/router/routes';
 import { useAdminDashboard } from '@/features/admin/hooks/useAdminDashboard';
 import { useAllBookings } from '@/features/admin/hooks/useAllBookings';
+import { AssignJobModal } from '@/features/bookings/components/AssignJobModal';
+import { AdminNewBookingModal } from '@/features/bookings/components/AdminNewBookingModal';
 import type { BookingResponse } from '@/features/bookings/types';
 
 // TODO: no revenue time-series endpoint exists — chart data remains hardcoded
@@ -151,7 +155,9 @@ function ActiveBookingsList({ bookings }: ActiveBookingsListProps) {
               {new Date(booking.appointmentDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </p>
             <div className="flex items-center gap-3 shrink-0">
-              <span className="text-sm text-gray-500">See detail</span>
+              <Link to={ROUTES.ADMIN.BOOKING_DETAIL(booking.id)} className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
+                See detail
+              </Link>
               <Badge variant={statusToVariant(booking.status)} />
             </div>
           </div>
@@ -163,9 +169,10 @@ function ActiveBookingsList({ bookings }: ActiveBookingsListProps) {
 
 interface UnassignedStripProps {
   bookings: BookingResponse[];
+  onAssign: (booking: BookingResponse) => void;
 }
 
-function UnassignedStrip({ bookings }: UnassignedStripProps) {
+function UnassignedStrip({ bookings, onAssign }: UnassignedStripProps) {
   const unassigned = bookings.filter((b) => b.status === 'PENDING');
 
   return (
@@ -187,7 +194,7 @@ function UnassignedStrip({ bookings }: UnassignedStripProps) {
               variant="primary"
               size="sm"
               className="w-full mt-2"
-              onClick={() => console.log('assign', item.id)}
+              onClick={() => onAssign(item)}
             >
               Assign washer
             </Button>
@@ -208,6 +215,29 @@ export function AdminDashboardPage() {
   const { data: dashboard, isLoading: dashLoading, isError: dashError } = useAdminDashboard();
   const { data: bookings, isLoading: bookingsLoading, isError: bookingsError } = useAllBookings();
 
+  const [assignModal, setAssignModal] = useState<{
+    isOpen: boolean;
+    booking: { ref: string; service: string; datetime: string; appointmentDateTime: string; durationMinutes: number } | null;
+    bookingId: string | null;
+  }>({ isOpen: false, booking: null, bookingId: null });
+
+  const [newBookingOpen, setNewBookingOpen] = useState(false);
+
+  function handleOpenAssign(booking: BookingResponse) {
+    const ref = booking.id.slice(-8).toUpperCase();
+    setAssignModal({
+      isOpen: true,
+      booking: {
+        ref,
+        service: booking.washServiceName,
+        datetime: new Date(booking.appointmentDateTime).toLocaleString(),
+        appointmentDateTime: booking.appointmentDateTime,
+        durationMinutes: booking.durationMinutes,
+      },
+      bookingId: booking.id,
+    });
+  }
+
   const isLoading = dashLoading || bookingsLoading;
   const isError = dashError || bookingsError;
 
@@ -224,7 +254,7 @@ export function AdminDashboardPage() {
         <h1 className="text-lg font-semibold text-gray-900">Dashboard</h1>
         <span className="text-sm text-gray-500 ml-3">{today}</span>
       </div>
-      <Button size="sm" onClick={() => console.log('new booking')}>
+      <Button size="sm" onClick={() => setNewBookingOpen(true)}>
         + New booking
       </Button>
     </>
@@ -253,41 +283,55 @@ export function AdminDashboardPage() {
   const activeWashCount = bookings.filter((b) => b.status === 'IN_PROGRESS').length;
 
   return (
-    <AdminLayout topBar={topBar}>
-      {/* Section 1 — Stat cards */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <StatCard
-          label="Today's Bookings"
-          value={dashboard.todaysBookings}
-          trend="Today"
-        />
-        <StatCard
-          label="Revenue Today"
-          value={dashboard.dailyRevenue}
-          trend="Today"
-          prefix="$"
-        />
-        <StatCard
-          label="Active Washes"
-          value={activeWashCount}
-          trend="Right now"
-        />
-        {/* TODO: distinct staff-on-duty count not available from API */}
-        <StatCard
-          label="Pending Bookings"
-          value={dashboard.pendingBookings}
-          trend="Awaiting assignment"
-        />
-      </div>
+    <>
+      <AdminLayout topBar={topBar}>
+        {/* Section 1 — Stat cards */}
+        <div className="grid grid-cols-4 gap-4 mb-6">
+          <StatCard
+            label="Today's Bookings"
+            value={dashboard.todaysBookings}
+            trend="Today"
+          />
+          <StatCard
+            label="Revenue Today"
+            value={dashboard.dailyRevenue}
+            trend="Today"
+            prefix="$"
+          />
+          <StatCard
+            label="Active Washes"
+            value={activeWashCount}
+            trend="Right now"
+          />
+          {/* TODO: distinct staff-on-duty count not available from API */}
+          <StatCard
+            label="Pending Bookings"
+            value={dashboard.pendingBookings}
+            trend="Awaiting assignment"
+          />
+        </div>
 
-      {/* Section 2 — Revenue chart */}
-      <RevenueChart />
+        {/* Section 2 — Revenue chart */}
+        <RevenueChart />
 
-      {/* Section 3 — Active bookings + Unassigned strip */}
-      <div className="grid grid-cols-3 gap-4">
-        <ActiveBookingsList bookings={bookings} />
-        <UnassignedStrip bookings={bookings} />
-      </div>
-    </AdminLayout>
+        {/* Section 3 — Active bookings + Unassigned strip */}
+        <div className="grid grid-cols-3 gap-4">
+          <ActiveBookingsList bookings={bookings} />
+          <UnassignedStrip bookings={bookings} onAssign={handleOpenAssign} />
+        </div>
+      </AdminLayout>
+
+      <AssignJobModal
+        isOpen={assignModal.isOpen}
+        onClose={() => setAssignModal((prev) => ({ ...prev, isOpen: false }))}
+        booking={assignModal.booking}
+        bookingId={assignModal.bookingId}
+      />
+
+      <AdminNewBookingModal
+        isOpen={newBookingOpen}
+        onClose={() => setNewBookingOpen(false)}
+      />
+    </>
   );
 }

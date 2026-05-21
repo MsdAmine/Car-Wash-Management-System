@@ -14,7 +14,11 @@ import {
 import { ErrorState } from '@/shared/components/feedback/ErrorState';
 import { useAllEmployees } from '../hooks/useAllEmployees';
 import { useActivateEmployee } from '../hooks/useActivateEmployee';
+import { useDeactivateEmployee } from '../hooks/useDeactivateEmployee';
+import { useUpdateEmployee } from '../hooks/useUpdateEmployee';
 import type { EmployeeResponse } from '../types';
+
+const POSITIONS = ['WASHER', 'SUPERVISOR', 'CASHIER', 'MANAGER', 'RECEPTIONIST'] as const;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -70,6 +74,22 @@ interface StaffDetailPanelProps {
 
 function StaffDetailPanel({ isOpen, onClose, staff }: StaffDetailPanelProps) {
   const activateEmployee = useActivateEmployee();
+  const deactivateEmployee = useDeactivateEmployee();
+  const updateEmployee = useUpdateEmployee();
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editPosition, setEditPosition] = useState('');
+  const [editHireDate, setEditHireDate] = useState('');
+  const [editError, setEditError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (staff) {
+      setEditPosition(staff.position);
+      setEditHireDate(staff.hireDate.slice(0, 10));
+    }
+    setIsEditing(false);
+    setEditError(null);
+  }, [staff]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -81,6 +101,21 @@ function StaffDetailPanel({ isOpen, onClose, staff }: StaffDetailPanelProps) {
   }, [isOpen, onClose]);
 
   if (!staff) return null;
+
+  function handleDeactivate() {
+    deactivateEmployee.mutate(staff!.id, { onSuccess: onClose });
+  }
+
+  function handleSaveEdit() {
+    setEditError(null);
+    updateEmployee.mutate(
+      { id: staff!.id, data: { position: editPosition, hireDate: editHireDate } },
+      {
+        onSuccess: () => setIsEditing(false),
+        onError: () => setEditError('Failed to update employee.'),
+      },
+    );
+  }
 
   return (
     <>
@@ -120,32 +155,70 @@ function StaffDetailPanel({ isOpen, onClose, staff }: StaffDetailPanelProps) {
           </div>
 
           {/* Contact info */}
-          <div className="bg-gray-50 rounded-xl p-4 flex flex-col gap-3">
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-500">Email</span>
-              <span className="text-sm text-gray-900">{staff.email}</span>
+          {!isEditing ? (
+            <div className="bg-gray-50 rounded-xl p-4 flex flex-col gap-3">
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-500">Email</span>
+                <span className="text-sm text-gray-900">{staff.email}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-500">Phone</span>
+                <span className="text-sm text-gray-900">{staff.phone}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-500">Position</span>
+                <span className="text-sm text-gray-900">{staff.position}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-500">Hired</span>
+                <span className="text-sm text-gray-900">
+                  {new Date(staff.hireDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                </span>
+              </div>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-500">Phone</span>
-              <span className="text-sm text-gray-900">{staff.phone}</span>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <div>
+                <label className="text-xs text-gray-500 block mb-1">Position</label>
+                <select
+                  value={editPosition}
+                  onChange={(e) => setEditPosition(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                >
+                  {POSITIONS.map((p) => (
+                    <option key={p} value={p}>{p.charAt(0) + p.slice(1).toLowerCase()}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 block mb-1">Hire date</label>
+                <input
+                  type="date"
+                  value={editHireDate}
+                  onChange={(e) => setEditHireDate(e.target.value)}
+                  max={new Date().toISOString().slice(0, 10)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+              {editError && <p className="text-xs text-red-600">{editError}</p>}
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" size="sm" onClick={() => { setIsEditing(false); setEditError(null); }}>
+                  Cancel
+                </Button>
+                <Button variant="primary" size="sm" isLoading={updateEmployee.isPending} onClick={handleSaveEdit}>
+                  Save
+                </Button>
+              </div>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-500">Position</span>
-              <span className="text-sm text-gray-900">{staff.position}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-500">Hired</span>
-              <span className="text-sm text-gray-900">
-                {new Date(staff.hireDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-              </span>
-            </div>
-          </div>
+          )}
 
           {/* Recent jobs */}
-          <div>
-            <p className="text-sm font-semibold text-gray-900 mb-2">Recent jobs</p>
-            <p className="text-sm text-gray-400 italic">Recent job history not available in this view.</p>
-          </div>
+          {!isEditing && (
+            <div>
+              <p className="text-sm font-semibold text-gray-900 mb-2">Recent jobs</p>
+              <p className="text-sm text-gray-400 italic">Recent job history not available in this view.</p>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
@@ -160,10 +233,16 @@ function StaffDetailPanel({ isOpen, onClose, staff }: StaffDetailPanelProps) {
             </Button>
           ) : (
             <>
-              <Button variant="ghost" size="sm" onClick={() => console.log('deactivate', staff.id)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                isLoading={deactivateEmployee.isPending}
+                onClick={handleDeactivate}
+                className="text-red-600 hover:bg-red-50 hover:text-red-700"
+              >
                 Deactivate
               </Button>
-              <Button size="sm" onClick={() => console.log('edit info', staff.id)}>
+              <Button size="sm" onClick={() => setIsEditing(true)}>
                 Edit info
               </Button>
             </>
