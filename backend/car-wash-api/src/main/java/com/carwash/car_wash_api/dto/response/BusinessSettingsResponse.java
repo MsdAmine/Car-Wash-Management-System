@@ -18,6 +18,7 @@ public class BusinessSettingsResponse {
     private String phone;
     private String address;
     private String city;
+    private String logoUrl;
     private Integer cancellationHours;
     private LocalDateTime updatedAt;
 }

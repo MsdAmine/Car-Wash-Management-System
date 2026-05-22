@@ -5,6 +5,7 @@ export interface WashServiceResponse {
   price: number
   durationMinutes: number
   active: boolean
+  imageUrl?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -15,4 +16,5 @@ export interface WashServiceRequest {
   price: number
   durationMinutes: number
   active: boolean
+  imageUrl?: string | null
 }

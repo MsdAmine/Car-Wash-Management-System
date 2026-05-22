@@ -6,7 +6,7 @@ import { ROUTES } from '@/router/routes';
 const WASHER_NAV = [
   { label: 'Jobs',    path: ROUTES.WASHER.HOME,    icon: Briefcase },
   { label: 'History', path: ROUTES.WASHER.HISTORY, icon: Clock },
-  { label: 'Alerts',  path: '/washer/alerts',      icon: Bell },
+  { label: 'Alerts',  path: ROUTES.WASHER.ALERTS,  icon: Bell },
   { label: 'Profile', path: ROUTES.WASHER.PROFILE,  icon: User },
 ];
 

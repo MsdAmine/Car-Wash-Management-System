@@ -69,4 +69,53 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
     // #328 — most requested services: returns [serviceName, count] pairs ordered by count desc
     @Query("SELECT b.washService.name, COUNT(b) FROM Booking b GROUP BY b.washService.name ORDER BY COUNT(b) DESC")
     List<Object[]> findTopRequestedServices(Pageable pageable);
+
+    @Query("SELECT b FROM Booking b WHERE b.status IN :statuses " +
+           "AND b.appointmentDateTime < :slotEnd " +
+           "AND b.endDateTime > :slotStart")
+    List<Booking> findOverlappingBookings(
+            @Param("slotStart") LocalDateTime slotStart,
+            @Param("slotEnd") LocalDateTime slotEnd,
+            @Param("statuses") List<BookingStatus> statuses
+    );
+
+    // analytics: booking counts per service (all statuses)
+    @Query("SELECT b.washService.id, b.washService.name, COUNT(b) FROM Booking b GROUP BY b.washService.id, b.washService.name ORDER BY COUNT(b) DESC")
+    List<Object[]> countGroupedByService();
+
+    // analytics: booking counts per service filtered by appointment date range
+    @Query("SELECT b.washService.id, b.washService.name, COUNT(b) FROM Booking b WHERE b.appointmentDateTime >= :from AND b.appointmentDateTime < :to GROUP BY b.washService.id, b.washService.name ORDER BY COUNT(b) DESC")
+    List<Object[]> countGroupedByServiceInRange(
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to
+    );
+
+    // analytics: bookings from a given date onward filtered by status
+    @Query("SELECT b FROM Booking b WHERE b.appointmentDateTime >= :since AND b.status IN :statuses")
+    List<Booking> findRecentByStatusIn(
+            @Param("since") LocalDateTime since,
+            @Param("statuses") List<BookingStatus> statuses
+    );
+
+    // analytics: bookings within a date range filtered by status
+    @Query("SELECT b FROM Booking b WHERE b.appointmentDateTime >= :from AND b.appointmentDateTime < :to AND b.status IN :statuses")
+    List<Booking> findInRangeByStatusIn(
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to,
+            @Param("statuses") List<BookingStatus> statuses
+    );
+
+    @Query("SELECT COUNT(b) > 0 FROM Booking b " +
+           "WHERE b.vehicle.id = :vehicleId " +
+           "AND b.id != :excludeBookingId " +
+           "AND b.status IN :statuses " +
+           "AND b.appointmentDateTime < :endDateTime " +
+           "AND b.endDateTime > :appointmentDateTime")
+    boolean existsOverlappingBookingExcluding(
+            @Param("vehicleId") UUID vehicleId,
+            @Param("excludeBookingId") UUID excludeBookingId,
+            @Param("appointmentDateTime") LocalDateTime appointmentDateTime,
+            @Param("endDateTime") LocalDateTime endDateTime,
+            @Param("statuses") Collection<BookingStatus> statuses
+    );
 }

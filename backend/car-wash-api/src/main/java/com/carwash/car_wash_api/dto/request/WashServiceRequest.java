@@ -36,4 +36,7 @@ public class WashServiceRequest {
 
     @Schema(description = "Whether this service is active and bookable (defaults to true when omitted)", example = "true")
     private Boolean active;
+
+    @Schema(description = "Optional service image stored as a URL or data URL", example = "data:image/png;base64,...")
+    private String imageUrl;
 }

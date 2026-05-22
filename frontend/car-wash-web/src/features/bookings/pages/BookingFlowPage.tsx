@@ -1,21 +1,19 @@
 import { useState } from 'react';
 import { Car, CheckCircle2, Plus, ChevronLeft, ChevronRight, Info } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/shared/components/ui/Button';
 import { StepTracker } from '@/shared/components/ui/StepTracker';
-import { ImagePlaceholder } from '@/shared/components/ui/ImagePlaceholder';
 import { ErrorState } from '@/shared/components/feedback/ErrorState';
 import { ClientLayout } from '@/shared/components/layout/ClientLayout';
 import { ROUTES } from '@/router/routes';
 import { useActiveServices } from '@/features/services/hooks/useActiveServices';
 import { useMyVehicles } from '@/features/vehicles/hooks/useMyVehicles';
+import { getServiceImage } from '@/features/services/serviceImages';
 import { useCreateBooking } from '../hooks/useCreateBooking';
+import { useAvailableSlots } from '../hooks/useAvailableSlots';
 import type { WashServiceResponse } from '@/features/services/types';
 import type { VehicleResponse } from '@/features/vehicles/types';
-
-// TODO: replace with GET /api/v1/services/{id}/slots when endpoint is implemented
-const MOCK_TIME_SLOTS = ['08:00', '09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'];
-const MOCK_BOOKED_SLOTS = ['09:00', '13:00'];
+import type { TimeSlotResponse } from '../types';
 
 // ─── Step 0 — Service selection ──────────────────────────────────────────────
 
@@ -68,7 +66,11 @@ function ServiceStep({ services, selectedServiceId, onSelect, isLoading, isError
                   : 'border-gray-200 bg-white hover:border-gray-300'
               }`}
             >
-              <ImagePlaceholder label={service.name} aspectRatio="video" className="w-full mb-3" />
+              <img
+                src={getServiceImage(service)}
+                alt={service.name}
+                className="w-full mb-3 aspect-video object-cover"
+              />
               <p className="text-sm font-semibold text-gray-900">{service.name}</p>
               <p className="text-xs text-gray-500 mt-0.5">{service.description}</p>
               <div className="flex justify-between items-center mt-3">
@@ -163,21 +165,23 @@ function VehicleStep({ vehicles, selectedVehicleId, onSelect, isLoading, onAddVe
 const DAY_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
 interface DateTimeStepProps {
-  timeSlots: string[];
-  bookedSlots: string[];
   selectedDate: Date | null;
-  selectedTimeSlot: string | null;
-  onDateSelect: (date: Date) => void;
-  onTimeSlotSelect: (slot: string) => void;
+  onSelectDate: (date: Date) => void;
+  selectedTime: string | null;
+  onSelectTime: (time: string) => void;
+  slots: TimeSlotResponse[] | undefined;
+  slotsLoading: boolean;
+  slotsError: boolean;
 }
 
 function DateTimeStep({
-  timeSlots,
-  bookedSlots,
   selectedDate,
-  selectedTimeSlot,
-  onDateSelect,
-  onTimeSlotSelect,
+  onSelectDate,
+  selectedTime,
+  onSelectTime,
+  slots,
+  slotsLoading,
+  slotsError,
 }: DateTimeStepProps) {
   const [displayMonth, setDisplayMonth] = useState<Date>(() => {
     const now = new Date();
@@ -201,6 +205,10 @@ function DateTimeStep({
     selectedDate.getFullYear() === year &&
     selectedDate.getMonth() === month &&
     selectedDate.getDate() === day;
+
+  const handleDateClick = (day: number) => {
+    onSelectDate(new Date(year, month, day));
+  };
 
   const isTodayDay = (day: number) => {
     const now = new Date();
@@ -265,7 +273,7 @@ function DateTimeStep({
               key={day}
               type="button"
               disabled={past}
-              onClick={() => onDateSelect(new Date(year, month, day))}
+              onClick={() => handleDateClick(day)}
               className={cls}
             >
               {day}
@@ -277,40 +285,59 @@ function DateTimeStep({
       {selectedDate && (
         <div>
           <p className="text-sm font-medium text-gray-700 mt-6 mb-3">Available times</p>
-          <div className="grid grid-cols-5 gap-2">
-            {timeSlots.map(slot => {
-              const isBooked = bookedSlots.includes(slot);
-              const isSlotSelected = selectedTimeSlot === slot;
 
-              if (isBooked) {
+          {slotsLoading && (
+            <div className="grid grid-cols-5 gap-2">
+              {[0, 1, 2, 3, 4].map(i => (
+                <div key={i} className="bg-gray-100 rounded-lg h-9 animate-pulse" />
+              ))}
+            </div>
+          )}
+
+          {!slotsLoading && slotsError && (
+            <p className="text-sm text-red-500 mt-4">Could not load available time slots.</p>
+          )}
+
+          {!slotsLoading && !slotsError && slots && slots.length === 0 && (
+            <p className="text-sm text-gray-500 mt-4 text-center">
+              No time slots available for this date.
+            </p>
+          )}
+
+          {!slotsLoading && !slotsError && slots && slots.length > 0 && (
+            <div className="grid grid-cols-5 gap-2">
+              {slots.map(slot => {
+                if (!slot.available) {
+                  return (
+                    <button
+                      key={slot.time}
+                      type="button"
+                      disabled
+                      title={slot.reason ?? 'Unavailable'}
+                      className="bg-gray-50 border border-gray-200 rounded-lg py-2 text-xs text-gray-300 line-through cursor-not-allowed"
+                    >
+                      {slot.time}
+                    </button>
+                  );
+                }
+
                 return (
                   <button
-                    key={slot}
+                    key={slot.time}
                     type="button"
-                    disabled
-                    className="bg-gray-50 border border-gray-200 rounded-lg py-2 text-xs text-gray-300 line-through cursor-not-allowed"
+                    onClick={() => onSelectTime(slot.time)}
+                    className={`rounded-lg py-2 text-xs border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                      selectedTime === slot.time
+                        ? 'bg-indigo-600 text-white border-indigo-600'
+                        : 'bg-white border-gray-200 hover:border-indigo-400 hover:text-indigo-600 cursor-pointer'
+                    }`}
                   >
-                    {slot}
+                    {slot.time}
                   </button>
                 );
-              }
-
-              return (
-                <button
-                  key={slot}
-                  type="button"
-                  onClick={() => onTimeSlotSelect(slot)}
-                  className={`rounded-lg py-2 text-xs border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-                    isSlotSelected
-                      ? 'bg-indigo-600 text-white border-indigo-600'
-                      : 'bg-white border-gray-200 hover:border-indigo-400 hover:text-indigo-600 cursor-pointer'
-                  }`}
-                >
-                  {slot}
-                </button>
-              );
-            })}
-          </div>
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -408,6 +435,7 @@ const STEPS = [
 
 export function BookingFlowPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const { data: services = [], isLoading: servicesLoading, isError: servicesError } = useActiveServices();
   const { data: vehicles = [], isLoading: vehiclesLoading } = useMyVehicles();
@@ -416,13 +444,25 @@ export function BookingFlowPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const [confirmedBookingId, setConfirmedBookingId] = useState<string | null>(null);
 
-  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(
+    searchParams.get('serviceId'),
+  );
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
 
   const selectedService = services.find(s => s.id === selectedServiceId);
   const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId);
+
+  const selectedDateIso = selectedDate
+    ? selectedDate.toISOString().split('T')[0]
+    : null;
+
+  const {
+    data: slotsData,
+    isLoading: slotsLoading,
+    isError: slotsError,
+  } = useAvailableSlots(selectedDateIso, selectedService?.id ?? null);
 
   const canContinue =
     (currentStep === 0 && selectedServiceId !== null) ||
@@ -474,15 +514,16 @@ export function BookingFlowPage() {
       case 2:
         return (
           <DateTimeStep
-            timeSlots={MOCK_TIME_SLOTS}
-            bookedSlots={MOCK_BOOKED_SLOTS}
             selectedDate={selectedDate}
-            selectedTimeSlot={selectedTimeSlot}
-            onDateSelect={date => {
+            onSelectDate={date => {
               setSelectedDate(date);
               setSelectedTimeSlot(null);
             }}
-            onTimeSlotSelect={setSelectedTimeSlot}
+            selectedTime={selectedTimeSlot}
+            onSelectTime={setSelectedTimeSlot}
+            slots={slotsData?.slots}
+            slotsLoading={slotsLoading}
+            slotsError={slotsError}
           />
         );
       case 3:

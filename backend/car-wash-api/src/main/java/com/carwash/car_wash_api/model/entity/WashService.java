@@ -36,6 +36,9 @@ public class WashService {
     @Builder.Default
     private Boolean active = true;
 
+    @Column(name = "image_url", columnDefinition = "text")
+    private String imageUrl;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

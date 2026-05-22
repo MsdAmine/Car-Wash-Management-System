@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Clock } from 'lucide-react';
 import { ROUTES } from '@/router/routes';
+import { useAuth } from '@/shared/context/AuthContext';
 
 const steps = [
   'An admin will review your registration.',
@@ -9,6 +10,8 @@ const steps = [
 ] as const;
 
 export function WasherPendingPage() {
+  const { logout } = useAuth();
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl border border-gray-200 w-full max-w-md p-8 text-center">
@@ -54,7 +57,7 @@ export function WasherPendingPage() {
           <span className="text-sm text-gray-400">Not your account?</span>
           <button
             type="button"
-            onClick={() => console.log('sign out')}
+            onClick={logout}
             className="text-sm text-gray-500 hover:text-gray-700 font-medium ml-1 cursor-pointer"
           >
             Sign out

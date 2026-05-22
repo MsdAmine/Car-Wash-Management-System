@@ -4,7 +4,9 @@ import com.carwash.car_wash_api.dto.response.AdminDashboardResponse;
 import com.carwash.car_wash_api.dto.response.CustomerDashboardResponse;
 import com.carwash.car_wash_api.dto.response.EmployeeDashboardResponse;
 import com.carwash.car_wash_api.dto.response.ErrorResponse;
+import com.carwash.car_wash_api.dto.response.HeatmapResponse;
 import com.carwash.car_wash_api.dto.response.RevenueDataPointResponse;
+import com.carwash.car_wash_api.dto.response.ServiceBookingStatResponse;
 import com.carwash.car_wash_api.service.DashboardService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -20,6 +22,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.springframework.format.annotation.DateTimeFormat;
+
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -97,7 +102,51 @@ public class DashboardController {
     @GetMapping("/revenue")
     public ResponseEntity<List<RevenueDataPointResponse>> getRevenueSeries(
             @RequestParam(defaultValue = "daily") String period,
-            @RequestParam(defaultValue = "7") int days) {
-        return ResponseEntity.ok(dashboardService.getRevenueTimeSeries(period, days));
+            @RequestParam(defaultValue = "7") int days,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return ResponseEntity.ok(dashboardService.getRevenueTimeSeries(period, days, from, to));
+    }
+
+    // ── GET /api/v1/dashboard/bookings-by-service ─────────────────────────────
+
+    @Operation(
+            summary = "Bookings by service",
+            description = "Returns all-time booking counts per wash service, sorted by count descending, with percentage of total. Requires ADMIN role.",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Booking statistics per service retrieved successfully"),
+            @ApiResponse(responseCode = "401", description = "Authentication required",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Admin role required",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @GetMapping("/bookings-by-service")
+    public ResponseEntity<List<ServiceBookingStatResponse>> getBookingsByService(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return ResponseEntity.ok(dashboardService.getBookingsByService(from, to));
+    }
+
+    // ── GET /api/v1/dashboard/activity-heatmap ────────────────────────────────
+
+    @Operation(
+            summary = "Booking activity heatmap",
+            description = "Returns a 10×7 heatmap of booking counts by hour-slot (rows) and day-of-week (columns) for the last 90 days. Status filter: CONFIRMED, IN_PROGRESS, COMPLETED. Requires ADMIN role.",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Activity heatmap retrieved successfully"),
+            @ApiResponse(responseCode = "401", description = "Authentication required",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Admin role required",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @GetMapping("/activity-heatmap")
+    public ResponseEntity<HeatmapResponse> getActivityHeatmap(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return ResponseEntity.ok(dashboardService.getActivityHeatmap(from, to));
     }
 }

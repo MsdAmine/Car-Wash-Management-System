@@ -1,6 +1,7 @@
 package com.carwash.car_wash_api.dto.response;
 
 import com.carwash.car_wash_api.model.enums.BookingStatus;
+import com.carwash.car_wash_api.model.enums.EmployeePosition;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -28,6 +29,12 @@ public class BookingResponse {
     private String washServiceName;
     private BigDecimal washServicePrice;
     private Integer durationMinutes;
+
+    private UUID assignedEmployeeId;
+    private String assignedEmployeeFirstName;
+    private String assignedEmployeeLastName;
+    private EmployeePosition assignedEmployeePosition;
+    private LocalDateTime assignedAt;
 
     private BigDecimal totalPrice;
 

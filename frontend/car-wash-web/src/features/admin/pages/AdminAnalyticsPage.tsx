@@ -4,35 +4,20 @@ import { AdminLayout } from '@/shared/components/layout/AdminLayout';
 import { Button } from '@/shared/components/ui/Button';
 import { ErrorState } from '@/shared/components/feedback/ErrorState';
 import { useRevenueTimeSeries } from '@/features/admin/hooks/useRevenueTimeSeries';
-
-// ─── Mock data (no dedicated endpoints yet) ───────────────────────────────────
-
-// TODO: replace MOCK_BY_SERVICE with a bookings-by-service endpoint
-const MOCK_BY_SERVICE = [
-  { label: 'Basic Wash',     value: 38, color: '#4F46E5' },
-  { label: 'Express Wash',   value: 22, color: '#7C3AED' },
-  { label: 'Full Detail',    value: 28, color: '#2563EB' },
-  { label: 'Premium Detail', value: 12, color: '#0891B2' },
-];
-
-// TODO: replace MOCK_HEATMAP with a booking activity endpoint
-const MOCK_HEATMAP = {
-  days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-  slots: ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00'],
-  data: [
-    [2, 3, 4, 3, 5, 6, 4],
-    [3, 5, 6, 7, 8, 9, 6],
-    [4, 6, 7, 8, 7, 8, 5],
-    [3, 5, 6, 7, 6, 7, 4],
-    [2, 3, 4, 5, 4, 5, 3],
-    [1, 2, 3, 4, 3, 4, 2],
-    [1, 2, 2, 3, 2, 3, 2],
-    [2, 3, 4, 5, 4, 5, 3],
-    [1, 2, 3, 4, 3, 4, 2],
-  ],
-};
+import { useBookingsByService } from '@/features/admin/hooks/useBookingsByService';
+import { useActivityHeatmap } from '@/features/admin/hooks/useActivityHeatmap';
+import { fetchRevenueTimeSeries, fetchBookingsByService } from '@/features/admin/api';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const CHART_COLORS = [
+  '#4F46E5',
+  '#7C3AED',
+  '#2563EB',
+  '#0891B2',
+  '#059669',
+  '#D97706',
+];
 
 function polarToCartesian(cx: number, cy: number, r: number, angleDeg: number) {
   const rad = ((angleDeg - 90) * Math.PI) / 180;
@@ -61,11 +46,12 @@ function donutSegmentPath(
   ].join(' ');
 }
 
-function heatColor(value: number): string {
-  if (value <= 1) return 'bg-indigo-50';
-  if (value <= 3) return 'bg-indigo-100';
-  if (value <= 5) return 'bg-indigo-200';
-  if (value <= 7) return 'bg-indigo-400';
+function heatColor(value: number, maxValue: number): string {
+  if (value === 0) return 'bg-indigo-50';
+  const ratio = value / maxValue;
+  if (ratio <= 0.25) return 'bg-indigo-100';
+  if (ratio <= 0.50) return 'bg-indigo-200';
+  if (ratio <= 0.75) return 'bg-indigo-400';
   return 'bg-indigo-600';
 }
 
@@ -79,10 +65,16 @@ const PERIODS: { key: ChartPeriod; label: string }[] = [
   { key: 'monthly', label: 'Monthly' },
 ];
 
-function RevenueChart() {
-  const [period, setPeriod] = useState<ChartPeriod>('daily');
+interface RevenueChartProps {
+  period: ChartPeriod;
+  onPeriodChange: (p: ChartPeriod) => void;
+  from?: string;
+  to?: string;
+}
+
+function RevenueChart({ period, onPeriodChange, from, to }: RevenueChartProps) {
   const { data: revenueData, isLoading: revenueLoading, isError: revenueError } =
-    useRevenueTimeSeries(period, 7);
+    useRevenueTimeSeries(period, 7, from, to);
 
   const slotWidth = 700 / Math.max(revenueData?.length ?? 1, 1);
   const barWidth = 60;
@@ -100,7 +92,7 @@ function RevenueChart() {
           {PERIODS.map(({ key, label }) => (
             <button
               key={key}
-              onClick={() => setPeriod(key)}
+              onClick={() => onPeriodChange(key)}
               className={`text-sm px-3 py-1 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                 period === key
                   ? 'bg-indigo-50 text-indigo-700'
@@ -149,22 +141,68 @@ function RevenueChart() {
   );
 }
 
-function BookingsByService() {
-  const total = MOCK_BY_SERVICE.reduce((sum, d) => sum + d.value, 0);
+function BookingsByService({ from, to }: { from?: string; to?: string }) {
+  const { data: serviceStats, isLoading: serviceStatsLoading, isError: serviceStatsError } =
+    useBookingsByService(from, to);
+
   const cx = 100;
   const cy = 100;
   const outerR = 80;
   const innerR = 50;
 
   const segments = (() => {
+    const items = serviceStats?.map((s, i) => ({
+      label: s.serviceName,
+      value: s.bookingCount,
+      color: CHART_COLORS[i % CHART_COLORS.length],
+      percentage: s.percentage,
+    })) ?? [];
+    const total = items.reduce((sum, d) => sum + d.value, 0);
     let angle = 0;
-    return MOCK_BY_SERVICE.map((seg) => {
+    return items.map((seg) => {
       const startAngle = angle;
-      const endAngle = angle + (seg.value / total) * 360;
+      const endAngle = angle + (total > 0 ? (seg.value / total) * 360 : 0);
       angle = endAngle;
       return { ...seg, startAngle, endAngle };
     });
   })();
+
+  const total = segments.reduce((sum, d) => sum + d.value, 0);
+
+  if (serviceStatsLoading) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <h2 className="text-base font-semibold text-gray-900 mb-4">Bookings by service</h2>
+        <div className="bg-gray-100 animate-pulse w-48 h-48 rounded-full mx-auto" />
+        <div className="flex flex-col gap-2 mt-4">
+          {[1, 2, 3, 4].map((n) => (
+            <div key={n} className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-gray-100 animate-pulse flex-shrink-0" />
+              <div className="h-4 bg-gray-100 animate-pulse rounded flex-1" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (serviceStatsError) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <h2 className="text-base font-semibold text-gray-900 mb-4">Bookings by service</h2>
+        <ErrorState message="Could not load bookings by service." />
+      </div>
+    );
+  }
+
+  if (serviceStats && serviceStats.length === 0) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <h2 className="text-base font-semibold text-gray-900 mb-4">Bookings by service</h2>
+        <p className="text-sm text-gray-500 text-center py-8">No booking data available yet.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5">
@@ -187,27 +225,65 @@ function BookingsByService() {
       </svg>
 
       <div className="flex flex-col gap-2 mt-4">
-        {MOCK_BY_SERVICE.map((seg) => {
-          const pct = Math.round((seg.value / total) * 100);
-          return (
-            <div key={seg.label} className="flex items-center gap-2">
-              <span
-                className="w-3 h-3 rounded-full flex-shrink-0"
-                style={{ backgroundColor: seg.color }}
-              />
-              <span className="text-sm text-gray-600">{seg.label}</span>
-              <span className="text-sm font-semibold text-gray-900 ml-auto">{seg.value}</span>
-              <span className="text-xs text-gray-400 ml-1">{pct}%</span>
-            </div>
-          );
-        })}
+        {segments.map((seg) => (
+          <div key={seg.label} className="flex items-center gap-2">
+            <span
+              className="w-3 h-3 rounded-full flex-shrink-0"
+              style={{ backgroundColor: seg.color }}
+            />
+            <span className="text-sm text-gray-600">{seg.label}</span>
+            <span className="text-sm font-semibold text-gray-900 ml-auto">{seg.value}</span>
+            <span className="text-xs text-gray-400 ml-1">{seg.percentage}%</span>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
-function ActivityHeatmap() {
-  const { days, slots, data } = MOCK_HEATMAP;
+function ActivityHeatmap({ from, to }: { from?: string; to?: string }) {
+  const { data: heatmapData, isLoading: heatmapLoading, isError: heatmapError } =
+    useActivityHeatmap(from, to);
+
+  const days = heatmapData?.days ?? [];
+  const slots = heatmapData?.slots ?? [];
+  const data = heatmapData?.data ?? [];
+
+  const maxValue = Math.max(...data.flat(), 1);
+
+  if (heatmapLoading) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <h2 className="text-base font-semibold text-gray-900 mb-4">Booking activity</h2>
+        <div className="ml-14 grid grid-cols-7 gap-1 mb-1">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <div key={i} className="h-4 bg-gray-100 animate-pulse rounded" />
+          ))}
+        </div>
+        <div className="flex flex-col gap-1">
+          {Array.from({ length: 10 }).map((_, rowIdx) => (
+            <div key={rowIdx} className="grid grid-cols-7 gap-1 ml-14">
+              {Array.from({ length: 7 }).map((_, colIdx) => (
+                <div
+                  key={colIdx}
+                  className="w-full aspect-square bg-gray-100 animate-pulse rounded-sm"
+                />
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (heatmapError) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <h2 className="text-base font-semibold text-gray-900 mb-4">Booking activity</h2>
+        <ErrorState message="Could not load booking activity." />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5">
@@ -236,7 +312,7 @@ function ActivityHeatmap() {
               {row.map((value, dayIdx) => (
                 <div
                   key={days[dayIdx]}
-                  className={`w-full aspect-square rounded-sm ${heatColor(value)}`}
+                  className={`w-full aspect-square rounded-sm ${heatColor(value, maxValue)}`}
                   title={`${days[dayIdx]} ${slots[slotIdx]}: ${value} bookings`}
                 />
               ))}
@@ -251,22 +327,67 @@ function ActivityHeatmap() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function AdminAnalyticsPage() {
+  const [period, setPeriod]     = useState<ChartPeriod>('daily');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo]     = useState('');
+  const [exporting, setExporting] = useState(false);
+
+  const from = dateFrom || undefined;
+  const to   = dateTo   || undefined;
+
+  async function handleExportCSV() {
+    setExporting(true);
+    try {
+      const [revenue, services] = await Promise.all([
+        fetchRevenueTimeSeries(period, 7, from, to),
+        fetchBookingsByService(from, to),
+      ]);
+
+      const rows: string[][] = [
+        ['Revenue over Time'],
+        ['Date', 'Revenue'],
+        ...revenue.map((r) => [r.label, String(r.revenue)]),
+        [],
+        ['Bookings by Service'],
+        ['Service', 'Count', 'Percentage'],
+        ...services.map((s) => [s.serviceName, String(s.bookingCount), `${s.percentage}%`]),
+      ];
+
+      const csv = '﻿' + rows.map((r) => r.map((v) => `"${v}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `analytics${dateFrom ? `-${dateFrom}` : ''}${dateTo ? `-to-${dateTo}` : ''}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
+  }
+
   const topBar = (
     <>
       <h1 className="text-lg font-semibold text-gray-900">Analytics</h1>
       <div className="flex items-center gap-3">
         <input
           type="date"
+          value={dateFrom}
+          max={dateTo || undefined}
+          onChange={(e) => setDateFrom(e.target.value)}
           className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
         />
         <span className="text-sm text-gray-500">to</span>
         <input
           type="date"
+          value={dateTo}
+          min={dateFrom || undefined}
+          onChange={(e) => setDateTo(e.target.value)}
           className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
         />
-        <Button variant="ghost" size="sm" onClick={() => console.log('export')}>
+        <Button variant="ghost" size="sm" onClick={handleExportCSV} disabled={exporting}>
           <Download className="w-4 h-4" />
-          Export CSV
+          {exporting ? 'Exporting…' : 'Export CSV'}
         </Button>
       </div>
     </>
@@ -275,10 +396,10 @@ export function AdminAnalyticsPage() {
   return (
     <AdminLayout topBar={topBar}>
       <div className="flex flex-col gap-6">
-        <RevenueChart />
+        <RevenueChart period={period} onPeriodChange={setPeriod} from={from} to={to} />
         <div className="grid grid-cols-2 gap-6">
-          <BookingsByService />
-          <ActivityHeatmap />
+          <BookingsByService from={from} to={to} />
+          <ActivityHeatmap from={from} to={to} />
         </div>
       </div>
     </AdminLayout>

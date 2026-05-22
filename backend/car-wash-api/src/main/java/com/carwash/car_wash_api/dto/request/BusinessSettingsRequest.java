@@ -20,6 +20,7 @@ public class BusinessSettingsRequest {
     private String phone;
     private String address;
     private String city;
+    private String logoUrl;
 
     @Min(value = 0, message = "Cancellation hours must be at least 0")
     @Max(value = 168, message = "Cancellation hours must be at most 168")

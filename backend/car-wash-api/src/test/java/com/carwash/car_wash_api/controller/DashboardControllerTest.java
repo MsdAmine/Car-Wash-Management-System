@@ -3,7 +3,9 @@ package com.carwash.car_wash_api.controller;
 import com.carwash.car_wash_api.dto.response.AdminDashboardResponse;
 import com.carwash.car_wash_api.dto.response.CustomerDashboardResponse;
 import com.carwash.car_wash_api.dto.response.EmployeeDashboardResponse;
+import com.carwash.car_wash_api.dto.response.HeatmapResponse;
 import com.carwash.car_wash_api.dto.response.RevenueDataPointResponse;
+import com.carwash.car_wash_api.dto.response.ServiceBookingStatResponse;
 import com.carwash.car_wash_api.dto.response.ServiceStatResponse;
 import com.carwash.car_wash_api.exception.ResourceNotFoundException;
 import com.carwash.car_wash_api.repository.UserRepository;
@@ -56,6 +58,8 @@ class DashboardControllerTest {
                             .requestMatchers(HttpMethod.GET, "/api/v1/dashboard/customer").hasRole("CUSTOMER")
                             .requestMatchers(HttpMethod.GET, "/api/v1/dashboard/employee").hasRole("EMPLOYEE")
                             .requestMatchers(HttpMethod.GET, "/api/v1/dashboard/revenue").hasRole("ADMIN")
+                            .requestMatchers(HttpMethod.GET, "/api/v1/dashboard/bookings-by-service").hasRole("ADMIN")
+                            .requestMatchers(HttpMethod.GET, "/api/v1/dashboard/activity-heatmap").hasRole("ADMIN")
                             .anyRequest().authenticated()
                     )
                     .exceptionHandling(ex -> ex
@@ -83,6 +87,8 @@ class DashboardControllerTest {
     private CustomerDashboardResponse customerResponse;
     private EmployeeDashboardResponse employeeResponse;
     private List<RevenueDataPointResponse> revenueResponse;
+    private List<ServiceBookingStatResponse> bookingsByServiceResponse;
+    private HeatmapResponse heatmapResponse;
 
     @BeforeEach
     void setUp() {
@@ -115,6 +121,39 @@ class DashboardControllerTest {
                 new RevenueDataPointResponse("May 19", new BigDecimal("250.00")),
                 new RevenueDataPointResponse("May 20", new BigDecimal("0.00"))
         );
+
+        bookingsByServiceResponse = List.of(
+                ServiceBookingStatResponse.builder()
+                        .serviceId("11111111-1111-1111-1111-111111111111")
+                        .serviceName("Full Wash")
+                        .bookingCount(60L)
+                        .percentage(60.0)
+                        .build(),
+                ServiceBookingStatResponse.builder()
+                        .serviceId("22222222-2222-2222-2222-222222222222")
+                        .serviceName("Quick Rinse")
+                        .bookingCount(40L)
+                        .percentage(40.0)
+                        .build()
+        );
+
+        heatmapResponse = HeatmapResponse.builder()
+                .days(List.of("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"))
+                .slots(List.of("08:00", "09:00", "10:00", "11:00", "12:00",
+                        "13:00", "14:00", "15:00", "16:00", "17:00"))
+                .data(List.of(
+                        List.of(0, 1, 2, 3, 4, 5, 6),
+                        List.of(1, 0, 0, 0, 0, 0, 0),
+                        List.of(0, 0, 0, 0, 0, 0, 0),
+                        List.of(0, 0, 0, 0, 0, 0, 0),
+                        List.of(0, 0, 0, 0, 0, 0, 0),
+                        List.of(0, 0, 0, 0, 0, 0, 0),
+                        List.of(0, 0, 0, 0, 0, 0, 0),
+                        List.of(0, 0, 0, 0, 0, 0, 0),
+                        List.of(0, 0, 0, 0, 0, 0, 0),
+                        List.of(0, 0, 0, 0, 0, 0, 0)
+                ))
+                .build();
     }
 
     // ── GET /api/v1/dashboard/admin ───────────────────────────────────────────
@@ -239,7 +278,7 @@ class DashboardControllerTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void getRevenueSeries_asAdmin_withDailyPeriod_returns200() throws Exception {
-        when(dashboardService.getRevenueTimeSeries("daily", 3)).thenReturn(revenueResponse);
+        when(dashboardService.getRevenueTimeSeries("daily", 3, null, null)).thenReturn(revenueResponse);
 
         mockMvc.perform(get("/api/v1/dashboard/revenue")
                         .param("period", "daily")
@@ -255,7 +294,7 @@ class DashboardControllerTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void getRevenueSeries_asAdmin_usesDefaults_returns200() throws Exception {
-        when(dashboardService.getRevenueTimeSeries("daily", 7)).thenReturn(List.of());
+        when(dashboardService.getRevenueTimeSeries("daily", 7, null, null)).thenReturn(List.of());
 
         mockMvc.perform(get("/api/v1/dashboard/revenue"))
                 .andExpect(status().isOk());
@@ -279,5 +318,51 @@ class DashboardControllerTest {
     void getRevenueSeries_whenUnauthenticated_returns401() throws Exception {
         mockMvc.perform(get("/api/v1/dashboard/revenue"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    // ── GET /api/v1/dashboard/bookings-by-service ─────────────────────────────
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void getBookingsByService_asAdmin_returns200() throws Exception {
+        when(dashboardService.getBookingsByService(null, null)).thenReturn(bookingsByServiceResponse);
+
+        mockMvc.perform(get("/api/v1/dashboard/bookings-by-service"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].serviceName").value("Full Wash"))
+                .andExpect(jsonPath("$[0].bookingCount").value(60))
+                .andExpect(jsonPath("$[0].percentage").value(60.0))
+                .andExpect(jsonPath("$[1].serviceName").value("Quick Rinse"));
+    }
+
+    @Test
+    @WithMockUser(roles = "CUSTOMER")
+    void getBookingsByService_asCustomer_returns403() throws Exception {
+        mockMvc.perform(get("/api/v1/dashboard/bookings-by-service"))
+                .andExpect(status().isForbidden());
+    }
+
+    // ── GET /api/v1/dashboard/activity-heatmap ────────────────────────────────
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void getActivityHeatmap_asAdmin_returns200() throws Exception {
+        when(dashboardService.getActivityHeatmap(null, null)).thenReturn(heatmapResponse);
+
+        mockMvc.perform(get("/api/v1/dashboard/activity-heatmap"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.days.length()").value(7))
+                .andExpect(jsonPath("$.slots.length()").value(10))
+                .andExpect(jsonPath("$.data.length()").value(10))
+                .andExpect(jsonPath("$.days[0]").value("Mon"))
+                .andExpect(jsonPath("$.slots[0]").value("08:00"));
+    }
+
+    @Test
+    @WithMockUser(roles = "CUSTOMER")
+    void getActivityHeatmap_asCustomer_returns403() throws Exception {
+        mockMvc.perform(get("/api/v1/dashboard/activity-heatmap"))
+                .andExpect(status().isForbidden());
     }
 }

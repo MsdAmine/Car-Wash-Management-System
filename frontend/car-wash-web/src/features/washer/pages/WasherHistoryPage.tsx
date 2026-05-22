@@ -38,10 +38,21 @@ function HistorySkeleton() {
 interface FilterSheetProps {
   isOpen: boolean;
   onClose: () => void;
+  activeFilter: ServiceFilter;
+  onApply: (filter: ServiceFilter) => void;
 }
 
-function FilterSheet({ isOpen, onClose }: FilterSheetProps) {
-  const [selected, setSelected] = useState<ServiceFilter>('All');
+function FilterSheet({ isOpen, onClose, activeFilter, onApply }: FilterSheetProps) {
+  const [selected, setSelected] = useState<ServiceFilter>(activeFilter);
+
+  function handleApply() {
+    onApply(selected);
+    onClose();
+  }
+
+  function handleClear() {
+    setSelected('All');
+  }
 
   return (
     <>
@@ -52,7 +63,7 @@ function FilterSheet({ isOpen, onClose }: FilterSheetProps) {
         />
       )}
       <div
-        className={`fixed bottom-0 left-0 right-0 max-w-sm mx-auto bg-white rounded-t-2xl z-50 transition-transform duration-300 pb-[env(safe-area-inset-bottom)] ${
+        className={`fixed bottom-0 left-0 right-0 max-w-sm mx-auto bg-white rounded-t-2xl z-50 transition-transform duration-300 ease-out pb-[env(safe-area-inset-bottom)] ${
           isOpen ? 'translate-y-0' : 'translate-y-full'
         }`}
       >
@@ -69,8 +80,8 @@ function FilterSheet({ isOpen, onClose }: FilterSheetProps) {
                 onClick={() => setSelected(option)}
                 className={`text-sm px-3 py-1.5 rounded-full border transition-colors ${
                   selected === option
-                    ? 'bg-indigo-600 text-white border-indigo-600'
-                    : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+                    ? 'bg-indigo-50 text-indigo-700 border-indigo-200 font-medium'
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
                 }`}
               >
                 {option}
@@ -83,11 +94,11 @@ function FilterSheet({ isOpen, onClose }: FilterSheetProps) {
               variant="ghost"
               size="sm"
               className="flex-1"
-              onClick={() => setSelected('All')}
+              onClick={handleClear}
             >
               Clear filters
             </Button>
-            <Button variant="primary" size="sm" className="flex-1" onClick={onClose}>
+            <Button variant="primary" size="sm" className="flex-1" onClick={handleApply}>
               Apply
             </Button>
           </div>
@@ -127,7 +138,7 @@ function HistoryJobCard({ booking }: HistoryJobCardProps) {
         </div>
         <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
           <Clock className="w-3 h-3" />
-          {booking.appointmentDateTime.slice(11, 16)}
+          {new Date(booking.appointmentDateTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
         </div>
       </div>
     </div>
@@ -139,9 +150,8 @@ function HistoryJobCard({ booking }: HistoryJobCardProps) {
 export function WasherHistoryPage() {
   const [search, setSearch] = useState('');
   const [filterOpen, setFilterOpen] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<ServiceFilter>('All');
 
-  // The today endpoint returns all statuses; filter to completed only.
-  // TODO: replace with a real history endpoint when available
   const { data: assignments, isLoading, isError } = useMyBookingHistory();
 
   const today = new Date();
@@ -150,21 +160,19 @@ export function WasherHistoryPage() {
   const todayKey = toLocalDateKey(today);
   const yesterdayKey = toLocalDateKey(yesterday);
 
-  const completed = useMemo(
-    () => (assignments ?? []).filter(b => b.status === 'COMPLETED'),
-    [assignments],
-  );
-
   const filtered = useMemo(() => {
+    let result = activeFilter === 'All'
+      ? (assignments ?? [])
+      : (assignments ?? []).filter(b => b.washServiceName === activeFilter);
     const q = search.trim().toLowerCase();
-    if (!q) return completed;
-    return completed.filter(
+    if (!q) return result;
+    return result.filter(
       b =>
         b.customerEmail.toLowerCase().includes(q) ||
         b.vehicleLicensePlate.toLowerCase().includes(q) ||
         b.washServiceName.toLowerCase().includes(q),
     );
-  }, [search, completed]);
+  }, [search, assignments, activeFilter]);
 
   const grouped = useMemo<JobGroup[]>(() => {
     const map = new Map<string, BookingResponse[]>();
@@ -173,7 +181,15 @@ export function WasherHistoryPage() {
     for (const booking of filtered) {
       const dateKey = booking.appointmentDateTime.slice(0, 10);
       const label =
-        dateKey === todayKey ? 'Today' : dateKey === yesterdayKey ? 'Yesterday' : dateKey;
+        dateKey === todayKey
+          ? 'Today'
+          : dateKey === yesterdayKey
+            ? 'Yesterday'
+            : new Date(dateKey + 'T00:00:00').toLocaleDateString('en-US', {
+                weekday: 'long',
+                month: 'long',
+                day: 'numeric',
+              });
       if (!map.has(label)) {
         map.set(label, []);
         order.push(label);
@@ -186,10 +202,9 @@ export function WasherHistoryPage() {
 
   return (
     <WasherLayout>
-      <>
-        <header className="bg-white border-b border-gray-200 px-4 py-3">
+      <header className="bg-white border-b border-gray-200 px-4 py-3">
           <p className="text-lg font-semibold text-gray-900">History</p>
-          <p className="text-xs text-gray-500 mt-0.5">{completed.length} jobs completed</p>
+          <p className="text-xs text-gray-500 mt-0.5">{assignments?.length ?? 0} jobs completed</p>
         </header>
 
         <div className="flex gap-2 px-4 py-3 bg-white border-b border-gray-200">
@@ -217,7 +232,15 @@ export function WasherHistoryPage() {
               <ErrorState message="Could not load job history." />
             </div>
           ) : grouped.length === 0 ? (
-            <p className="py-12 text-center text-sm text-gray-500">No jobs match your search.</p>
+            (assignments?.length ?? 0) === 0 ? (
+              <div className="py-12 text-center">
+                <Droplets className="w-10 h-10 text-gray-300 mx-auto" />
+                <p className="text-sm font-medium text-gray-500 mt-3">No completed jobs yet</p>
+                <p className="text-xs text-gray-400 mt-1">Jobs you complete will appear here.</p>
+              </div>
+            ) : (
+              <p className="py-12 text-center text-sm text-gray-500">No jobs match your search.</p>
+            )
           ) : (
             grouped.map((group, index) => (
               <div key={group.label}>
@@ -238,8 +261,12 @@ export function WasherHistoryPage() {
           )}
         </div>
 
-        <FilterSheet isOpen={filterOpen} onClose={() => setFilterOpen(false)} />
-      </>
+        <FilterSheet
+          isOpen={filterOpen}
+          onClose={() => setFilterOpen(false)}
+          activeFilter={activeFilter}
+          onApply={setActiveFilter}
+        />
     </WasherLayout>
   );
 }

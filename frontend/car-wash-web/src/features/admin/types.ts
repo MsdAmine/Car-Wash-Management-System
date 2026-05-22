@@ -39,6 +39,7 @@ export interface BusinessSettingsResponse {
   phone: string
   address: string
   city: string
+  logoUrl?: string | null
   cancellationHours: number
   updatedAt: string
 }
@@ -48,6 +49,7 @@ export interface BusinessSettingsRequest {
   phone: string
   address: string
   city: string
+  logoUrl?: string | null
   cancellationHours: number
 }
 
@@ -68,4 +70,29 @@ export interface OperatingHoursDayRequest {
 
 export interface UpdateOperatingHoursRequest {
   days: OperatingHoursDayRequest[]
+}
+
+export interface ServiceBookingStatResponse {
+  serviceId: string
+  serviceName: string
+  bookingCount: number
+  percentage: number
+}
+
+export interface AdminBookingRequest {
+  customerId: number
+  vehicleId: string
+  washServiceId: string
+  appointmentDateTime: string
+  notes?: string
+}
+
+export interface HeatmapResponse {
+  days: string[]
+  slots: string[]
+  data: number[][]
+}
+
+export interface RescheduleBookingRequest {
+  appointmentDateTime: string
 }

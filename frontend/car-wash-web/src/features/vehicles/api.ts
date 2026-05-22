@@ -1,6 +1,11 @@
 import api from '@/shared/lib/axios'
 import type { VehicleResponse, VehicleRequest } from './types'
 
+export async function fetchVehiclesByCustomer(customerId: number): Promise<VehicleResponse[]> {
+  const { data } = await api.get<VehicleResponse[]>(`/vehicles/customer/${customerId}`)
+  return data
+}
+
 export async function fetchMyVehicles(): Promise<VehicleResponse[]> {
   const { data } = await api.get<VehicleResponse[]>('/vehicles')
   return data

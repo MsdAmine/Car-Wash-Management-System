@@ -1,0 +1,179 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-22T00:00:00.000Z",
+  "title": "Design System: WashFlow",
+  "extensions": {
+    "colorMeta": {
+      "directive-indigo": {
+        "role": "primary",
+        "displayName": "Directive Indigo",
+        "canonical": "#4f46e5",
+        "tonalRamp": ["#312e81", "#3730a3", "#4338ca", "#4f46e5", "#6366f1", "#818cf8", "#c7d2fe", "#eef2ff"]
+      },
+      "indigo-veil": {
+        "role": "primary-surface",
+        "displayName": "Indigo Veil",
+        "canonical": "#eef2ff",
+        "tonalRamp": ["#312e81", "#3730a3", "#4338ca", "#4f46e5", "#6366f1", "#818cf8", "#c7d2fe", "#eef2ff"]
+      },
+      "workshop-canvas": {
+        "role": "neutral-bg",
+        "displayName": "Workshop Canvas",
+        "canonical": "#f9fafb",
+        "tonalRamp": ["#111827", "#1f2937", "#374151", "#4b5563", "#6b7280", "#9ca3af", "#e5e7eb", "#f9fafb"]
+      },
+      "bare-surface": {
+        "role": "surface",
+        "displayName": "Bare Surface",
+        "canonical": "#ffffff",
+        "tonalRamp": ["#111827", "#1f2937", "#374151", "#4b5563", "#6b7280", "#9ca3af", "#e5e7eb", "#f9fafb"]
+      },
+      "ink": {
+        "role": "text-primary",
+        "displayName": "Ink",
+        "canonical": "#111827",
+        "tonalRamp": ["#111827", "#1f2937", "#374151", "#4b5563", "#6b7280", "#9ca3af", "#e5e7eb", "#f9fafb"]
+      },
+      "chalk-line": {
+        "role": "border",
+        "displayName": "Chalk Line",
+        "canonical": "#e5e7eb",
+        "tonalRamp": ["#111827", "#1f2937", "#374151", "#4b5563", "#6b7280", "#9ca3af", "#e5e7eb", "#f9fafb"]
+      }
+    },
+    "shadows": [
+      {
+        "name": "raised",
+        "value": "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)",
+        "purpose": "Cards, stat panels, sidebar. Standard surface elevation above the canvas."
+      },
+      {
+        "name": "floating",
+        "value": "0 4px 16px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06)",
+        "purpose": "Modals, dropdowns, popovers. Highest elevation level."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-standard",
+        "value": "150ms ease",
+        "purpose": "Default transition for background-color and border-color changes."
+      }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one primary action per screen. Directive Indigo signals importance.",
+      "html": "<button class=\"ds-btn-primary\">Book now</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: #4f46e5; color: #ffffff; font-size: 14px; font-weight: 500; border-radius: 8px; padding: 8px 16px; border: none; cursor: pointer; transition: background-color 150ms ease; } .ds-btn-primary:hover { background: #4338ca; } .ds-btn-primary:focus-visible { outline: 2px solid #4f46e5; outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Supporting actions. White background, Chalk Line border.",
+      "html": "<button class=\"ds-btn-secondary\">Cancel</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: #ffffff; color: #374151; font-size: 14px; font-weight: 500; border-radius: 8px; padding: 8px 16px; border: 1px solid #e5e7eb; cursor: pointer; transition: background-color 150ms ease; } .ds-btn-secondary:hover { background: #f9fafb; } .ds-btn-secondary:focus-visible { outline: 2px solid #d1d5db; outline-offset: 2px; } .ds-btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Destructive actions: cancel booking, delete record.",
+      "html": "<button class=\"ds-btn-danger\">Cancel booking</button>",
+      "css": ".ds-btn-danger { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: #dc2626; color: #ffffff; font-size: 14px; font-weight: 500; border-radius: 8px; padding: 8px 16px; border: none; cursor: pointer; transition: background-color 150ms ease; } .ds-btn-danger:hover { background: #b91c1c; } .ds-btn-danger:focus-visible { outline: 2px solid #dc2626; outline-offset: 2px; } .ds-btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input-default",
+      "description": "Standard form input with label and optional error state.",
+      "html": "<div class=\"ds-field\"><label class=\"ds-field-label\">Email</label><input class=\"ds-input\" type=\"email\" placeholder=\"you@example.com\" /></div>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 4px; } .ds-field-label { font-size: 14px; font-weight: 500; color: #374151; } .ds-input { width: 100%; border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px 12px; font-size: 14px; color: #111827; background: #ffffff; outline: none; transition: border-color 150ms ease, box-shadow 150ms ease; } .ds-input::placeholder { color: #9ca3af; } .ds-input:focus { border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,0.15); } .ds-input.ds-input-error { border-color: #ef4444; } .ds-field-error { font-size: 12px; color: #dc2626; margin-top: 2px; }"
+    },
+    {
+      "name": "Status Badge",
+      "kind": "chip",
+      "description": "Booking status indicator. Text + surface color pair, always together.",
+      "html": "<div style=\"display:flex;gap:8px;flex-wrap:wrap\"><span class=\"ds-badge ds-badge-confirmed\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"20 6 9 17 4 12\"/></svg>Confirmed</span><span class=\"ds-badge ds-badge-progress\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"23 4 23 10 17 10\"/><path d=\"M20.49 15a9 9 0 1 1-2.12-9.36L23 10\"/></svg>In Progress</span><span class=\"ds-badge ds-badge-done\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M22 11.08V12a10 10 0 1 1-5.93-9.14\"/><polyline points=\"22 4 12 14.01 9 11.01\"/></svg>Completed</span><span class=\"ds-badge ds-badge-cancelled\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><line x1=\"15\" y1=\"9\" x2=\"9\" y2=\"15\"/><line x1=\"9\" y1=\"9\" x2=\"15\" y2=\"15\"/></svg>Cancelled</span><span class=\"ds-badge ds-badge-pending\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><polyline points=\"12 6 12 12 16 14\"/></svg>Pending</span></div>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 500; } .ds-badge-confirmed { background: #eff6ff; color: #1d4ed8; } .ds-badge-progress { background: #fffbeb; color: #b45309; } .ds-badge-done { background: #f0fdf4; color: #15803d; } .ds-badge-cancelled { background: #fef2f2; color: #b91c1c; } .ds-badge-pending { background: #f3f4f6; color: #4b5563; }"
+    },
+    {
+      "name": "Stat Card",
+      "kind": "card",
+      "description": "Summary metric tile: label, value, supporting trend text.",
+      "html": "<div class=\"ds-stat-card\"><p class=\"ds-stat-label\">Total Bookings</p><p class=\"ds-stat-value\">142</p><p class=\"ds-stat-trend\">+8 from last week</p></div>",
+      "css": ".ds-stat-card { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04); } .ds-stat-label { font-size: 12px; font-weight: 500; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; } .ds-stat-value { font-size: 24px; font-weight: 700; color: #111827; margin-top: 4px; } .ds-stat-trend { font-size: 12px; color: #6b7280; margin-top: 4px; }"
+    },
+    {
+      "name": "Nav Item",
+      "kind": "nav",
+      "refersTo": "nav-item-default",
+      "description": "Sidebar navigation link. Active state uses Indigo Veil + Directive Indigo.",
+      "html": "<nav style=\"background:#fff;width:240px;padding:8px\"><a class=\"ds-nav-item ds-nav-active\" href=\"#\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\"/></svg><span>Dashboard</span></a><a class=\"ds-nav-item\" href=\"#\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"18\" rx=\"2\" ry=\"2\"/><line x1=\"16\" y1=\"2\" x2=\"16\" y2=\"6\"/><line x1=\"8\" y1=\"2\" x2=\"8\" y2=\"6\"/><line x1=\"3\" y1=\"10\" x2=\"21\" y2=\"10\"/></svg><span>Bookings</span></a></nav>",
+      "css": ".ds-nav-item { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 400; color: #4b5563; text-decoration: none; transition: background-color 150ms ease, color 150ms ease; } .ds-nav-item:hover { background: #f3f4f6; color: #111827; } .ds-nav-active { background: #eef2ff; color: #4f46e5; font-weight: 500; } .ds-nav-active:hover { background: #e0e7ff; color: #4338ca; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Quiet Workshop",
+    "overview": "WashFlow operates like a well-organized workbench: every tool is visible and in its place, nothing competes for attention, and the work gets done without ceremony. The interface recedes behind the task.\n\nThe palette is gray-on-white with a single directive accent. Surfaces lift slightly off the canvas. Typography is system sans at considered weights. There is no decoration that doesn't carry information.\n\nThis system explicitly rejects three failure modes: the generic Tailwind UI kit clone, the over-engineered enterprise dashboard, and the cheap service-industry app aesthetic.",
+    "keyCharacteristics": [
+      "Gray-on-white foundation with one directional accent (Directive Indigo, used to orient, not decorate)",
+      "Slightly lifted surfaces: ambient shadow separates card from canvas",
+      "System sans throughout: no display fonts, hierarchy through weight and size contrast",
+      "Status conveyed through semantic chips only, never painted onto full surfaces",
+      "Flat tables and lists; cards only where content is genuinely grouped"
+    ],
+    "rules": [
+      {
+        "name": "The One Voice Rule",
+        "body": "Directive Indigo (#4f46e5) is the only accent. It appears on the primary action and the active nav item per screen. Never used as a background tint, a gradient ingredient, or a decorative fill.",
+        "section": "colors"
+      },
+      {
+        "name": "The Contained Status Rule",
+        "body": "Status colors (confirmed/progress/done/cancelled) are always used as a text+surface pair inside a chip. Never applied as standalone text on white, as card backgrounds, or as full-width banners.",
+        "section": "colors"
+      },
+      {
+        "name": "The Weight-Before-Size Rule",
+        "body": "Before reaching for a larger font size to create emphasis, try 500 or 600 weight at the current size. This keeps the scale compact and avoids a jumpy hierarchy.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-By-Default Rule",
+        "body": "Elements do not acquire shadows on hover as decoration. Hover state is expressed through background-color shift. Shadows mark permanent structural hierarchy, not interactivity.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do use Directive Indigo (#4f46e5) only on the primary action and active nav item per screen.",
+      "Do use the full status color pair (text + surface tint) together inside chips.",
+      "Do express hover state through background-color shift: gray-50 for secondary buttons, gray-100 for ghost/nav items.",
+      "Do apply the Raised shadow to all cards and stat panels. Apply the Floating shadow to modals and dropdowns.",
+      "Do use Workshop Canvas (#f9fafb) as the page background and Bare Surface (#ffffff) as the card/surface layer.",
+      "Do cap content text columns at 65ch on detail and form pages.",
+      "Do use 12px/500/uppercase/tracking-wide exclusively for structural metadata: table column headers, sidebar group labels."
+    ],
+    "donts": [
+      "Don't use a border-left greater than 1px as a colored accent stripe on cards, list items, or alerts.",
+      "Don't use gradient text (background-clip: text with a gradient fill). Emphasis is weight or size, never a gradient.",
+      "Don't use glassmorphism, blur backdrops, or semi-transparent surface overlays.",
+      "Don't build identical icon + heading + body card grids.",
+      "Don't apply the generic Tailwind-kit aesthetic unmodified.",
+      "Don't add elevation to hover state. Shadow is structural, not interactive.",
+      "Don't bleed service-industry aesthetics into the product shell: neon buttons, stock-photo panels, clip-art iconography.",
+      "Don't stack enterprise-style nav layers or modal-on-modal patterns.",
+      "Don't introduce new accent colors for one-off states."
+    ]
+  }
+}

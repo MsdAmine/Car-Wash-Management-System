@@ -11,7 +11,6 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { Sidebar } from '@/shared/components/layout/Sidebar';
-import { ImagePlaceholder } from '@/shared/components/ui/ImagePlaceholder';
 import { ROUTES } from '@/router/routes';
 
 interface SidebarNavItem {
@@ -31,7 +30,7 @@ const ADMIN_NAV: SidebarItem[] = [
     items: [
       { label: 'Dashboard', path: ROUTES.ADMIN.DASHBOARD, icon: LayoutDashboard },
       { label: 'Bookings', path: ROUTES.ADMIN.BOOKINGS, icon: CalendarCheck },
-      { label: 'Assign Jobs', path: '/admin/assign', icon: ClipboardList },
+      { label: 'Assign Jobs', path: ROUTES.ADMIN.ASSIGN, icon: ClipboardList },
     ],
   },
   {
@@ -45,7 +44,7 @@ const ADMIN_NAV: SidebarItem[] = [
   },
   {
     items: [
-      { label: 'Settings', path: '/admin/settings', icon: Settings },
+      { label: 'Settings', path: ROUTES.ADMIN.SETTINGS, icon: Settings },
     ],
   },
 ];
@@ -60,7 +59,7 @@ export function AdminLayout({ topBar, children }: AdminLayoutProps) {
 
   const bottomSlot = (
     <div className={`flex items-center gap-3 px-3 py-2 ${isCollapsed ? 'justify-center' : ''}`}>
-      <ImagePlaceholder label="Admin avatar" className="w-8 h-8 rounded-full flex-shrink-0" />
+      <img src="/images/avatar-admin.png" alt="Admin avatar" className="w-8 h-8 rounded-full flex-shrink-0 object-cover" />
       {!isCollapsed && (
         <div>
           <p className="text-sm font-medium text-gray-900">Admin User</p>

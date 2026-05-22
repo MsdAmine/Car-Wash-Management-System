@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Search,
   SlidersHorizontal,
@@ -7,7 +8,6 @@ import {
 import { AdminLayout } from '@/shared/components/layout/AdminLayout';
 import { Button } from '@/shared/components/ui/Button';
 import { Badge } from '@/shared/components/ui/Badge';
-import { ImagePlaceholder } from '@/shared/components/ui/ImagePlaceholder';
 import {
   Table,
   TableHead,
@@ -20,12 +20,15 @@ import { Pagination } from '@/shared/components/ui/Pagination';
 import { EmptyState } from '@/shared/components/feedback/EmptyState';
 import { ErrorState } from '@/shared/components/feedback/ErrorState';
 import { AssignJobModal } from '@/features/bookings/components/AssignJobModal';
+import { AdminNewBookingModal } from '@/features/bookings/components/AdminNewBookingModal';
 import { useAllBookings } from '@/features/admin/hooks/useAllBookings';
 import type { BookingResponse } from '../types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type TabKey = 'all' | 'today' | 'upcoming' | 'inProgress' | 'completed' | 'cancelled';
+type FilterAssignment = 'all' | 'assigned' | 'unassigned';
+type SortOrder = 'date-desc' | 'date-asc' | 'client-asc' | 'client-desc';
 
 // ─── Tab config ───────────────────────────────────────────────────────────────
 
@@ -80,6 +83,37 @@ function applySearch(bookings: BookingResponse[], query: string): BookingRespons
   );
 }
 
+function applyFilter(bookings: BookingResponse[], assignment: FilterAssignment): BookingResponse[] {
+  if (assignment === 'assigned')   return bookings.filter((b) => b.assignedEmployeeId !== null);
+  if (assignment === 'unassigned') return bookings.filter((b) => b.assignedEmployeeId === null);
+  return bookings;
+}
+
+function applySort(bookings: BookingResponse[], order: SortOrder): BookingResponse[] {
+  const copy = [...bookings];
+  switch (order) {
+    case 'date-desc':   return copy.sort((a, b) => new Date(b.appointmentDateTime).getTime() - new Date(a.appointmentDateTime).getTime());
+    case 'date-asc':    return copy.sort((a, b) => new Date(a.appointmentDateTime).getTime() - new Date(b.appointmentDateTime).getTime());
+    case 'client-asc':  return copy.sort((a, b) => a.customerEmail.localeCompare(b.customerEmail));
+    case 'client-desc': return copy.sort((a, b) => b.customerEmail.localeCompare(a.customerEmail));
+  }
+}
+
+const FILTER_OPTIONS: { value: FilterAssignment; label: string }[] = [
+  { value: 'all',        label: 'All bookings' },
+  { value: 'assigned',   label: 'Assigned' },
+  { value: 'unassigned', label: 'Unassigned' },
+];
+
+const SORT_OPTIONS: { value: SortOrder; label: string }[] = [
+  { value: 'date-desc',   label: 'Newest first' },
+  { value: 'date-asc',    label: 'Oldest first' },
+  { value: 'client-asc',  label: 'Client A → Z' },
+  { value: 'client-desc', label: 'Client Z → A' },
+];
+
+const PAGE_SIZE = 20;
+
 function statusToVariant(
   status: BookingResponse['status'],
 ): 'pending' | 'confirmed' | 'inProgress' | 'completed' | 'cancelled' {
@@ -93,6 +127,14 @@ function statusToVariant(
 }
 
 // ─── BookingRow ───────────────────────────────────────────────────────────────
+
+function getAssignedWasherName(booking: BookingResponse): string | null {
+  const name = [booking.assignedEmployeeFirstName, booking.assignedEmployeeLastName]
+    .filter(Boolean)
+    .join(' ')
+    .trim();
+  return name || null;
+}
 
 interface BookingRowProps {
   booking: BookingResponse;
@@ -111,6 +153,7 @@ interface BookingRowProps {
 function BookingRow({ booking, selected, onToggle, onOpenAssign }: BookingRowProps) {
   const ref = booking.id.slice(-8).toUpperCase();
   const datetime = new Date(booking.appointmentDateTime).toLocaleString();
+  const assignedWasherName = getAssignedWasherName(booking);
   const assignData = {
     ref,
     service: booking.washServiceName,
@@ -134,7 +177,7 @@ function BookingRow({ booking, selected, onToggle, onOpenAssign }: BookingRowPro
 
       <TableCell>
         <div className="flex items-center gap-3">
-          <ImagePlaceholder label="Avatar" className="w-8 h-8 rounded-full flex-shrink-0" />
+          <img src="/images/avatar-customer.png" alt="Avatar" className="w-8 h-8 rounded-full flex-shrink-0 object-cover" />
           <span className="text-sm font-semibold text-gray-900">{booking.customerEmail}</span>
         </div>
       </TableCell>
@@ -145,8 +188,10 @@ function BookingRow({ booking, selected, onToggle, onOpenAssign }: BookingRowPro
 
       <TableCell>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-500">—</span>
-          {booking.status === 'PENDING' && (
+          <span className={`text-sm ${assignedWasherName ? 'font-medium text-gray-900' : 'text-gray-500'}`}>
+            {assignedWasherName ?? 'Unassigned'}
+          </span>
+          {!assignedWasherName && (booking.status === 'PENDING' || booking.status === 'CONFIRMED') && (
             <Button size="sm" onClick={() => onOpenAssign(assignData)}>Assign</Button>
           )}
         </div>
@@ -193,10 +238,20 @@ function SkeletonRows() {
 export function AdminBookingsPage() {
   const { data: bookings, isLoading, isError } = useAllBookings();
 
-  const [activeTab, setActiveTab]   = useState<TabKey>('today');
-  const [search, setSearch]         = useState('');
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchParams] = useSearchParams();
+  const preselectedClientId = searchParams.has('clientId')
+    ? Number(searchParams.get('clientId'))
+    : undefined;
+
+  const [activeTab, setActiveTab]       = useState<TabKey>('today');
+  const [search, setSearch]             = useState('');
+  const [filterAssignment, setFilterAssignment] = useState<FilterAssignment>('all');
+  const [sortOrder, setSortOrder]       = useState<SortOrder>('date-desc');
+  const [filterOpen, setFilterOpen]     = useState(false);
+  const [sortOpen, setSortOpen]         = useState(false);
+  const [selectedIds, setSelectedIds]   = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage]   = useState(1);
+  const [newBookingOpen, setNewBookingOpen] = useState(preselectedClientId !== undefined);
   const [assignModal, setAssignModal] = useState<{
     isOpen: boolean;
     booking: {
@@ -209,12 +264,27 @@ export function AdminBookingsPage() {
     bookingId: string | null;
   }>({ isOpen: false, booking: null, bookingId: null });
 
-  const allBookings = bookings ?? [];
-  const tabFiltered = filterByTab(allBookings, activeTab);
-  const visibleBookings = applySearch(tabFiltered, search);
-  const allVisibleIds = visibleBookings.map((b) => b.id);
-  const allSelected =
-    allVisibleIds.length > 0 && allVisibleIds.every((id) => selectedIds.has(id));
+  const filterRef = useRef<HTMLDivElement>(null);
+  const sortRef   = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) setFilterOpen(false);
+      if (sortRef.current   && !sortRef.current.contains(e.target as Node))   setSortOpen(false);
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const allBookings    = bookings ?? [];
+  const tabFiltered    = filterByTab(allBookings, activeTab);
+  const searched       = applySearch(tabFiltered, search);
+  const filtered       = applyFilter(searched, filterAssignment);
+  const visibleBookings = applySort(filtered, sortOrder);
+  const totalPages     = Math.max(1, Math.ceil(visibleBookings.length / PAGE_SIZE));
+  const pagedBookings  = visibleBookings.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const allVisibleIds  = visibleBookings.map((b) => b.id);
+  const allSelected    = allVisibleIds.length > 0 && allVisibleIds.every((id) => selectedIds.has(id));
 
   function handleSelectAll() {
     setSelectedIds(allSelected ? new Set() : new Set(allVisibleIds));
@@ -230,6 +300,18 @@ export function AdminBookingsPage() {
 
   function handleTabChange(tab: TabKey) {
     setActiveTab(tab);
+    setCurrentPage(1);
+  }
+
+  function handleFilterChange(value: FilterAssignment) {
+    setFilterAssignment(value);
+    setFilterOpen(false);
+    setCurrentPage(1);
+  }
+
+  function handleSortChange(value: SortOrder) {
+    setSortOrder(value);
+    setSortOpen(false);
     setCurrentPage(1);
   }
 
@@ -251,7 +333,7 @@ export function AdminBookingsPage() {
   const topBar = (
     <>
       <h1 className="text-lg font-semibold text-gray-900">Bookings</h1>
-      <Button size="sm" onClick={() => console.log('new booking')}>
+      <Button size="sm" onClick={() => setNewBookingOpen(true)}>
         + New booking
       </Button>
     </>
@@ -285,20 +367,62 @@ export function AdminBookingsPage() {
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
               placeholder="Search by email or booking ref"
               className="w-64 pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
             />
           </div>
           <div className="ml-auto flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => console.log('filter')}>
-              <SlidersHorizontal className="w-4 h-4" />
-              Filter
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => console.log('sort')}>
-              <ArrowUpDown className="w-4 h-4" />
-              Sort
-            </Button>
+            <div className="relative" ref={filterRef}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => { setFilterOpen((o) => !o); setSortOpen(false); }}
+                className={filterAssignment !== 'all' ? 'text-indigo-600' : ''}
+              >
+                <SlidersHorizontal className="w-4 h-4" />
+                Filter{filterAssignment !== 'all' ? ' ·' : ''}
+              </Button>
+              {filterOpen && (
+                <div className="absolute right-0 top-full mt-1 w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-20 py-1">
+                  {FILTER_OPTIONS.map(({ value, label }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => handleFilterChange(value)}
+                      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${filterAssignment === value ? 'text-indigo-600 font-medium' : 'text-gray-700'}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="relative" ref={sortRef}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => { setSortOpen((o) => !o); setFilterOpen(false); }}
+                className={sortOrder !== 'date-desc' ? 'text-indigo-600' : ''}
+              >
+                <ArrowUpDown className="w-4 h-4" />
+                Sort{sortOrder !== 'date-desc' ? ' ·' : ''}
+              </Button>
+              {sortOpen && (
+                <div className="absolute right-0 top-full mt-1 w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-20 py-1">
+                  {SORT_OPTIONS.map(({ value, label }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => handleSortChange(value)}
+                      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${sortOrder === value ? 'text-indigo-600 font-medium' : 'text-gray-700'}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -345,7 +469,7 @@ export function AdminBookingsPage() {
                     </td>
                   </tr>
                 ) : (
-                  visibleBookings.map((booking) => (
+                  pagedBookings.map((booking) => (
                     <BookingRow
                       key={booking.id}
                       booking={booking}
@@ -363,7 +487,7 @@ export function AdminBookingsPage() {
           <div className="border-t border-gray-200 px-4 py-3 bg-white">
             <Pagination
               currentPage={currentPage}
-              totalPages={Math.max(1, Math.ceil(visibleBookings.length / 20))}
+              totalPages={totalPages}
               onPageChange={setCurrentPage}
             />
           </div>
@@ -375,6 +499,12 @@ export function AdminBookingsPage() {
         onClose={handleCloseAssign}
         booking={assignModal.booking}
         bookingId={assignModal.bookingId}
+      />
+
+      <AdminNewBookingModal
+        isOpen={newBookingOpen}
+        onClose={() => setNewBookingOpen(false)}
+        preselectedClientId={preselectedClientId}
       />
     </>
   );

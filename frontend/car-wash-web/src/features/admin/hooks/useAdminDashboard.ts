@@ -7,6 +7,8 @@ export const ADMIN_KEYS = {
   bookings: () => [...ADMIN_KEYS.all, 'bookings'] as const,
   booking: (id: string) => [...ADMIN_KEYS.all, 'booking', id] as const,
   assignments: (bookingId: string) => [...ADMIN_KEYS.all, 'assignments', bookingId] as const,
+  bookingsByService: () => [...ADMIN_KEYS.all, 'bookingsByService'] as const,
+  heatmap: () => [...ADMIN_KEYS.all, 'heatmap'] as const,
 }
 
 export function useAdminDashboard() {

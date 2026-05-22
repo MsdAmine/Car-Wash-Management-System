@@ -2,9 +2,10 @@ package com.carwash.car_wash_api.service;
 
 import com.carwash.car_wash_api.dto.request.AssignEmployeeRequest;
 import com.carwash.car_wash_api.dto.response.BookingAssignmentResponse;
-import com.carwash.car_wash_api.exception.DuplicateResourceException;
+import com.carwash.car_wash_api.dto.response.BookingResponse;
 import com.carwash.car_wash_api.exception.InvalidEmployeeOperationException;
 import com.carwash.car_wash_api.exception.ResourceNotFoundException;
+import com.carwash.car_wash_api.mapper.BookingMapper;
 import com.carwash.car_wash_api.model.entity.Booking;
 import com.carwash.car_wash_api.model.entity.BookingAssignment;
 import com.carwash.car_wash_api.model.entity.Employee;
@@ -22,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -32,6 +34,7 @@ public class BookingAssignmentService {
     private final BookingRepository bookingRepository;
     private final EmployeeRepository employeeRepository;
     private final UserRepository userRepository;
+    private final BookingMapper bookingMapper;
 
     @Transactional
     public BookingAssignmentResponse assignEmployee(UUID bookingId, AssignEmployeeRequest request) {
@@ -51,9 +54,23 @@ public class BookingAssignmentService {
                     "Cannot assign an employee with status " + employee.getStatus() + " to a booking");
         }
 
-        if (assignmentRepository.existsByBookingIdAndEmployeeId(bookingId, employee.getId())) {
-            throw new DuplicateResourceException(
-                    "Employee is already assigned to this booking");
+        List<BookingAssignment> existingAssignments = assignmentRepository.findByBookingId(bookingId);
+        Optional<BookingAssignment> existingForEmployee = existingAssignments.stream()
+                .filter(existing -> existing.getEmployee().getId().equals(employee.getId()))
+                .findFirst();
+
+        if (booking.getStatus() == BookingStatus.PENDING) {
+            booking.setStatus(BookingStatus.CONFIRMED);
+            bookingRepository.save(booking);
+        }
+
+        if (existingForEmployee.isPresent()) {
+            return toResponse(existingForEmployee.get());
+        }
+
+        if (!existingAssignments.isEmpty()) {
+            assignmentRepository.deleteAll(existingAssignments);
+            assignmentRepository.flush();
         }
 
         User assignedBy = resolveCurrentUser();
@@ -100,14 +117,21 @@ public class BookingAssignmentService {
     }
 
     @Transactional(readOnly = true)
-    public List<BookingAssignmentResponse> getMyTodaysAssignedBookings() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Authenticated user not found"));
+    public List<BookingResponse> getAssignedBookingDetailsForEmployee(UUID employeeId) {
+        if (!employeeRepository.existsById(employeeId)) {
+            throw new ResourceNotFoundException("Employee not found with ID: " + employeeId);
+        }
+        return assignmentRepository.findByEmployeeId(employeeId)
+                .stream()
+                .map(BookingAssignment::getBooking)
+                .sorted((left, right) -> right.getAppointmentDateTime().compareTo(left.getAppointmentDateTime()))
+                .map(bookingMapper::toResponse)
+                .toList();
+    }
 
-        Employee employee = employeeRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "No employee profile found for the current user"));
+    @Transactional(readOnly = true)
+    public List<BookingAssignmentResponse> getMyTodaysAssignedBookings() {
+        Employee employee = findCurrentEmployee();
 
         LocalDate today = LocalDate.now();
         LocalDateTime startOfDay = today.atStartOfDay();
@@ -118,6 +142,44 @@ public class BookingAssignmentService {
                 .stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<BookingResponse> getMyTodaysAssignedBookingDetails() {
+        Employee employee = findCurrentEmployee();
+
+        LocalDate today = LocalDate.now();
+        LocalDateTime startOfDay = today.atStartOfDay();
+        LocalDateTime endOfDay = today.plusDays(1).atStartOfDay();
+
+        return assignmentRepository
+                .findTodaysAssignmentsByEmployeeId(employee.getId(), startOfDay, endOfDay)
+                .stream()
+                .map(BookingAssignment::getBooking)
+                .map(bookingMapper::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<BookingResponse> getMyBookingHistoryDetails() {
+        Employee employee = findCurrentEmployee();
+
+        return assignmentRepository
+                .findCompletedAssignmentsByEmployeeId(employee.getId())
+                .stream()
+                .map(BookingAssignment::getBooking)
+                .map(bookingMapper::toResponse)
+                .toList();
+    }
+
+    private Employee findCurrentEmployee() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Authenticated user not found"));
+
+        return employeeRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No employee profile found for the current user"));
     }
 
     public boolean isEmployeeAssignedToBooking(UUID bookingId, UUID employeeId) {

@@ -52,6 +52,22 @@ public class User implements UserDetails {
         updatedAt = LocalDateTime.now();
     }
 
+    @Column(name = "avatar_url", columnDefinition = "text")
+    private String avatarUrl;
+
+    // Notification preferences — nullable so adding the column to existing tables doesn't fail.
+    // Null is treated as the default (true for all except promotions).
+    private Boolean notifBookingConfirmed;
+    private Boolean notifWashInProgress;
+    private Boolean notifWashCompleted;
+    private Boolean notifBookingReminders;
+    private Boolean notifPromotions;
+
+    @Column(length = 128)
+    private String passwordResetToken;
+
+    private LocalDateTime passwordResetTokenExpiresAt;
+
     @Builder.Default
     @Column(nullable = false)
     private boolean enabled = true;

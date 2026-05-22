@@ -14,7 +14,11 @@ export function useAssignWasher() {
       assignWasher(bookingId, { employeeId }),
     onSuccess: (_data, { bookingId }) => {
       queryClient.invalidateQueries({ queryKey: ADMIN_KEYS.bookings() })
+      queryClient.invalidateQueries({ queryKey: ADMIN_KEYS.booking(bookingId) })
       queryClient.invalidateQueries({ queryKey: ADMIN_KEYS.assignments(bookingId) })
+      queryClient.invalidateQueries({ queryKey: ADMIN_KEYS.dashboard() })
+      queryClient.invalidateQueries({ queryKey: ['bookings'] })
+      queryClient.invalidateQueries({ queryKey: ['washer'] })
     },
   })
 }

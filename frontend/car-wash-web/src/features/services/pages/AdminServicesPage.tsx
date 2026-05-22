@@ -1,17 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Plus, X } from 'lucide-react';
 import { AdminLayout } from '@/shared/components/layout/AdminLayout';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
 import { Textarea } from '@/shared/components/ui/Textarea';
-import { ImagePlaceholder } from '@/shared/components/ui/ImagePlaceholder';
 import { ToggleSwitch } from '@/shared/components/ui/ToggleSwitch';
 import { ErrorState } from '@/shared/components/feedback/ErrorState';
 import { useAllServices } from '../hooks/useAllServices';
 import { useCreateService } from '../hooks/useCreateService';
 import { useUpdateService } from '../hooks/useUpdateService';
-import { useDeactivateService } from '../hooks/useDeactivateService';
 import type { WashServiceResponse, WashServiceRequest } from '../types';
+import { getServiceImage } from '../serviceImages';
 
 // ─── Slide-over panel ─────────────────────────────────────────────────────────
 
@@ -24,12 +23,14 @@ interface ServicePanelProps {
 function ServicePanel({ isOpen, onClose, service }: ServicePanelProps) {
   const createService  = useCreateService();
   const updateService  = useUpdateService();
+  const imageInputRef  = useRef<HTMLInputElement>(null);
 
   const [name, setName]               = useState('');
   const [description, setDescription] = useState('');
   const [duration, setDuration]       = useState('');
   const [price, setPrice]             = useState('');
   const [active, setActive]           = useState(true);
+  const [imageSrc, setImageSrc]       = useState('');
 
   useEffect(() => {
     setName(service?.name ?? '');
@@ -37,7 +38,20 @@ function ServicePanel({ isOpen, onClose, service }: ServicePanelProps) {
     setDuration(service ? String(service.durationMinutes) : '');
     setPrice(service ? String(service.price) : '');
     setActive(service?.active ?? true);
+    setImageSrc(service?.imageUrl ?? '');
   }, [service, isOpen]);
+
+  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      setImageSrc(dataUrl);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  }
 
   useEffect(() => {
     if (!isOpen) return;
@@ -57,6 +71,7 @@ function ServicePanel({ isOpen, onClose, service }: ServicePanelProps) {
       price: parseFloat(price),
       durationMinutes: parseInt(duration, 10),
       active,
+      imageUrl: imageSrc || null,
     };
 
     if (service) {
@@ -99,8 +114,25 @@ function ServicePanel({ isOpen, onClose, service }: ServicePanelProps) {
         {/* Body */}
         <div className="px-6 py-6 flex flex-col gap-4 overflow-y-auto flex-1">
           <div>
-            <ImagePlaceholder label="Service photo" aspectRatio="video" className="w-full" />
-            <p className="text-xs text-gray-400 mt-1">Image upload coming soon.</p>
+            <img
+              src={getServiceImage({ name, imageUrl: imageSrc || null })}
+              alt="Service photo"
+              className="w-full aspect-video object-cover rounded-lg"
+            />
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageChange}
+            />
+            <button
+              type="button"
+              onClick={() => imageInputRef.current?.click()}
+              className="mt-1.5 text-xs text-indigo-600 hover:text-indigo-700 focus-visible:outline-none focus-visible:underline"
+            >
+              Upload image
+            </button>
           </div>
 
           <Input
@@ -177,7 +209,7 @@ function SkeletonCards() {
 
 export function AdminServicesPage() {
   const { data: services, isLoading, isError } = useAllServices();
-  const deactivateService = useDeactivateService();
+  const updateService = useUpdateService();
 
   const [panelOpen, setPanelOpen]             = useState(false);
   const [editingService, setEditingService]   = useState<WashServiceResponse | null>(null);
@@ -194,6 +226,20 @@ export function AdminServicesPage() {
 
   function closePanel() {
     setPanelOpen(false);
+  }
+
+  function toggleServiceActive(service: WashServiceResponse, active: boolean) {
+    updateService.mutate({
+      id: service.id,
+      data: {
+        name: service.name,
+        description: service.description,
+        price: service.price,
+        durationMinutes: service.durationMinutes,
+        active,
+        imageUrl: service.imageUrl ?? null,
+      },
+    });
   }
 
   const topBar = (
@@ -226,17 +272,18 @@ export function AdminServicesPage() {
                 service.active ? '' : 'opacity-60'
               }`}
             >
-              <ImagePlaceholder label={service.name} aspectRatio="video" className="w-full" />
+              <img
+                src={getServiceImage(service)}
+                alt={service.name}
+                className="w-full aspect-video object-cover"
+              />
               <div className="p-4">
                 <div className="flex justify-between items-start">
                   <span className="text-base font-semibold text-gray-900">{service.name}</span>
-                  {/* TODO: no reactivate endpoint — toggle can only go active→inactive */}
                   <ToggleSwitch
                     checked={service.active}
-                    onChange={() => {
-                      if (service.active) deactivateService.mutate(service.id);
-                    }}
-                    label={service.active ? 'Deactivate service' : 'Service is inactive (cannot reactivate)'}
+                    onChange={(checked) => toggleServiceActive(service, checked)}
+                    label={service.active ? 'Deactivate service' : 'Activate service'}
                   />
                 </div>
                 <p className="text-sm text-gray-500 mt-1 line-clamp-2">{service.description}</p>

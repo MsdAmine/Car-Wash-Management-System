@@ -9,6 +9,18 @@ const LoginPage = lazy(() =>
   import('@/features/auth/pages/LoginPage').then(({ LoginPage }) => ({ default: LoginPage }))
 );
 
+const ForgotPasswordPage = lazy(() =>
+  import('@/features/auth/pages/ForgotPasswordPage').then(({ ForgotPasswordPage }) => ({
+    default: ForgotPasswordPage,
+  }))
+);
+
+const ResetPasswordPage = lazy(() =>
+  import('@/features/auth/pages/ResetPasswordPage').then(({ ResetPasswordPage }) => ({
+    default: ResetPasswordPage,
+  }))
+);
+
 const RegisterPage = lazy(() =>
   import('@/features/auth/pages/RegisterPage').then(({ RegisterPage }) => ({ default: RegisterPage }))
 );
@@ -41,12 +53,20 @@ const WasherHistoryPage = lazy(() =>
   import('@/features/washer/pages/WasherHistoryPage').then(({ WasherHistoryPage }) => ({ default: WasherHistoryPage }))
 );
 
+const WasherAlertsPage = lazy(() =>
+  import('@/features/washer/pages/WasherAlertsPage').then(({ WasherAlertsPage }) => ({ default: WasherAlertsPage }))
+);
+
 const WasherProfilePage = lazy(() =>
   import('@/features/washer/pages/WasherProfilePage').then(({ WasherProfilePage }) => ({ default: WasherProfilePage }))
 );
 
 const AdminDashboardPage = lazy(() =>
   import('@/features/admin/pages/AdminDashboardPage').then(({ AdminDashboardPage }) => ({ default: AdminDashboardPage }))
+);
+
+const AdminAssignPage = lazy(() =>
+  import('@/features/admin/pages/AdminAssignPage').then(({ AdminAssignPage }) => ({ default: AdminAssignPage }))
 );
 
 const AdminBookingsPage = lazy(() =>
@@ -120,6 +140,22 @@ function App() {
               }
             />
             <Route
+              path={ROUTES.PUBLIC.FORGOT_PASSWORD}
+              element={
+                <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+                  <ForgotPasswordPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path={ROUTES.PUBLIC.RESET_PASSWORD}
+              element={
+                <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+                  <ResetPasswordPage />
+                </Suspense>
+              }
+            />
+            <Route
               path={ROUTES.PUBLIC.REGISTER}
               element={
                 <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
@@ -184,6 +220,14 @@ function App() {
               }
             />
             <Route
+              path={ROUTES.WASHER.ALERTS}
+              element={
+                <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+                  <WasherAlertsPage />
+                </Suspense>
+              }
+            />
+            <Route
               path={ROUTES.WASHER.PROFILE}
               element={
                 <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
@@ -204,6 +248,14 @@ function App() {
               element={
                 <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
                   <AdminBookingsPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path={ROUTES.ADMIN.ASSIGN}
+              element={
+                <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+                  <AdminAssignPage />
                 </Suspense>
               }
             />

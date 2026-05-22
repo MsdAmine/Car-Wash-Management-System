@@ -1,16 +1,20 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, UserX } from 'lucide-react';
 import { AdminLayout } from '@/shared/components/layout/AdminLayout';
 import { Badge } from '@/shared/components/ui/Badge';
 import { Button } from '@/shared/components/ui/Button';
-import { ImagePlaceholder } from '@/shared/components/ui/ImagePlaceholder';
 import { StepTracker } from '@/shared/components/ui/StepTracker';
 import { LoadingSpinner } from '@/shared/components/feedback/LoadingSpinner';
 import { ErrorState } from '@/shared/components/feedback/ErrorState';
 import { ADMIN_KEYS } from '@/features/admin/hooks/useAdminDashboard';
 import { useBookingDetail } from '@/features/admin/hooks/useBookingDetail';
+import { useCancelBooking } from '@/features/admin/hooks/useCancelBooking';
+import { useRescheduleBooking as useAdminRescheduleBooking } from '@/features/admin/hooks/useRescheduleBooking';
 import { fetchBookingAssignments } from '@/features/admin/api';
+import { AssignJobModal } from '@/features/bookings/components/AssignJobModal';
+import { RescheduleBookingModal } from '@/features/bookings/components/RescheduleBookingModal';
 import { ROUTES } from '@/router/routes';
 import type { BookingResponse } from '../types';
 
@@ -66,6 +70,11 @@ function InfoField({ label, value }: InfoFieldProps) {
 export function AdminBookingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [isAssignOpen, setIsAssignOpen] = useState(false);
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  const cancelMutation = useCancelBooking();
+  const rescheduleMutation = useAdminRescheduleBooking();
 
   const { data: booking, isLoading, isError } = useBookingDetail(id!);
 
@@ -93,13 +102,32 @@ export function AdminBookingDetailPage() {
           <span className="font-mono text-sm text-gray-900">{ref}</span>
         </nav>
       </div>
-      <div className="flex gap-2">
-        <Button variant="ghost" size="sm" onClick={() => console.log('reschedule')}>
-          Reschedule
-        </Button>
-        <Button variant="danger" size="sm" onClick={() => console.log('cancel')}>
-          Cancel
-        </Button>
+      <div className="flex items-center gap-2">
+        {confirmingCancel ? (
+          <>
+            <span className="text-sm text-gray-600">Cancel this booking?</span>
+            <Button variant="ghost" size="sm" onClick={() => setConfirmingCancel(false)}>
+              Keep it
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              isLoading={cancelMutation.isPending}
+              onClick={() => cancelMutation.mutate(id!, { onSuccess: () => navigate(ROUTES.ADMIN.BOOKINGS) })}
+            >
+              Yes, cancel
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button variant="ghost" size="sm" onClick={() => setRescheduleOpen(true)}>
+              Reschedule
+            </Button>
+            <Button variant="danger" size="sm" onClick={() => setConfirmingCancel(true)}>
+              Cancel
+            </Button>
+          </>
+        )}
       </div>
     </div>
   );
@@ -127,6 +155,13 @@ export function AdminBookingDetailPage() {
   const currentStep = deriveCurrentStep(booking.status);
   const assignedWasher = assignments && assignments.length > 0 ? assignments[0] : null;
   const appointmentDate = new Date(booking.appointmentDateTime);
+  const assignBooking = {
+    ref,
+    service: booking.washServiceName,
+    datetime: appointmentDate.toLocaleString(),
+    appointmentDateTime: booking.appointmentDateTime,
+    durationMinutes: booking.durationMinutes,
+  };
 
   return (
     <AdminLayout topBar={topBar}>
@@ -190,7 +225,7 @@ export function AdminBookingDetailPage() {
           {assignedWasher ? (
             <div className="mt-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <ImagePlaceholder label="Washer avatar" className="w-10 h-10 rounded-full" />
+                <img src="/images/avatar-washer.png" alt="Washer avatar" className="w-10 h-10 rounded-full object-cover" />
                 <div>
                   <p className="text-sm font-semibold text-gray-900">
                     {assignedWasher.employeeFirstName} {assignedWasher.employeeLastName}
@@ -200,7 +235,7 @@ export function AdminBookingDetailPage() {
                   </p>
                 </div>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => console.log('reassign')}>
+              <Button variant="ghost" size="sm" onClick={() => setIsAssignOpen(true)}>
                 Reassign
               </Button>
             </div>
@@ -210,7 +245,7 @@ export function AdminBookingDetailPage() {
               <p className="text-sm font-semibold text-gray-700 mt-2">No washer assigned</p>
               <p className="text-xs text-gray-500 mt-1">Assign a washer to this booking.</p>
               <div className="mt-3 flex justify-center">
-                <Button variant="primary" size="sm" onClick={() => console.log('assign')}>
+                <Button variant="primary" size="sm" onClick={() => setIsAssignOpen(true)}>
                   Assign washer
                 </Button>
               </div>
@@ -236,6 +271,19 @@ export function AdminBookingDetailPage() {
         </div>
 
       </div>
+      <AssignJobModal
+        isOpen={isAssignOpen}
+        onClose={() => setIsAssignOpen(false)}
+        booking={assignBooking}
+        bookingId={booking.id}
+      />
+      <RescheduleBookingModal
+        isOpen={rescheduleOpen}
+        onClose={() => setRescheduleOpen(false)}
+        bookingId={booking.id}
+        washServiceId={booking.washServiceId}
+        rescheduleMutation={rescheduleMutation}
+      />
     </AdminLayout>
   );
 }

@@ -1,35 +1,39 @@
 import type { AxiosError } from 'axios';
+import { Link, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
 import { Checkbox } from '@/shared/components/ui/Checkbox';
-import { ImagePlaceholder } from '@/shared/components/ui/ImagePlaceholder';
 import { loginSchema, type LoginFormValues } from '../schemas';
 import { ROUTES } from '@/router/routes';
 import { useLogin } from '../hooks/useLogin';
 
 export function LoginPage() {
+  const location = useLocation();
+
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
+    defaultValues: { rememberMe: false },
   });
 
   const { mutate: login, isPending, error } = useLogin();
 
   const onSubmit = (values: LoginFormValues) => {
-    login({ email: values.email, password: values.password });
+    login({ email: values.email, password: values.password, rememberMe: values.rememberMe });
   };
 
   return (
     <div className="flex h-screen">
       <div className="hidden md:block w-[45%]">
-        <ImagePlaceholder
-          label="Brand image — car being washed"
-          className="w-full h-full !rounded-none"
+        <img
+          src="/images/hero-login.png"
+          alt="Car being washed"
+          className="w-full h-full object-cover"
         />
       </div>
 
@@ -65,14 +69,22 @@ export function LoginPage() {
             </div>
 
             <div className="flex justify-between items-center mt-3">
-              <Checkbox label="Remember me" />
-              <a
-                href="#"
+              <Checkbox label="Remember me" {...register('rememberMe')} />
+              <Link
+                to={ROUTES.PUBLIC.FORGOT_PASSWORD}
                 className="text-sm text-indigo-600 hover:text-indigo-700 focus-visible:outline-none focus-visible:underline"
               >
                 Forgot password?
-              </a>
+              </Link>
             </div>
+
+            {location.state && typeof location.state === 'object' && 'passwordReset' in location.state && (
+              <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2 mt-4">
+                <p className="text-sm text-green-700">
+                  Your password has been reset. Sign in with the new password.
+                </p>
+              </div>
+            )}
 
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 mt-4">
@@ -96,12 +108,12 @@ export function LoginPage() {
 
           <p className="mt-6 text-center text-sm text-gray-500">
             Don't have an account?
-            <a
-              href={ROUTES.PUBLIC.REGISTER}
+            <Link
+              to={ROUTES.PUBLIC.REGISTER}
               className="text-sm text-indigo-600 hover:text-indigo-700 font-medium ml-1 focus-visible:outline-none focus-visible:underline"
             >
               Register
-            </a>
+            </Link>
           </p>
         </div>
       </div>

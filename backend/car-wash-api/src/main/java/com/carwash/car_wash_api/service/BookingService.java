@@ -1,14 +1,19 @@
 package com.carwash.car_wash_api.service;
 
+import com.carwash.car_wash_api.dto.request.AdminBookingRequest;
 import com.carwash.car_wash_api.dto.request.BookingRequest;
+import com.carwash.car_wash_api.dto.request.RescheduleBookingRequest;
 import com.carwash.car_wash_api.dto.request.UpdateBookingStatusRequest;
+import com.carwash.car_wash_api.dto.response.AvailableSlotsResponse;
 import com.carwash.car_wash_api.dto.response.BookingResponse;
+import com.carwash.car_wash_api.dto.response.TimeSlotResponse;
 import com.carwash.car_wash_api.exception.AccessDeniedException;
 import com.carwash.car_wash_api.exception.InvalidBookingException;
 import com.carwash.car_wash_api.exception.ResourceNotFoundException;
 import com.carwash.car_wash_api.mapper.BookingMapper;
 import com.carwash.car_wash_api.model.entity.Booking;
 import com.carwash.car_wash_api.model.entity.Employee;
+import com.carwash.car_wash_api.model.entity.OperatingHours;
 import com.carwash.car_wash_api.model.entity.User;
 import com.carwash.car_wash_api.model.entity.Vehicle;
 import com.carwash.car_wash_api.model.entity.WashService;
@@ -31,7 +36,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -90,6 +97,46 @@ public class BookingService {
         return bookingMapper.toResponse(bookingRepository.save(booking));
     }
 
+    @Transactional
+    public BookingResponse createBookingForCustomer(AdminBookingRequest request) {
+        User customer = userRepository.findById(request.getCustomerId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Customer not found with ID: " + request.getCustomerId()));
+
+        Vehicle vehicle = vehicleRepository.findById(request.getVehicleId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Vehicle not found with ID: " + request.getVehicleId()));
+
+        validateVehicleOwnership(vehicle, customer);
+
+        WashService washService = washServiceRepository.findById(request.getWashServiceId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Wash service not found with ID: " + request.getWashServiceId()));
+
+        validateActiveWashService(washService);
+        validateAppointmentDateTime(request.getAppointmentDateTime());
+
+        LocalDateTime endDateTime = request.getAppointmentDateTime()
+                .plusMinutes(washService.getDurationMinutes());
+
+        validateOperatingHours(request.getAppointmentDateTime(), endDateTime);
+        validateNoConflictingBooking(vehicle, request.getAppointmentDateTime(), endDateTime);
+
+        BigDecimal totalPrice = washService.getPrice();
+
+        Booking booking = Booking.builder()
+                .customer(customer)
+                .vehicle(vehicle)
+                .washService(washService)
+                .appointmentDateTime(request.getAppointmentDateTime())
+                .endDateTime(endDateTime)
+                .totalPrice(totalPrice)
+                .notes(request.getNotes())
+                .build();
+
+        return bookingMapper.toResponse(bookingRepository.save(booking));
+    }
+
     // #223 — return all bookings for the authenticated customer
     @Transactional(readOnly = true)
     public List<BookingResponse> getMyBookings() {
@@ -105,10 +152,22 @@ public class BookingService {
     public BookingResponse getBookingById(UUID id) {
         Booking booking = findBookingOrThrow(id);
         User currentUser = resolveCurrentUser();
-        if (!isAdmin(currentUser) && !booking.getCustomer().getId().equals(currentUser.getId())) {
-            throw new AccessDeniedException("You do not have permission to view this booking");
+
+        if (isAdmin(currentUser) || booking.getCustomer().getId().equals(currentUser.getId())) {
+            return bookingMapper.toResponse(booking);
         }
-        return bookingMapper.toResponse(booking);
+
+        if (currentUser.getRole() == Role.EMPLOYEE) {
+            Employee employee = employeeRepository.findByUserId(currentUser.getId())
+                    .orElseThrow(() -> new AccessDeniedException(
+                            "No employee profile found for the current user"));
+
+            if (bookingAssignmentRepository.existsByBookingIdAndEmployeeId(booking.getId(), employee.getId())) {
+                return bookingMapper.toResponse(booking);
+            }
+        }
+
+        throw new AccessDeniedException("You do not have permission to view this booking");
     }
 
     // #225 — return all bookings whose appointment falls on today (admin / employee)
@@ -178,6 +237,103 @@ public class BookingService {
         return bookingMapper.toResponse(bookingRepository.save(booking));
     }
 
+    @Transactional(readOnly = true)
+    public AvailableSlotsResponse getAvailableSlots(String date, UUID serviceId) {
+        WashService washService = washServiceRepository.findById(serviceId)
+                .filter(s -> Boolean.TRUE.equals(s.getActive()))
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Wash service not found with ID: " + serviceId));
+
+        LocalDate localDate = LocalDate.parse(date);
+        String dayOfWeek = localDate.getDayOfWeek().name();
+
+        Optional<OperatingHours> ohOpt = operatingHoursRepository.findByDayOfWeek(dayOfWeek);
+        if (ohOpt.isEmpty() || !ohOpt.get().isOpen()) {
+            return AvailableSlotsResponse.builder()
+                    .date(date)
+                    .serviceId(serviceId.toString())
+                    .serviceName(washService.getName())
+                    .durationMinutes(washService.getDurationMinutes())
+                    .slots(List.of())
+                    .build();
+        }
+
+        OperatingHours oh = ohOpt.get();
+        int duration = washService.getDurationMinutes();
+        LocalTime lastValidStart = oh.getCloseTime().minusMinutes(duration);
+        List<BookingStatus> activeStatuses = List.of(
+                BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS);
+
+        List<TimeSlotResponse> slots = new ArrayList<>();
+        LocalTime current = oh.getOpenTime();
+        while (!current.isAfter(lastValidStart)) {
+            LocalDateTime slotStart = localDate.atTime(current);
+            LocalDateTime slotEnd = slotStart.plusMinutes(duration);
+            boolean available = bookingRepository
+                    .findOverlappingBookings(slotStart, slotEnd, activeStatuses).isEmpty();
+            slots.add(TimeSlotResponse.builder()
+                    .time(current.format(DateTimeFormatter.ofPattern("HH:mm")))
+                    .available(available)
+                    .reason(available ? null : "Already booked")
+                    .build());
+            current = current.plusMinutes(30);
+        }
+
+        return AvailableSlotsResponse.builder()
+                .date(date)
+                .serviceId(serviceId.toString())
+                .serviceName(washService.getName())
+                .durationMinutes(duration)
+                .slots(slots)
+                .build();
+    }
+
+    @Transactional
+    public BookingResponse rescheduleMyBooking(UUID id, RescheduleBookingRequest request) {
+        Booking booking = findBookingOrThrow(id);
+        User currentUser = resolveCurrentUser();
+        if (!booking.getCustomer().getId().equals(currentUser.getId())) {
+            throw new AccessDeniedException("You do not have permission to reschedule this booking");
+        }
+        if (booking.getStatus() == BookingStatus.CANCELLED ||
+                booking.getStatus() == BookingStatus.COMPLETED ||
+                booking.getStatus() == BookingStatus.IN_PROGRESS) {
+            throw new InvalidBookingException(
+                    "Cannot reschedule a " + booking.getStatus() + " booking");
+        }
+        validateAppointmentDateTime(request.getAppointmentDateTime());
+        LocalDateTime newEndDateTime = request.getAppointmentDateTime()
+                .plusMinutes(booking.getWashService().getDurationMinutes());
+        validateOperatingHours(request.getAppointmentDateTime(), newEndDateTime);
+        validateNoConflictingBookingExcluding(booking.getVehicle(), request.getAppointmentDateTime(), newEndDateTime, id);
+        booking.setAppointmentDateTime(request.getAppointmentDateTime());
+        booking.setEndDateTime(newEndDateTime);
+        return bookingMapper.toResponse(bookingRepository.save(booking));
+    }
+
+    @Transactional
+    public BookingResponse rescheduleBooking(UUID id, RescheduleBookingRequest request) {
+        Booking booking = findBookingOrThrow(id);
+
+        if (booking.getStatus() == BookingStatus.CANCELLED || booking.getStatus() == BookingStatus.COMPLETED) {
+            throw new InvalidBookingException(
+                    "Cannot reschedule a " + booking.getStatus() + " booking");
+        }
+
+        validateAppointmentDateTime(request.getAppointmentDateTime());
+
+        LocalDateTime newEndDateTime = request.getAppointmentDateTime()
+                .plusMinutes(booking.getWashService().getDurationMinutes());
+
+        validateOperatingHours(request.getAppointmentDateTime(), newEndDateTime);
+        validateNoConflictingBookingExcluding(booking.getVehicle(), request.getAppointmentDateTime(), newEndDateTime, id);
+
+        booking.setAppointmentDateTime(request.getAppointmentDateTime());
+        booking.setEndDateTime(newEndDateTime);
+
+        return bookingMapper.toResponse(bookingRepository.save(booking));
+    }
+
     // #217 — validate the vehicle belongs to the authenticated customer
     private void validateVehicleOwnership(Vehicle vehicle, User customer) {
         if (!vehicle.getOwner().getId().equals(customer.getId())) {
@@ -227,6 +383,20 @@ public class BookingService {
     private void validateNoConflictingBooking(Vehicle vehicle, LocalDateTime appointmentDateTime, LocalDateTime endDateTime) {
         boolean conflict = bookingRepository.existsOverlappingBooking(
                 vehicle.getId(),
+                appointmentDateTime,
+                endDateTime,
+                List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS)
+        );
+        if (conflict) {
+            throw new InvalidBookingException(
+                    "This vehicle already has a booking that overlaps the requested time slot");
+        }
+    }
+
+    private void validateNoConflictingBookingExcluding(Vehicle vehicle, LocalDateTime appointmentDateTime, LocalDateTime endDateTime, UUID excludeBookingId) {
+        boolean conflict = bookingRepository.existsOverlappingBookingExcluding(
+                vehicle.getId(),
+                excludeBookingId,
                 appointmentDateTime,
                 endDateTime,
                 List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS)

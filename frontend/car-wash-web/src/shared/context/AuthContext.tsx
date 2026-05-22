@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { setAuthToken } from '@/shared/lib/axios';
+import { queryClient } from '@/shared/lib/queryClient';
 import type { AuthResponse } from '@/features/auth/types';
 import { fetchUserProfile } from '@/features/auth/api';
 import { ROUTES } from '@/router/routes';
@@ -26,14 +27,13 @@ interface AuthContextValue {
   token: string | null;
   isAuthenticated: boolean;
   isInitialised: boolean;
-  login: (authResponse: AuthResponse) => Promise<void>;
+  login: (authResponse: AuthResponse, rememberMe?: boolean) => Promise<void>;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const SESSION_TOKEN_KEY = 'auth_token';
-const SESSION_USER_KEY = 'auth_user';
+const TOKEN_KEY = 'auth_token';
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -41,12 +41,22 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const navigate = useNavigate();
-  const [token, setToken] = useState<string | null>(() =>
-    sessionStorage.getItem(SESSION_TOKEN_KEY),
+  const [token, setToken] = useState<string | null>(
+    () => localStorage.getItem(TOKEN_KEY) ?? sessionStorage.getItem(TOKEN_KEY),
   );
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isInitialised, setIsInitialised] = useState(false);
+
+  function clearSession(): void {
+    setAuthToken(null);
+    localStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(TOKEN_KEY);
+    queryClient.clear();
+    setToken(null);
+    setUser(null);
+    setIsAuthenticated(false);
+  }
 
   async function hydrateFromProfile(tok: string): Promise<void> {
     setAuthToken(tok);
@@ -61,17 +71,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       });
       setIsAuthenticated(true);
     } catch {
-      sessionStorage.removeItem(SESSION_TOKEN_KEY);
-      sessionStorage.removeItem(SESSION_USER_KEY);
-      setAuthToken(null);
-      setToken(null);
-      setUser(null);
-      setIsAuthenticated(false);
+      clearSession();
     }
   }
 
   useEffect(() => {
-    const storedToken = sessionStorage.getItem(SESSION_TOKEN_KEY);
+    const storedToken = localStorage.getItem(TOKEN_KEY) ?? sessionStorage.getItem(TOKEN_KEY);
     if (storedToken) {
       hydrateFromProfile(storedToken).finally(() => setIsInitialised(true));
     } else {
@@ -79,20 +84,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, []);
 
-  async function login(authResponse: AuthResponse): Promise<void> {
-    sessionStorage.setItem(SESSION_TOKEN_KEY, authResponse.token);
+  async function login(authResponse: AuthResponse, rememberMe = false): Promise<void> {
+    if (rememberMe) {
+      localStorage.setItem(TOKEN_KEY, authResponse.token);
+    } else {
+      sessionStorage.setItem(TOKEN_KEY, authResponse.token);
+    }
     setToken(authResponse.token);
     setAuthToken(authResponse.token);
     await hydrateFromProfile(authResponse.token);
   }
 
   function logout(): void {
-    setAuthToken(null);
-    sessionStorage.removeItem(SESSION_TOKEN_KEY);
-    sessionStorage.removeItem(SESSION_USER_KEY);
-    setToken(null);
-    setUser(null);
-    setIsAuthenticated(false);
+    clearSession();
     navigate(ROUTES.PUBLIC.LOGIN);
   }
 

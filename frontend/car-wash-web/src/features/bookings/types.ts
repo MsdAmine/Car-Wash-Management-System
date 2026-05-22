@@ -1,3 +1,17 @@
+export interface TimeSlotResponse {
+  time: string
+  available: boolean
+  reason: string | null
+}
+
+export interface AvailableSlotsResponse {
+  date: string
+  serviceId: string
+  serviceName: string
+  durationMinutes: number
+  slots: TimeSlotResponse[]
+}
+
 export interface BookingRequest {
   vehicleId: string
   washServiceId: string
@@ -15,6 +29,11 @@ export interface BookingResponse {
   washServiceName: string
   washServicePrice: number
   durationMinutes: number
+  assignedEmployeeId: string | null
+  assignedEmployeeFirstName: string | null
+  assignedEmployeeLastName: string | null
+  assignedEmployeePosition: string | null
+  assignedAt: string | null
   totalPrice: number
   status: 'PENDING' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
   appointmentDateTime: string

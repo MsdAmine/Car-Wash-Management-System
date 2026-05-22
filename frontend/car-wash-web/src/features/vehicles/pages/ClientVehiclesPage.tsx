@@ -6,7 +6,6 @@ import { Input } from '@/shared/components/ui/Input';
 import { Select } from '@/shared/components/ui/Select';
 import { Modal } from '@/shared/components/ui/Modal';
 import { ConfirmDialog } from '@/shared/components/ui/ConfirmDialog';
-import { ImagePlaceholder } from '@/shared/components/ui/ImagePlaceholder';
 import { EmptyState } from '@/shared/components/feedback/EmptyState';
 import { ErrorState } from '@/shared/components/feedback/ErrorState';
 import { ClientLayout } from '@/shared/components/layout/ClientLayout';
@@ -142,7 +141,7 @@ interface VehicleCardProps {
 function VehicleCard({ vehicle, onEdit, onDelete }: VehicleCardProps) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <ImagePlaceholder label="Vehicle photo" aspectRatio="video" className="w-full" />
+      <img src="/images/vehicle-side.png" alt="Vehicle photo" className="w-full aspect-video object-cover" />
       <div className="p-4">
         <div className="flex justify-between items-start">
           <p className="text-base font-semibold text-gray-900">

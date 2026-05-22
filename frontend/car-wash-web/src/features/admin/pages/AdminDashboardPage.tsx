@@ -1,24 +1,17 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 import { AdminLayout } from '@/shared/components/layout/AdminLayout';
 import { Button } from '@/shared/components/ui/Button';
 import { Badge } from '@/shared/components/ui/Badge';
-import { LoadingSpinner } from '@/shared/components/feedback/LoadingSpinner';
 import { ErrorState } from '@/shared/components/feedback/ErrorState';
+import { ROUTES } from '@/router/routes';
 import { useAdminDashboard } from '@/features/admin/hooks/useAdminDashboard';
 import { useAllBookings } from '@/features/admin/hooks/useAllBookings';
+import { useRevenueTimeSeries } from '@/features/admin/hooks/useRevenueTimeSeries';
+import { AssignJobModal } from '@/features/bookings/components/AssignJobModal';
+import { AdminNewBookingModal } from '@/features/bookings/components/AdminNewBookingModal';
 import type { BookingResponse } from '@/features/bookings/types';
-
-// TODO: no revenue time-series endpoint exists — chart data remains hardcoded
-const MOCK_CHART_DATA = [
-  { day: 'Mon', revenue: 320 },
-  { day: 'Tue', revenue: 480 },
-  { day: 'Wed', revenue: 290 },
-  { day: 'Thu', revenue: 510 },
-  { day: 'Fri', revenue: 620 },
-  { day: 'Sat', revenue: 750 },
-  { day: 'Sun', revenue: 410 },
-];
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -31,78 +24,134 @@ interface StatCardProps {
 
 function StatCard({ label, value, trend, prefix }: StatCardProps) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
+    <div className="bg-white border-gray-200 rounded-xl border p-5">
       <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</p>
-      <p className="text-2xl font-bold text-gray-900 mt-1">
+      <p className="text-2xl font-semibold text-gray-900 mt-2 leading-none tabular-nums">
         {prefix}{value}
       </p>
-      <p className="text-xs text-gray-500 mt-1">{trend}</p>
+      <p className="text-xs text-gray-500 mt-2">{trend}</p>
     </div>
   );
 }
 
-type ChartPeriod = 'daily' | 'weekly' | 'monthly';
-
-function RevenueChart() {
-  const [period, setPeriod] = useState<ChartPeriod>('weekly');
-
-  const maxRevenue = Math.max(...MOCK_CHART_DATA.map((d) => d.revenue));
-  const slotWidth = 700 / MOCK_CHART_DATA.length;
-  const barWidth = 60;
-  const maxBarHeight = 140;
-  const barsBottom = 155;
-
-  const periods: { key: ChartPeriod; label: string }[] = [
-    { key: 'daily', label: 'Daily' },
-    { key: 'weekly', label: 'Weekly' },
-    { key: 'monthly', label: 'Monthly' },
-  ];
-
+function DashboardSkeleton() {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-base font-semibold text-gray-900">Revenue — Last 7 days</h2>
-        <div className="flex gap-1">
-          {periods.map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setPeriod(key)}
-              className={`text-sm px-3 py-1 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-                period === key
-                  ? 'bg-indigo-50 text-indigo-700'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
+    <>
+      <div className="grid grid-cols-4 gap-4 mb-8">
+        {[0, 1, 2, 3].map(i => (
+          <div key={i} className="bg-white rounded-xl border border-gray-200 p-5">
+            <div className="h-3 w-20 bg-gray-100 rounded animate-pulse" />
+            <div className="h-7 w-14 bg-gray-100 rounded animate-pulse mt-3" />
+            <div className="h-3 w-24 bg-gray-100 rounded animate-pulse mt-2" />
+          </div>
+        ))}
+      </div>
+      <div className="bg-white rounded-xl border border-gray-200 p-5 mb-8">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="h-4 w-24 bg-gray-100 rounded animate-pulse" />
+          <div className="h-3 w-16 bg-gray-100 rounded animate-pulse ml-2" />
+        </div>
+        <div className="w-full h-64 bg-gray-100 rounded-lg animate-pulse" />
+      </div>
+      <div className="grid grid-cols-3 gap-4">
+        <div className="col-span-2 bg-white rounded-xl border border-gray-200 p-5">
+          <div className="h-4 w-32 bg-gray-100 rounded animate-pulse mb-4" />
+          <div className="flex flex-col divide-y divide-gray-100">
+            {[0, 1, 2].map(i => (
+              <div key={i} className="py-3 flex items-center gap-3">
+                <div className="flex-1">
+                  <div className="h-3.5 w-40 bg-gray-100 rounded animate-pulse" />
+                  <div className="h-3 w-32 bg-gray-100 rounded animate-pulse mt-1.5" />
+                </div>
+                <div className="h-6 w-20 bg-gray-100 rounded-full animate-pulse shrink-0" />
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="col-span-1 bg-white rounded-xl border border-gray-200 p-5">
+          <div className="h-4 w-28 bg-gray-100 rounded animate-pulse mb-4" />
+          <div className="flex flex-col divide-y divide-gray-100">
+            {[0, 1].map(i => (
+              <div key={i} className="py-3">
+                <div className="h-3 w-full bg-gray-100 rounded animate-pulse mb-2" />
+                <div className="h-3 w-3/4 bg-gray-100 rounded animate-pulse mb-3" />
+                <div className="h-7 w-full bg-gray-100 rounded-lg animate-pulse" />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
+    </>
+  );
+}
 
-      <div className="w-full h-48">
-        <svg
-          viewBox="0 0 700 180"
-          preserveAspectRatio="none"
-          className="w-full h-full"
-          aria-label="Revenue bar chart"
-          role="img"
-        >
-          {MOCK_CHART_DATA.map((d, i) => {
-            const barHeight = (d.revenue / maxRevenue) * maxBarHeight;
-            const barX = i * slotWidth + (slotWidth - barWidth) / 2;
-            const barY = barsBottom - barHeight;
-            const labelX = i * slotWidth + slotWidth / 2;
+function RevenueChart() {
+  const { data: revenueData, isLoading, isError } = useRevenueTimeSeries('daily', 7);
 
-            return (
-              <g key={d.day}>
-                <rect x={barX} y={barY} width={barWidth} height={barHeight} fill="#4F46E5" rx="4" />
-                <text x={labelX} y={175} fontSize="11" fill="#6B7280" textAnchor="middle">
-                  {d.day}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
+  const chartData = revenueData ?? [];
+  const maxRevenue = Math.max(...chartData.map((d) => d.revenue), 1);
+  const leftPad = 42;
+  const chartWidth = 700;
+  const slotWidth = (chartWidth - leftPad) / Math.max(chartData.length, 1);
+  const barWidth = 52;
+  const maxBarHeight = 145;
+  const barsBottom = 172;
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-5 mb-8">
+      <div className="flex items-center mb-4">
+        <h2 className="text-base font-semibold text-gray-900">Revenue</h2>
+        <span className="ml-2 text-sm text-gray-400">Last 7 days</span>
+      </div>
+
+      <div className="w-full h-64">
+        {isLoading ? (
+          <div className="w-full h-full bg-gray-100 animate-pulse rounded-lg" />
+        ) : isError ? (
+          <div className="w-full h-full flex items-center justify-center">
+            <ErrorState message="Could not load revenue data." />
+          </div>
+        ) : chartData.length === 0 ? (
+          <div className="w-full h-full flex items-center justify-center">
+            <p className="text-sm text-gray-500">No revenue data available yet.</p>
+          </div>
+        ) : (
+          <svg
+            viewBox="0 0 700 195"
+            preserveAspectRatio="none"
+            className="w-full h-full"
+            aria-label="Revenue bar chart"
+            role="img"
+          >
+            {[0.25, 0.5, 0.75, 1].map((pct) => {
+              const y = barsBottom - pct * maxBarHeight;
+              const val = Math.round(pct * maxRevenue);
+              return (
+                <g key={pct}>
+                  <line x1={leftPad} y1={y} x2={chartWidth} y2={y} stroke="#f3f4f6" strokeWidth={1} />
+                  <text x={leftPad - 5} y={y + 4} fontSize="10" fill="#9ca3af" textAnchor="end">${val}</text>
+                </g>
+              );
+            })}
+
+            <line x1={leftPad} y1={barsBottom} x2={chartWidth} y2={barsBottom} stroke="#e5e7eb" strokeWidth={1} />
+
+            {chartData.map((d, i) => {
+              const barHeight = (d.revenue / maxRevenue) * maxBarHeight;
+              const barX = leftPad + i * slotWidth + (slotWidth - barWidth) / 2;
+              const barY = barsBottom - barHeight;
+              const labelX = leftPad + i * slotWidth + slotWidth / 2;
+
+              return (
+                <g key={d.label}>
+                  <rect x={barX} y={barY} width={barWidth} height={barHeight} fill="#4F46E5" rx="4" />
+                  <text x={labelX} y={barY - 5} fontSize="10" fill="#6B7280" textAnchor="middle">${d.revenue}</text>
+                  <text x={labelX} y={barsBottom + 15} fontSize="11" fill="#6B7280" textAnchor="middle">{d.label}</text>
+                </g>
+              );
+            })}
+          </svg>
+        )}
       </div>
     </div>
   );
@@ -139,19 +188,23 @@ function ActiveBookingsList({ bookings }: ActiveBookingsListProps) {
       </div>
 
       <div className="flex flex-col divide-y divide-gray-100">
-        {active.map((booking) => (
-          <div key={booking.id} className="py-3 flex items-center justify-between">
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-gray-900">{booking.customerEmail}</p>
-              <p className="font-mono text-xs text-gray-500">
+        {active.length === 0 ? (
+          <p className="text-sm text-gray-500 py-4">No active bookings right now.</p>
+        ) : active.map((booking) => (
+          <div key={booking.id} className="py-3 flex items-center justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-gray-900 truncate">{booking.customerEmail}</p>
+              <p className="font-mono text-xs text-gray-500 truncate">
                 {booking.id.slice(-8).toUpperCase()} &middot; {booking.washServiceName}
               </p>
             </div>
-            <p className="text-sm text-gray-500 mx-6 shrink-0">
-              {new Date(booking.appointmentDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            <p className="text-sm text-gray-500 shrink-0">
+              {new Date(booking.appointmentDateTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
             </p>
             <div className="flex items-center gap-3 shrink-0">
-              <span className="text-sm text-gray-500">See detail</span>
+              <Link to={ROUTES.ADMIN.BOOKING_DETAIL(booking.id)} className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
+                View details
+              </Link>
               <Badge variant={statusToVariant(booking.status)} />
             </div>
           </div>
@@ -163,31 +216,39 @@ function ActiveBookingsList({ bookings }: ActiveBookingsListProps) {
 
 interface UnassignedStripProps {
   bookings: BookingResponse[];
+  onAssign: (booking: BookingResponse) => void;
 }
 
-function UnassignedStrip({ bookings }: UnassignedStripProps) {
+function UnassignedStrip({ bookings, onAssign }: UnassignedStripProps) {
   const unassigned = bookings.filter((b) => b.status === 'PENDING');
 
+  const hasUrgent = unassigned.length > 0;
+
   return (
-    <div className="col-span-1 bg-white rounded-xl border border-gray-200 border-l-4 border-l-red-500 p-5">
-      <div className="flex items-center gap-2 mb-3">
-        <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
-        <h2 className="text-sm font-semibold text-red-700">Needs attention</h2>
+    <div className="col-span-1 bg-white rounded-xl border border-gray-200 p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <AlertTriangle className={`w-4 h-4 shrink-0 ${hasUrgent ? 'text-amber-500' : 'text-gray-400'}`} />
+        <h2 className="text-sm font-semibold text-gray-900">Needs assignment</h2>
+        {hasUrgent && (
+          <span className="ml-auto inline-flex items-center justify-center h-5 rounded-full bg-red-50 text-red-700 text-xs font-semibold px-2">
+            {unassigned.length}
+          </span>
+        )}
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col divide-y divide-gray-100">
         {unassigned.map((item) => (
-          <div key={item.id} className="bg-red-50 rounded-lg p-3">
-            <p className="font-mono text-xs text-red-400">{item.id.slice(-8).toUpperCase()}</p>
+          <div key={item.id} className="py-3 first:pt-0">
+            <p className="font-mono text-xs text-gray-400">{item.id.slice(-8).toUpperCase()}</p>
             <p className="text-sm text-gray-900">{item.customerEmail} &middot; {item.washServiceName}</p>
             <p className="text-xs text-gray-500 mt-0.5">
-              {new Date(item.appointmentDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {new Date(item.appointmentDateTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
             </p>
             <Button
               variant="primary"
               size="sm"
               className="w-full mt-2"
-              onClick={() => console.log('assign', item.id)}
+              onClick={() => onAssign(item)}
             >
               Assign washer
             </Button>
@@ -195,7 +256,7 @@ function UnassignedStrip({ bookings }: UnassignedStripProps) {
         ))}
 
         {unassigned.length === 0 && (
-          <p className="text-sm text-gray-500 italic">No unassigned bookings.</p>
+          <p className="text-sm text-gray-500">All bookings are assigned.</p>
         )}
       </div>
     </div>
@@ -207,6 +268,29 @@ function UnassignedStrip({ bookings }: UnassignedStripProps) {
 export function AdminDashboardPage() {
   const { data: dashboard, isLoading: dashLoading, isError: dashError } = useAdminDashboard();
   const { data: bookings, isLoading: bookingsLoading, isError: bookingsError } = useAllBookings();
+
+  const [assignModal, setAssignModal] = useState<{
+    isOpen: boolean;
+    booking: { ref: string; service: string; datetime: string; appointmentDateTime: string; durationMinutes: number } | null;
+    bookingId: string | null;
+  }>({ isOpen: false, booking: null, bookingId: null });
+
+  const [newBookingOpen, setNewBookingOpen] = useState(false);
+
+  function handleOpenAssign(booking: BookingResponse) {
+    const ref = booking.id.slice(-8).toUpperCase();
+    setAssignModal({
+      isOpen: true,
+      booking: {
+        ref,
+        service: booking.washServiceName,
+        datetime: new Date(booking.appointmentDateTime).toLocaleString(),
+        appointmentDateTime: booking.appointmentDateTime,
+        durationMinutes: booking.durationMinutes,
+      },
+      bookingId: booking.id,
+    });
+  }
 
   const isLoading = dashLoading || bookingsLoading;
   const isError = dashError || bookingsError;
@@ -220,12 +304,12 @@ export function AdminDashboardPage() {
 
   const topBar = (
     <>
-      <div className="flex items-center">
-        <h1 className="text-lg font-semibold text-gray-900">Dashboard</h1>
-        <span className="text-sm text-gray-500 ml-3">{today}</span>
+      <div className="flex items-center gap-3">
+        <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
+        <span className="text-sm text-gray-400">{today}</span>
       </div>
-      <Button size="sm" onClick={() => console.log('new booking')}>
-        + New booking
+      <Button size="sm" onClick={() => setNewBookingOpen(true)}>
+        New booking
       </Button>
     </>
   );
@@ -233,9 +317,7 @@ export function AdminDashboardPage() {
   if (isLoading) {
     return (
       <AdminLayout topBar={topBar}>
-        <div className="flex justify-center py-20">
-          <LoadingSpinner size="lg" />
-        </div>
+        <DashboardSkeleton />
       </AdminLayout>
     );
   }
@@ -253,41 +335,55 @@ export function AdminDashboardPage() {
   const activeWashCount = bookings.filter((b) => b.status === 'IN_PROGRESS').length;
 
   return (
-    <AdminLayout topBar={topBar}>
-      {/* Section 1 — Stat cards */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <StatCard
-          label="Today's Bookings"
-          value={dashboard.todaysBookings}
-          trend="Today"
-        />
-        <StatCard
-          label="Revenue Today"
-          value={dashboard.dailyRevenue}
-          trend="Today"
-          prefix="$"
-        />
-        <StatCard
-          label="Active Washes"
-          value={activeWashCount}
-          trend="Right now"
-        />
-        {/* TODO: distinct staff-on-duty count not available from API */}
-        <StatCard
-          label="Pending Bookings"
-          value={dashboard.pendingBookings}
-          trend="Awaiting assignment"
-        />
-      </div>
+    <>
+      <AdminLayout topBar={topBar}>
+        {/* Section 1 — Stat cards */}
+        <div className="grid grid-cols-4 gap-4 mb-8">
+          <StatCard
+            label="Today's Bookings"
+            value={dashboard.todaysBookings}
+            trend="Confirmed & pending"
+          />
+          <StatCard
+            label="Revenue Today"
+            value={dashboard.dailyRevenue}
+            trend="Collected today"
+            prefix="$"
+          />
+          <StatCard
+            label="Active Washes"
+            value={activeWashCount}
+            trend="In progress"
+          />
+          {/* TODO: distinct staff-on-duty count not available from API */}
+          <StatCard
+            label="Pending Bookings"
+            value={dashboard.pendingBookings}
+            trend="Awaiting assignment"
+          />
+        </div>
 
-      {/* Section 2 — Revenue chart */}
-      <RevenueChart />
+        {/* Section 2 — Revenue chart */}
+        <RevenueChart />
 
-      {/* Section 3 — Active bookings + Unassigned strip */}
-      <div className="grid grid-cols-3 gap-4">
-        <ActiveBookingsList bookings={bookings} />
-        <UnassignedStrip bookings={bookings} />
-      </div>
-    </AdminLayout>
+        {/* Section 3 — Active bookings + Unassigned strip */}
+        <div className="grid grid-cols-3 gap-4">
+          <ActiveBookingsList bookings={bookings} />
+          <UnassignedStrip bookings={bookings} onAssign={handleOpenAssign} />
+        </div>
+      </AdminLayout>
+
+      <AssignJobModal
+        isOpen={assignModal.isOpen}
+        onClose={() => setAssignModal((prev) => ({ ...prev, isOpen: false }))}
+        booking={assignModal.booking}
+        bookingId={assignModal.bookingId}
+      />
+
+      <AdminNewBookingModal
+        isOpen={newBookingOpen}
+        onClose={() => setNewBookingOpen(false)}
+      />
+    </>
   );
 }
