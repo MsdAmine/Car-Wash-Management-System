@@ -278,7 +278,7 @@ class DashboardControllerTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void getRevenueSeries_asAdmin_withDailyPeriod_returns200() throws Exception {
-        when(dashboardService.getRevenueTimeSeries("daily", 3)).thenReturn(revenueResponse);
+        when(dashboardService.getRevenueTimeSeries("daily", 3, null, null)).thenReturn(revenueResponse);
 
         mockMvc.perform(get("/api/v1/dashboard/revenue")
                         .param("period", "daily")
@@ -294,7 +294,7 @@ class DashboardControllerTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void getRevenueSeries_asAdmin_usesDefaults_returns200() throws Exception {
-        when(dashboardService.getRevenueTimeSeries("daily", 7)).thenReturn(List.of());
+        when(dashboardService.getRevenueTimeSeries("daily", 7, null, null)).thenReturn(List.of());
 
         mockMvc.perform(get("/api/v1/dashboard/revenue"))
                 .andExpect(status().isOk());
@@ -325,7 +325,7 @@ class DashboardControllerTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void getBookingsByService_asAdmin_returns200() throws Exception {
-        when(dashboardService.getBookingsByService()).thenReturn(bookingsByServiceResponse);
+        when(dashboardService.getBookingsByService(null, null)).thenReturn(bookingsByServiceResponse);
 
         mockMvc.perform(get("/api/v1/dashboard/bookings-by-service"))
                 .andExpect(status().isOk())
@@ -348,7 +348,7 @@ class DashboardControllerTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void getActivityHeatmap_asAdmin_returns200() throws Exception {
-        when(dashboardService.getActivityHeatmap()).thenReturn(heatmapResponse);
+        when(dashboardService.getActivityHeatmap(null, null)).thenReturn(heatmapResponse);
 
         mockMvc.perform(get("/api/v1/dashboard/activity-heatmap"))
                 .andExpect(status().isOk())

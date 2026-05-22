@@ -1,8 +1,12 @@
 package com.carwash.car_wash_api.service;
 
+import com.carwash.car_wash_api.dto.request.ForgotPasswordRequest;
 import com.carwash.car_wash_api.dto.request.LoginRequest; // You'll create this next
 import com.carwash.car_wash_api.dto.request.RegisterRequest;
+import com.carwash.car_wash_api.dto.request.ResetPasswordRequest;
 import com.carwash.car_wash_api.dto.response.AuthResponse;
+import com.carwash.car_wash_api.dto.response.PasswordResetTokenResponse;
+import com.carwash.car_wash_api.exception.ResourceNotFoundException;
 import com.carwash.car_wash_api.model.entity.Employee;
 import com.carwash.car_wash_api.model.entity.User;
 import com.carwash.car_wash_api.model.enums.EmployeePosition;
@@ -17,6 +21,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -93,6 +99,39 @@ public class AuthService {
                 .build();
     }
 
+    public PasswordResetTokenResponse requestPasswordReset(ForgotPasswordRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new ResourceNotFoundException("No account found with that email address"));
+
+        String token = UUID.randomUUID().toString();
+        LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(30);
+
+        user.setPasswordResetToken(token);
+        user.setPasswordResetTokenExpiresAt(expiresAt);
+        userRepository.save(user);
+
+        return PasswordResetTokenResponse.builder()
+                .resetToken(token)
+                .expiresAt(expiresAt)
+                .build();
+    }
+
+    public void resetPassword(ResetPasswordRequest request) {
+        User user = userRepository.findByPasswordResetToken(request.getToken())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid or expired reset token"));
+
+        if (user.getPasswordResetTokenExpiresAt() == null
+                || user.getPasswordResetTokenExpiresAt().isBefore(LocalDateTime.now())) {
+            clearPasswordReset(user);
+            userRepository.save(user);
+            throw new IllegalArgumentException("Invalid or expired reset token");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        clearPasswordReset(user);
+        userRepository.save(user);
+    }
+
     private Role resolveRegistrationRole(String role) {
         if (role == null || role.isBlank()) {
             return Role.CUSTOMER;
@@ -104,5 +143,10 @@ public class AuthService {
             case "ADMIN" -> throw new IllegalArgumentException("Admin accounts cannot be self-registered");
             default -> throw new IllegalArgumentException("Unsupported registration role: " + role);
         };
+    }
+
+    private void clearPasswordReset(User user) {
+        user.setPasswordResetToken(null);
+        user.setPasswordResetTokenExpiresAt(null);
     }
 }

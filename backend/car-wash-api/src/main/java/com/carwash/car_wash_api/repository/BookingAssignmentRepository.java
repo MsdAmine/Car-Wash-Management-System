@@ -20,6 +20,17 @@ public interface BookingAssignmentRepository extends JpaRepository<BookingAssign
 
     List<BookingAssignment> findByEmployeeId(UUID employeeId);
 
+    @Query("""
+            SELECT ba FROM BookingAssignment ba
+            JOIN FETCH ba.booking b
+            WHERE ba.employee.id = :employeeId
+              AND b.status = com.carwash.car_wash_api.model.enums.BookingStatus.COMPLETED
+            ORDER BY b.appointmentDateTime DESC
+            """)
+    List<BookingAssignment> findCompletedAssignmentsByEmployeeId(
+            @Param("employeeId") UUID employeeId
+    );
+
     boolean existsByBookingIdAndEmployeeId(UUID bookingId, UUID employeeId);
 
     Optional<BookingAssignment> findByBookingIdAndEmployeeId(UUID bookingId, UUID employeeId);

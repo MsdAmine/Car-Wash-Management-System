@@ -160,6 +160,18 @@ public class BookingAssignmentService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<BookingResponse> getMyBookingHistoryDetails() {
+        Employee employee = findCurrentEmployee();
+
+        return assignmentRepository
+                .findCompletedAssignmentsByEmployeeId(employee.getId())
+                .stream()
+                .map(BookingAssignment::getBooking)
+                .map(bookingMapper::toResponse)
+                .toList();
+    }
+
     private Employee findCurrentEmployee() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email)

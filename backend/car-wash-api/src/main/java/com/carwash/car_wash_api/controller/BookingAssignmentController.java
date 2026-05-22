@@ -158,4 +158,9 @@ public class BookingAssignmentController {
     public ResponseEntity<List<BookingResponse>> getMyTodaysAssignedBookingDetails() {
         return ResponseEntity.ok(assignmentService.getMyTodaysAssignedBookingDetails());
     }
+
+    @GetMapping("/api/v1/employees/me/bookings/history/details")
+    public ResponseEntity<List<BookingResponse>> getMyBookingHistoryDetails() {
+        return ResponseEntity.ok(assignmentService.getMyBookingHistoryDetails());
+    }
 }

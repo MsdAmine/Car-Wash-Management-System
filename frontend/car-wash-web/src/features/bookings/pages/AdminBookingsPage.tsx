@@ -191,7 +191,7 @@ function BookingRow({ booking, selected, onToggle, onOpenAssign }: BookingRowPro
           <span className={`text-sm ${assignedWasherName ? 'font-medium text-gray-900' : 'text-gray-500'}`}>
             {assignedWasherName ?? 'Unassigned'}
           </span>
-          {!assignedWasherName && booking.status === 'PENDING' && (
+          {!assignedWasherName && (booking.status === 'PENDING' || booking.status === 'CONFIRMED') && (
             <Button size="sm" onClick={() => onOpenAssign(assignData)}>Assign</Button>
           )}
         </div>

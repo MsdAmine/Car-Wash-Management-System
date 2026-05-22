@@ -64,13 +64,6 @@ const STATUS_MAP: Record<BookingResponse['status'], BookingStatus> = {
   CANCELLED: 'cancelled',
 };
 
-const statusBorderClass: Record<BookingStatus, string> = {
-  confirmed: 'border-l-indigo-500',
-  inProgress: 'border-l-amber-500',
-  pending: 'border-l-gray-400',
-  completed: 'border-l-green-500',
-  cancelled: 'border-l-red-500',
-};
 
 function getAssignedWasherName(booking: BookingResponse): string {
   const name = [booking.assignedEmployeeFirstName, booking.assignedEmployeeLastName]
@@ -91,13 +84,15 @@ interface UpcomingBookingCardProps {
 function UpcomingBookingCard({ booking, onReschedule, onCancel }: UpcomingBookingCardProps) {
   return (
     <div
-      className={`bg-white rounded-xl border border-gray-200 border-l-4 ${statusBorderClass[booking.status]} p-5 flex justify-between items-start`}
+      className="bg-white rounded-xl border border-gray-200 p-5 flex justify-between items-start gap-4"
     >
-      <div>
-        <p className="text-base font-semibold text-gray-900">{booking.service}</p>
+      <div className="min-w-0 flex-1">
+        <p className="text-base font-semibold text-gray-900 truncate">{booking.service}</p>
         <p className="text-sm text-gray-500 mt-1">{booking.dateTime}</p>
-        <p className="text-sm text-gray-500 mt-0.5">{booking.vehicle}</p>
-        <p className="text-sm text-gray-500 mt-0.5">Washer: {booking.washer}</p>
+        <p className="text-sm text-gray-500 mt-0.5 truncate">{booking.vehicle}</p>
+        <p className="text-sm text-gray-500 mt-0.5 truncate">
+          {booking.washer === 'Unassigned' ? 'Washer not yet assigned' : `Assigned to ${booking.washer}`}
+        </p>
       </div>
       <div className="flex flex-col items-end gap-2">
         <Badge variant={booking.status} />
@@ -123,7 +118,7 @@ function UpcomingEmptyState({ onBook }: UpcomingEmptyStateProps) {
     <div className="border-dashed border-2 border-gray-300 bg-white rounded-xl p-8 text-center">
       <CalendarPlus className="w-8 h-8 text-gray-400 mx-auto" />
       <p className="text-base font-semibold text-gray-900 mt-3">No upcoming bookings</p>
-      <p className="text-sm text-gray-500 mt-1">Book your first wash to get started.</p>
+      <p className="text-sm text-gray-500 mt-1">Schedule a wash and it will appear here.</p>
       <div className="mt-4 flex justify-center">
         <Button variant="primary" size="sm" onClick={onBook}>
           Book a wash
@@ -142,22 +137,16 @@ interface QuickServiceCardProps {
 
 function QuickServiceCard({ service, onBook }: QuickServiceCardProps) {
   return (
-    <div
-      role="button"
-      tabIndex={0}
+    <button
+      type="button"
       onClick={onBook}
-      onKeyDown={e => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onBook();
-        }
-      }}
-      className="bg-white rounded-xl border border-gray-200 p-4 hover:border-indigo-300 hover:shadow-sm cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+      className="bg-white rounded-xl border border-gray-200 p-4 hover:bg-indigo-50 hover:border-indigo-300 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 text-left w-full"
     >
       <img
         src={getServiceImage(service)}
         alt={service.name}
-        className="w-full mb-3 aspect-video object-cover"
+        className="w-full mb-3 aspect-video object-cover bg-gray-100 rounded-lg"
+        onError={e => { (e.currentTarget as HTMLImageElement).className = 'hidden'; }}
       />
       <p className="text-sm font-semibold text-gray-900">{service.name}</p>
       <div className="flex justify-between items-center mt-1">
@@ -166,18 +155,7 @@ function QuickServiceCard({ service, onBook }: QuickServiceCardProps) {
           {service.durationMinutes} min
         </span>
       </div>
-      <Button
-        variant="primary"
-        size="sm"
-        className="w-full mt-3"
-        onClick={e => {
-          e.stopPropagation();
-          onBook();
-        }}
-      >
-        Book
-      </Button>
-    </div>
+    </button>
   );
 }
 
@@ -190,11 +168,16 @@ interface VehicleCardProps {
 function VehicleCard({ vehicle }: VehicleCardProps) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-4 flex-shrink-0 w-48">
-      <img src="/images/vehicle-overhead.png" alt="Vehicle photo" className="w-full mb-3 aspect-square object-cover" />
-      <p className="text-sm font-semibold text-gray-900">
+      <img
+        src="/images/vehicle-overhead.png"
+        alt="Vehicle photo"
+        className="w-full mb-3 aspect-square object-cover bg-gray-100 rounded-lg"
+        onError={e => { (e.currentTarget as HTMLImageElement).className = 'hidden'; }}
+      />
+      <p className="text-sm font-semibold text-gray-900 truncate">
         {vehicle.make} {vehicle.model}
       </p>
-      <p className="text-xs text-gray-500 mt-0.5">{vehicle.plate}</p>
+      <p className="text-xs text-gray-500 mt-0.5 truncate">{vehicle.plate}</p>
     </div>
   );
 }
@@ -255,9 +238,11 @@ export function ClientHomePage() {
   const todayDate = formatAppointmentDate(new Date().toISOString());
   const greeting = getGreeting();
 
-  const rawUpcoming = bookings?.find(
+  const allUpcoming = (bookings ?? []).filter(
     b => b.status === 'CONFIRMED' || b.status === 'PENDING'
-  ) ?? null;
+  );
+  const rawUpcoming = allUpcoming[0] ?? null;
+  const moreUpcomingCount = Math.max(0, allUpcoming.length - 1);
 
   const upcomingBooking: UpcomingBooking | null = rawUpcoming
     ? {
@@ -297,14 +282,12 @@ export function ClientHomePage() {
           <h1 className="text-2xl font-semibold text-gray-900">
             {greeting}, {user?.firstName}
           </h1>
-          <p className="text-sm text-gray-500">{todayDate}</p>
+          <p className="text-sm text-gray-500 mt-0.5">{todayDate}</p>
         </section>
 
         {/* Section 2 — Upcoming booking */}
-        <section className="mt-6">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
-            Upcoming
-          </p>
+        <section className="mt-8">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Upcoming</p>
           {isLoading ? (
             <div className="bg-gray-100 rounded-xl h-28 animate-pulse" />
           ) : isError ? (
@@ -317,7 +300,16 @@ export function ClientHomePage() {
                 onCancel={() => setIsCancelOpen(true)}
               />
               {cancelError && (
-                <p className="text-sm text-red-600 mt-1">{cancelError}</p>
+                <p className="text-sm text-red-600 mt-2">{cancelError}</p>
+              )}
+              {moreUpcomingCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => navigate(ROUTES.CLIENT.BOOKINGS)}
+                  className="mt-2 text-sm text-indigo-600 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
+                >
+                  +{moreUpcomingCount} more upcoming {moreUpcomingCount === 1 ? 'booking' : 'bookings'}
+                </button>
               )}
             </>
           ) : (
@@ -409,7 +401,7 @@ export function ClientHomePage() {
           ) : isError ? (
             <ErrorState message="Could not load recent activity." />
           ) : recentBookings.length === 0 ? (
-            <p className="text-sm text-gray-500">No recent activity.</p>
+            <p className="text-sm text-gray-500">No past bookings yet.</p>
           ) : (
             <div className="rounded-xl border border-gray-200 overflow-hidden divide-y divide-gray-100">
               {recentBookings.map(booking => (
@@ -437,8 +429,8 @@ export function ClientHomePage() {
               });
             }}
             title="Cancel booking"
-            message="Are you sure you want to cancel this booking? This action cannot be undone."
-            confirmLabel="Yes, cancel booking"
+            message={`Cancel your ${upcomingBooking.service} appointment? This can't be undone.`}
+            confirmLabel="Cancel booking"
             cancelLabel="Keep booking"
             variant="danger"
             isLoading={cancelMutation.isPending}

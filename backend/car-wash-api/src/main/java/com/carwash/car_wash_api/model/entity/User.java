@@ -63,6 +63,11 @@ public class User implements UserDetails {
     private Boolean notifBookingReminders;
     private Boolean notifPromotions;
 
+    @Column(length = 128)
+    private String passwordResetToken;
+
+    private LocalDateTime passwordResetTokenExpiresAt;
+
     @Builder.Default
     @Column(nullable = false)
     private boolean enabled = true;

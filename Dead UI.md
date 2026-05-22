@@ -2,12 +2,6 @@ I re-audited the current code and compared it against [Dead UI.md](C:/Users/mass
 
 Still not fully functional:
 
-- [AdminDashboardPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/admin/pages/AdminDashboardPage.tsx:16): revenue chart still uses `MOCK_CHART_DATA`; Daily/Weekly/Monthly only changes selected styling, not data.
-
-
-
-- [WasherHistoryPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/washer/pages/WasherHistoryPage.tsx:156): filters now work, but the page still relies on a temporary “today” endpoint instead of real history data. Confirmed in [washer/api.ts](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/washer/api.ts:11).
-- [LoginPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/auth/pages/LoginPage.tsx:78): `Forgot password?` no longer uses `href="#"`, but it only shows “contact support”; there is no reset flow.
 
 Fixed from `Dead UI.md`: admin assign/new booking/filter/sort/pagination, client reschedule/cancel/book-again/receipt/detail links, booking flow service preselection, analytics export/date filters, remember-me persistence, profile password/avatar/notification/delete controls, staff activate/edit/deactivate, and service add/edit/toggle controls.
 
@@ -16,3 +10,6 @@ Fixed from `Dead UI.md`: admin assign/new booking/filter/sort/pagination, client
 - [AdminBookingDetailPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/bookings/pages/AdminBookingDetailPage.tsx:121): admin `Reschedule` opens the shared customer reschedule modal. That modal calls the customer endpoint via [useRescheduleBooking.ts](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/bookings/hooks/useRescheduleBooking.ts:9), while the proper admin hook exists separately at [admin/hooks/useRescheduleBooking.ts](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/admin/hooks/useRescheduleBooking.ts:5).
 - [AdminClientsPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/clients/pages/AdminClientsPage.tsx:48): `Create booking for this client` navigates with `?clientId=...`, but [AdminBookingsPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/bookings/pages/AdminBookingsPage.tsx:242) does not read that param, so the client is not preselected and the modal does not auto-open.
 - [AdminClientsPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/clients/pages/AdminClientsPage.tsx:86): client detail panel still has placeholder `Vehicle data not available` / `Booking data not available` sections.
+- [AdminDashboardPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/admin/pages/AdminDashboardPage.tsx:16): revenue chart still uses `MOCK_CHART_DATA`; Daily/Weekly/Monthly only changes selected styling, not data.
+- [WasherHistoryPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/washer/pages/WasherHistoryPage.tsx:156): filters now work, but the page still relies on a temporary “today” endpoint instead of real history data. Confirmed in [washer/api.ts](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/washer/api.ts:11).
+- [LoginPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/auth/pages/LoginPage.tsx:78): `Forgot password?` no longer uses `href="#"`, but it only shows “contact support”; there is no reset flow.

@@ -1,4 +1,5 @@
-import { Bell, Car, CheckCircle2, Clock, Droplets, Search } from 'lucide-react';
+import { useState } from 'react';
+import { Bell, Car, CheckCircle2, Clock, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/shared/components/ui/Badge';
 import { WasherLayout } from '@/shared/components/layout/WasherLayout';
@@ -21,16 +22,11 @@ const STATUS_TO_BADGE: Record<
   CANCELLED: 'cancelled',
 };
 
-const LEFT_BORDER: Record<BookingResponse['status'], string> = {
-  PENDING: 'border-l-gray-400',
-  CONFIRMED: 'border-l-indigo-500',
-  IN_PROGRESS: 'border-l-amber-500',
-  COMPLETED: 'border-l-gray-200',
-  CANCELLED: 'border-l-red-300',
-};
 
 function extractTime(isoString: string): string {
-  return isoString.slice(11, 16);
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) return '--:--';
+  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
 // ─── JobCardSkeleton ──────────────────────────────────────────────────────────
@@ -47,47 +43,37 @@ interface JobCardProps {
 }
 
 function JobCard({ booking, onClick }: JobCardProps) {
+  const isActive = booking.status === 'IN_PROGRESS';
+
   return (
     <button
       type="button"
-      className={`w-full text-left bg-white rounded-xl border border-gray-200 border-l-4 ${LEFT_BORDER[booking.status]} overflow-hidden p-4 hover:shadow-sm transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500`}
+      className={`w-full text-left rounded-xl border overflow-hidden p-4 hover:bg-gray-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${
+        isActive ? 'bg-white border-amber-200' : 'bg-white border-gray-200'
+      }`}
       onClick={onClick}
     >
       <div className="flex justify-between items-start">
-        <span className="font-mono text-xs text-gray-500">
+        <span className="font-mono text-xs text-gray-400">
           {booking.id.slice(-8).toUpperCase()}
         </span>
         <Badge variant={STATUS_TO_BADGE[booking.status]} />
       </div>
 
       <div className="mt-2">
-        <p className="text-sm font-semibold text-gray-900">{booking.customerEmail}</p>
+        <p className="text-base font-semibold text-gray-900">{booking.washServiceName}</p>
         <div className="flex gap-3 mt-1 text-xs text-gray-500">
           <span className="flex items-center gap-1">
             <Car className="w-3 h-3" />
             {booking.vehicleLicensePlate}
           </span>
           <span className="flex items-center gap-1">
-            <Droplets className="w-3 h-3" />
-            {booking.washServiceName}
+            <Clock className="w-3 h-3" />
+            {extractTime(booking.appointmentDateTime)}
           </span>
-        </div>
-        <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
-          <Clock className="w-3 h-3" />
-          {extractTime(booking.appointmentDateTime)}
         </div>
       </div>
 
-      {booking.status === 'IN_PROGRESS' && (
-        <div className="mt-3">
-          <div className="flex justify-between text-xs text-gray-500 mb-1">
-            <span>In progress</span>
-          </div>
-          <div className="bg-gray-100 h-2 rounded-full">
-            <div className="bg-amber-500 h-2 rounded-full w-3/5" />
-          </div>
-        </div>
-      )}
     </button>
   );
 }
@@ -98,31 +84,53 @@ export function WasherJobsPage() {
   const { user } = useAuth();
   const { data: bookings, isLoading, isError } = useMyJobsToday();
   const navigate = useNavigate();
+  const [query, setQuery] = useState('');
 
-  const activeJobs = bookings?.filter(
+  const filtered = query.trim()
+    ? (bookings ?? []).filter(b => {
+        const q = query.toLowerCase();
+        return (
+          b.vehicleLicensePlate.toLowerCase().includes(q) ||
+          b.washServiceName.toLowerCase().includes(q) ||
+          b.id.slice(-8).toLowerCase().includes(q)
+        );
+      })
+    : (bookings ?? []);
+
+  const activeJobs = filtered.filter(
     b => b.status === 'CONFIRMED' || b.status === 'IN_PROGRESS',
-  ) ?? [];
-  const completedJobs = bookings?.filter(b => b.status === 'COMPLETED') ?? [];
+  );
+  const completedJobs = filtered.filter(b => b.status === 'COMPLETED');
   const hasAssignedJobs = (bookings?.length ?? 0) > 0;
+
+  const initials = `${user?.firstName?.[0] ?? ''}${user?.lastName?.[0] ?? ''}`.toUpperCase() || '?';
 
   return (
     <WasherLayout>
-      <>
-        <header className="bg-white border-b border-gray-200 px-4 py-3">
+      <header className="bg-white border-b border-gray-200 px-4 py-3">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <img src="/images/avatar-washer.png" alt="Avatar" className="w-10 h-10 rounded-full flex-shrink-0 object-cover" />
+              <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 relative overflow-hidden">
+                <span className="text-xs font-semibold text-indigo-700">{initials}</span>
+                <img
+                  src="/images/avatar-washer.png"
+                  alt=""
+                  className="absolute inset-0 w-full h-full object-cover"
+                  onError={e => { (e.currentTarget as HTMLImageElement).remove(); }}
+                />
+              </div>
               <div>
                 <p className="text-sm font-semibold text-gray-900">
                   {user?.firstName} {user?.lastName}
                 </p>
-                <p className="text-xs text-gray-500">Car Washer</p>
+                <p className="text-xs text-gray-500">Washer</p>
               </div>
             </div>
             <button
               type="button"
               aria-label="Notifications"
               className="text-gray-500 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
+              onClick={() => navigate(ROUTES.WASHER.ALERTS)}
             >
               <Bell className="w-5 h-5" />
             </button>
@@ -133,8 +141,10 @@ export function WasherJobsPage() {
           <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
-              type="text"
-              placeholder="Search jobs…"
+              type="search"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Search by plate or service…"
               className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
             />
           </div>
@@ -166,12 +176,18 @@ export function WasherJobsPage() {
                 <div className="py-12">
                   <CheckCircle2 className="w-10 h-10 text-gray-300 mx-auto" />
                   <p className="text-sm font-medium text-gray-500 mt-3 text-center">
-                    {hasAssignedJobs ? 'No active jobs left' : 'No jobs assigned for today'}
+                    {query.trim()
+                      ? 'No jobs match your search'
+                      : hasAssignedJobs
+                        ? 'No active jobs left'
+                        : 'No jobs assigned for today'}
                   </p>
                   <p className="text-xs text-gray-400 mt-1 text-center max-w-56 mx-auto">
-                    {hasAssignedJobs
-                      ? 'Completed jobs are listed below for reference.'
-                      : 'Assigned jobs will appear here when an admin schedules them.'}
+                    {query.trim()
+                      ? 'Try a different customer name, plate, or service.'
+                      : hasAssignedJobs
+                        ? 'Completed jobs are shown below.'
+                        : 'Assigned jobs will appear here when an admin schedules them.'}
                   </p>
                 </div>
               ) : (
@@ -210,7 +226,6 @@ export function WasherJobsPage() {
             </>
           )}
         </div>
-      </>
     </WasherLayout>
   );
 }

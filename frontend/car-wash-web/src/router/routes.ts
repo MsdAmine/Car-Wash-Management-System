@@ -1,6 +1,8 @@
 export const ROUTES = {
   PUBLIC: {
     LOGIN: '/login',
+    FORGOT_PASSWORD: '/forgot-password',
+    RESET_PASSWORD: '/reset-password',
     REGISTER: '/register',
     WASHER_PENDING: '/register/pending',
     UNAUTHORIZED: '/unauthorized',
@@ -15,6 +17,7 @@ export const ROUTES = {
   },
   WASHER: {
     HOME: '/washer',
+    ALERTS: '/washer/alerts',
     JOB_DETAIL: (id: string) => `/washer/jobs/${id}`,
     HISTORY: '/washer/history',
     PROFILE: '/washer/profile',
@@ -22,6 +25,7 @@ export const ROUTES = {
   ADMIN: {
     DASHBOARD: '/admin',
     BOOKINGS: '/admin/bookings',
+    ASSIGN: '/admin/assign',
     BOOKING_DETAIL: (id: string) => `/admin/bookings/${id}`,
     SERVICES: '/admin/services',
     STAFF: '/admin/staff',

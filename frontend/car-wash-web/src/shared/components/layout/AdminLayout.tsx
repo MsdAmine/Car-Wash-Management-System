@@ -30,7 +30,7 @@ const ADMIN_NAV: SidebarItem[] = [
     items: [
       { label: 'Dashboard', path: ROUTES.ADMIN.DASHBOARD, icon: LayoutDashboard },
       { label: 'Bookings', path: ROUTES.ADMIN.BOOKINGS, icon: CalendarCheck },
-      { label: 'Assign Jobs', path: '/admin/assign', icon: ClipboardList },
+      { label: 'Assign Jobs', path: ROUTES.ADMIN.ASSIGN, icon: ClipboardList },
     ],
   },
   {
@@ -44,7 +44,7 @@ const ADMIN_NAV: SidebarItem[] = [
   },
   {
     items: [
-      { label: 'Settings', path: '/admin/settings', icon: Settings },
+      { label: 'Settings', path: ROUTES.ADMIN.SETTINGS, icon: Settings },
     ],
   },
 ];

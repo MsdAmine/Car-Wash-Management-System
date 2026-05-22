@@ -57,6 +57,7 @@ class BookingAssignmentControllerTest {
                     .csrf(AbstractHttpConfigurer::disable)
                     .authorizeHttpRequests(auth -> auth
                             .requestMatchers(HttpMethod.GET, "/api/v1/employees/me/bookings/today").hasAnyRole("ADMIN", "EMPLOYEE")
+                            .requestMatchers(HttpMethod.GET, "/api/v1/employees/me/bookings/history/details").hasAnyRole("ADMIN", "EMPLOYEE")
                             .requestMatchers(HttpMethod.GET, "/api/v1/employees/*/bookings").hasAnyRole("ADMIN", "EMPLOYEE")
                             .requestMatchers(HttpMethod.GET, "/api/v1/bookings/*/assignments").hasAnyRole("ADMIN", "EMPLOYEE")
                             .requestMatchers(HttpMethod.POST, "/api/v1/bookings/*/assign").hasRole("ADMIN")
@@ -394,6 +395,33 @@ class BookingAssignmentControllerTest {
     @Test
     void getMyTodaysAssignedBookings_whenUnauthenticated_returns401() throws Exception {
         mockMvc.perform(get("/api/v1/employees/me/bookings/today"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(roles = "EMPLOYEE")
+    void getMyBookingHistoryDetails_asEmployee_returns200() throws Exception {
+        when(assignmentService.getMyBookingHistoryDetails()).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/v1/employees/me/bookings/history/details"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void getMyBookingHistoryDetails_whenNoEmployeeProfile_returns404() throws Exception {
+        when(assignmentService.getMyBookingHistoryDetails())
+                .thenThrow(new ResourceNotFoundException(
+                        "No employee profile found for the current user"));
+
+        mockMvc.perform(get("/api/v1/employees/me/bookings/history/details"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void getMyBookingHistoryDetails_whenUnauthenticated_returns401() throws Exception {
+        mockMvc.perform(get("/api/v1/employees/me/bookings/history/details"))
                 .andExpect(status().isUnauthorized());
     }
 }

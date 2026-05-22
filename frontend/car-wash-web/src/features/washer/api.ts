@@ -8,8 +8,7 @@ export async function fetchMyJobsToday(): Promise<BookingResponse[]> {
 }
 
 export async function fetchMyBookingHistory(): Promise<BookingResponse[]> {
-  // TODO: replace with history endpoint when available
-  const { data } = await api.get<BookingResponse[]>('/bookings/today')
+  const { data } = await api.get<BookingResponse[]>('/employees/me/bookings/history/details')
   return data
 }
 
