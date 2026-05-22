@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import { AdminLayout } from '@/shared/components/layout/AdminLayout';
 import { Button } from '@/shared/components/ui/Button';
+import { Badge } from '@/shared/components/ui/Badge';
 import { EmptyState } from '@/shared/components/feedback/EmptyState';
 import { ErrorState } from '@/shared/components/feedback/ErrorState';
 import {
@@ -14,8 +15,25 @@ import {
   TableCell,
 } from '@/shared/components/ui/Table';
 import { useAllClients } from '@/features/clients/hooks/useAllClients';
+import { useVehiclesByCustomer } from '@/features/vehicles/hooks/useVehiclesByCustomer';
+import { useAllBookings } from '@/features/admin/hooks/useAllBookings';
 import { ROUTES } from '@/router/routes';
 import type { CustomerResponse } from '../types';
+import type { BookingResponse } from '@/features/bookings/types';
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function statusToVariant(
+  status: BookingResponse['status'],
+): 'pending' | 'confirmed' | 'inProgress' | 'completed' | 'cancelled' {
+  switch (status) {
+    case 'IN_PROGRESS': return 'inProgress';
+    case 'CONFIRMED':   return 'confirmed';
+    case 'COMPLETED':   return 'completed';
+    case 'CANCELLED':   return 'cancelled';
+    default:            return 'pending';
+  }
+}
 
 // ─── Skeleton rows ────────────────────────────────────────────────────────────
 
@@ -44,6 +62,13 @@ interface ClientDetailPanelProps {
 
 function ClientDetailPanel({ client, onClose }: ClientDetailPanelProps) {
   const navigate = useNavigate();
+
+  const { data: vehicles = [], isLoading: vehiclesLoading } = useVehiclesByCustomer(client.id, true);
+  const { data: allBookings = [] } = useAllBookings();
+  const recentBookings = allBookings
+    .filter((b) => b.customerEmail === client.email)
+    .sort((a, b) => new Date(b.appointmentDateTime).getTime() - new Date(a.appointmentDateTime).getTime())
+    .slice(0, 3);
 
   function handleCreateBooking() {
     onClose();
@@ -83,15 +108,40 @@ function ClientDetailPanel({ client, onClose }: ClientDetailPanelProps) {
         {/* Vehicles */}
         <div>
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Vehicles</p>
-          <p className="text-sm text-gray-400 italic">Vehicle data not available.</p>
-          {/* TODO: enrich with vehicle list when a dedicated customer detail endpoint is added */}
+          {vehiclesLoading ? (
+            <div className="h-9 bg-gray-100 rounded-lg animate-pulse" />
+          ) : vehicles.length === 0 ? (
+            <p className="text-sm text-gray-400">No vehicles registered.</p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {vehicles.map((v) => (
+                <div key={v.id} className="bg-gray-50 rounded-lg px-3 py-2 text-sm">
+                  <span className="font-medium text-gray-900">{v.brand} {v.model}</span>
+                  <span className="text-gray-500 ml-2">· {v.licensePlate}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Bookings */}
+        {/* Recent bookings */}
         <div>
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Recent bookings</p>
-          <p className="text-sm text-gray-400 italic">Booking data not available.</p>
-          {/* TODO: enrich with booking counts when a dedicated customer detail endpoint is added */}
+          {recentBookings.length === 0 ? (
+            <p className="text-sm text-gray-400">No bookings yet.</p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {recentBookings.map((b) => (
+                <div key={b.id} className="bg-gray-50 rounded-lg px-3 py-2 flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{b.washServiceName}</p>
+                    <p className="text-xs text-gray-500">{new Date(b.appointmentDateTime).toLocaleDateString()}</p>
+                  </div>
+                  <Badge variant={statusToVariant(b.status)} />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <Button variant="primary" size="sm" onClick={handleCreateBooking}>

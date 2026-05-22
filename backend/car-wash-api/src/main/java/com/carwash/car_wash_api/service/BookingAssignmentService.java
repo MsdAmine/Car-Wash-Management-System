@@ -117,6 +117,19 @@ public class BookingAssignmentService {
     }
 
     @Transactional(readOnly = true)
+    public List<BookingResponse> getAssignedBookingDetailsForEmployee(UUID employeeId) {
+        if (!employeeRepository.existsById(employeeId)) {
+            throw new ResourceNotFoundException("Employee not found with ID: " + employeeId);
+        }
+        return assignmentRepository.findByEmployeeId(employeeId)
+                .stream()
+                .map(BookingAssignment::getBooking)
+                .sorted((left, right) -> right.getAppointmentDateTime().compareTo(left.getAppointmentDateTime()))
+                .map(bookingMapper::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<BookingAssignmentResponse> getMyTodaysAssignedBookings() {
         Employee employee = findCurrentEmployee();
 

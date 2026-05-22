@@ -5,31 +5,12 @@ import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
 import { Textarea } from '@/shared/components/ui/Textarea';
 import { ToggleSwitch } from '@/shared/components/ui/ToggleSwitch';
-
-const SERVICE_IMAGES: Record<string, string> = {
-  'Basic Wash':     '/images/service-basic-wash.png',
-  'Express Wash':   '/images/service-express-wash.png',
-  'Full Detail':    '/images/service-full-detail.png',
-  'Premium Detail': '/images/service-premium-detail.png',
-};
-const DEFAULT_SERVICE_IMAGE = '/images/service-basic-wash.png';
-
-function serviceImageKey(id: string) {
-  return `service_img_${id}`;
-}
-
-function getServiceImage(name: string, id?: string): string {
-  if (id) {
-    const stored = localStorage.getItem(serviceImageKey(id));
-    if (stored) return stored;
-  }
-  return SERVICE_IMAGES[name] ?? DEFAULT_SERVICE_IMAGE;
-}
 import { ErrorState } from '@/shared/components/feedback/ErrorState';
 import { useAllServices } from '../hooks/useAllServices';
 import { useCreateService } from '../hooks/useCreateService';
 import { useUpdateService } from '../hooks/useUpdateService';
 import type { WashServiceResponse, WashServiceRequest } from '../types';
+import { getServiceImage } from '../serviceImages';
 
 // ─── Slide-over panel ─────────────────────────────────────────────────────────
 
@@ -57,7 +38,7 @@ function ServicePanel({ isOpen, onClose, service }: ServicePanelProps) {
     setDuration(service ? String(service.durationMinutes) : '');
     setPrice(service ? String(service.price) : '');
     setActive(service?.active ?? true);
-    setImageSrc(getServiceImage(service?.name ?? '', service?.id));
+    setImageSrc(service?.imageUrl ?? '');
   }, [service, isOpen]);
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -67,9 +48,6 @@ function ServicePanel({ isOpen, onClose, service }: ServicePanelProps) {
     reader.onload = () => {
       const dataUrl = reader.result as string;
       setImageSrc(dataUrl);
-      if (service?.id) {
-        localStorage.setItem(serviceImageKey(service.id), dataUrl);
-      }
     };
     reader.readAsDataURL(file);
     e.target.value = '';
@@ -93,6 +71,7 @@ function ServicePanel({ isOpen, onClose, service }: ServicePanelProps) {
       price: parseFloat(price),
       durationMinutes: parseInt(duration, 10),
       active,
+      imageUrl: imageSrc || null,
     };
 
     if (service) {
@@ -136,7 +115,7 @@ function ServicePanel({ isOpen, onClose, service }: ServicePanelProps) {
         <div className="px-6 py-6 flex flex-col gap-4 overflow-y-auto flex-1">
           <div>
             <img
-              src={imageSrc || DEFAULT_SERVICE_IMAGE}
+              src={getServiceImage({ name, imageUrl: imageSrc || null })}
               alt="Service photo"
               className="w-full aspect-video object-cover rounded-lg"
             />
@@ -258,6 +237,7 @@ export function AdminServicesPage() {
         price: service.price,
         durationMinutes: service.durationMinutes,
         active,
+        imageUrl: service.imageUrl ?? null,
       },
     });
   }
@@ -293,7 +273,7 @@ export function AdminServicesPage() {
               }`}
             >
               <img
-                src={getServiceImage(service.name, service.id)}
+                src={getServiceImage(service)}
                 alt={service.name}
                 className="w-full aspect-video object-cover"
               />

@@ -1,13 +1,6 @@
 import { Sparkles } from 'lucide-react';
 import { ROUTES } from '@/router/routes';
-
-const SERVICE_IMAGES: Record<string, string> = {
-  'Basic Wash':     '/images/service-basic-wash.png',
-  'Express Wash':   '/images/service-express-wash.png',
-  'Full Detail':    '/images/service-full-detail.png',
-  'Premium Detail': '/images/service-premium-detail.png',
-};
-const DEFAULT_SERVICE_IMAGE = '/images/service-basic-wash.png';
+import { getServiceImage } from '@/features/services/serviceImages';
 
 const MOCK_SERVICES = [
   { id: '1', name: 'Basic Wash', description: 'Exterior hand wash and dry. Quick and affordable.' },
@@ -125,7 +118,7 @@ export function LandingPage() {
               className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow block"
             >
               <img
-                src={SERVICE_IMAGES[service.name] ?? DEFAULT_SERVICE_IMAGE}
+                src={getServiceImage(service)}
                 alt={service.name}
                 className="w-full mb-4 aspect-video object-cover"
               />

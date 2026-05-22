@@ -15,8 +15,9 @@ import { useUpdateOperatingHours } from '../hooks/useUpdateOperatingHours';
 import { fetchNotificationPreferences } from '@/features/auth/api';
 import { useUpdateNotifications } from '@/features/auth/hooks/useUpdateNotifications';
 import type { NotificationPreferences } from '@/features/auth/types';
+import type { BusinessSettingsRequest } from '../types';
 
-const LOGO_STORAGE_KEY = 'business_logo';
+const DEFAULT_BUSINESS_LOGO = '/images/logo-business.png';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -56,9 +57,8 @@ function BusinessInfoSection() {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
-  const [logoSrc, setLogoSrc] = useState<string>(
-    () => localStorage.getItem(LOGO_STORAGE_KEY) ?? '/images/logo-business.png',
-  );
+  const [logoSrc, setLogoSrc] = useState<string>(DEFAULT_BUSINESS_LOGO);
+  const [logoError, setLogoError] = useState<string | null>(null);
 
   useEffect(() => {
     if (settings) {
@@ -66,8 +66,20 @@ function BusinessInfoSection() {
       setPhone(settings.phone);
       setAddress(settings.address);
       setCity(settings.city);
+      setLogoSrc(settings.logoUrl ?? DEFAULT_BUSINESS_LOGO);
     }
   }, [settings]);
+
+  function buildSettingsPayload(overrides: Partial<BusinessSettingsRequest> = {}): BusinessSettingsRequest {
+    return {
+      businessName: overrides.businessName ?? name,
+      phone: overrides.phone ?? phone,
+      address: overrides.address ?? address,
+      city: overrides.city ?? city,
+      logoUrl: overrides.logoUrl ?? (logoSrc === DEFAULT_BUSINESS_LOGO ? settings?.logoUrl ?? null : logoSrc),
+      cancellationHours: overrides.cancellationHours ?? settings?.cancellationHours ?? 24,
+    };
+  }
 
   function handleLogoFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -75,8 +87,16 @@ function BusinessInfoSection() {
     const reader = new FileReader();
     reader.onload = () => {
       const dataUrl = reader.result as string;
-      localStorage.setItem(LOGO_STORAGE_KEY, dataUrl);
-      setLogoSrc(dataUrl);
+      setLogoError(null);
+      updateSettings.mutate(buildSettingsPayload({ logoUrl: dataUrl }), {
+        onSuccess: () => {
+          setLogoSrc(dataUrl);
+          queryClient.invalidateQueries({ queryKey: SETTINGS_KEYS.business() });
+        },
+        onError: (error) => {
+          setLogoError(apiErrorMessage(error) ?? 'Failed to upload logo.');
+        },
+      });
     };
     reader.readAsDataURL(file);
     e.target.value = '';
@@ -98,10 +118,12 @@ function BusinessInfoSection() {
           variant="ghost"
           size="sm"
           className="mt-1"
+          disabled={updateSettings.isPending}
           onClick={() => fileInputRef.current?.click()}
         >
-          Upload logo
+          {updateSettings.isPending ? 'Uploading…' : 'Upload logo'}
         </Button>
+        {logoError && <p className="text-xs text-red-600 mt-1">{logoError}</p>}
       </div>
     </div>
   );
@@ -184,21 +206,13 @@ function BusinessInfoSection() {
               size="sm"
               disabled={updateSettings.isPending}
               onClick={() =>
-                updateSettings.mutate(
-                  {
-                    businessName: name,
-                    phone,
-                    address,
-                    city,
-                    cancellationHours: settings?.cancellationHours ?? 24,
+                updateSettings.mutate(buildSettingsPayload(), {
+                  onSuccess: () => {
+                    setIsEditing(false);
+                    setLogoError(null);
+                    queryClient.invalidateQueries({ queryKey: SETTINGS_KEYS.business() });
                   },
-                  {
-                    onSuccess: () => {
-                      setIsEditing(false);
-                      queryClient.invalidateQueries({ queryKey: SETTINGS_KEYS.business() });
-                    },
-                  },
-                )
+                })
               }
             >
               {updateSettings.isPending ? 'Saving…' : 'Save changes'}

@@ -97,6 +97,7 @@ public class SecurityConfig {
                                                 .requestMatchers(HttpMethod.GET, "/api/v1/employees/me/bookings/today").hasAnyRole("ADMIN", "EMPLOYEE")
                                                 .requestMatchers(HttpMethod.GET, "/api/v1/employees/me/bookings/today/details").hasAnyRole("ADMIN", "EMPLOYEE")
                                                 .requestMatchers(HttpMethod.GET, "/api/v1/employees/*/bookings").hasAnyRole("ADMIN", "EMPLOYEE")
+                                                .requestMatchers(HttpMethod.GET, "/api/v1/employees/*/bookings/details").hasAnyRole("ADMIN", "EMPLOYEE")
                                                 .requestMatchers("/api/v1/employees/**").hasRole("ADMIN")
 
                                                 // Customer list: admin only

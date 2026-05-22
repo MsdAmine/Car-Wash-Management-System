@@ -12,7 +12,9 @@ import {
   TableCell,
 } from '@/shared/components/ui/Table';
 import { ErrorState } from '@/shared/components/feedback/ErrorState';
+import type { BookingResponse } from '@/features/bookings/types';
 import { useAllEmployees } from '../hooks/useAllEmployees';
+import { useEmployeeBookingDetails } from '../hooks/useEmployeeBookingDetails';
 import { useActivateEmployee } from '../hooks/useActivateEmployee';
 import { useDeactivateEmployee } from '../hooks/useDeactivateEmployee';
 import { useUpdateEmployee } from '../hooks/useUpdateEmployee';
@@ -64,6 +66,24 @@ function statusLabel(status: EmployeeResponse['status']): string {
   return 'Pending';
 }
 
+function bookingStatusVariant(status: BookingResponse['status']): 'pending' | 'confirmed' | 'inProgress' | 'completed' | 'cancelled' {
+  if (status === 'CONFIRMED') return 'confirmed';
+  if (status === 'IN_PROGRESS') return 'inProgress';
+  if (status === 'COMPLETED') return 'completed';
+  if (status === 'CANCELLED') return 'cancelled';
+  return 'pending';
+}
+
+function formatJobDateTime(dateTime: string): string {
+  return new Date(dateTime).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
 // ─── StaffDetailPanel ─────────────────────────────────────────────────────────
 
 interface StaffDetailPanelProps {
@@ -76,6 +96,11 @@ function StaffDetailPanel({ isOpen, onClose, staff }: StaffDetailPanelProps) {
   const activateEmployee = useActivateEmployee();
   const deactivateEmployee = useDeactivateEmployee();
   const updateEmployee = useUpdateEmployee();
+  const {
+    data: recentJobs,
+    isLoading: recentJobsLoading,
+    isError: recentJobsError,
+  } = useEmployeeBookingDetails(staff?.id, isOpen && staff !== null);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editPosition, setEditPosition] = useState('');
@@ -216,7 +241,32 @@ function StaffDetailPanel({ isOpen, onClose, staff }: StaffDetailPanelProps) {
           {!isEditing && (
             <div>
               <p className="text-sm font-semibold text-gray-900 mb-2">Recent jobs</p>
-              <p className="text-sm text-gray-400 italic">Recent job history not available in this view.</p>
+              {recentJobsLoading ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 3 }).map((_, index) => (
+                    <div key={index} className="h-16 rounded-xl bg-gray-100 animate-pulse" />
+                  ))}
+                </div>
+              ) : recentJobsError ? (
+                <p className="text-sm text-red-600">Could not load recent job history.</p>
+              ) : (recentJobs ?? []).length === 0 ? (
+                <p className="text-sm text-gray-400 italic">No job history yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {(recentJobs ?? []).slice(0, 5).map((job) => (
+                    <div key={job.id} className="rounded-xl border border-gray-200 p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-gray-900">{job.washServiceName}</p>
+                          <p className="text-xs text-gray-500 mt-1">{formatJobDateTime(job.appointmentDateTime)}</p>
+                          <p className="text-xs text-gray-500 mt-1">Vehicle {job.vehicleLicensePlate}</p>
+                        </div>
+                        <Badge variant={bookingStatusVariant(job.status)} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

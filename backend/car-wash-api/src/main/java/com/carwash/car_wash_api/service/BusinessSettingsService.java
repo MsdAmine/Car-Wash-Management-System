@@ -27,6 +27,9 @@ public class BusinessSettingsService {
         settings.setPhone(request.getPhone());
         settings.setAddress(request.getAddress());
         settings.setCity(request.getCity());
+        if (request.getLogoUrl() != null) {
+            settings.setLogoUrl(request.getLogoUrl());
+        }
         if (request.getCancellationHours() != null) {
             settings.setCancellationHours(request.getCancellationHours());
         }
@@ -45,6 +48,7 @@ public class BusinessSettingsService {
                 .phone(settings.getPhone())
                 .address(settings.getAddress())
                 .city(settings.getCity())
+                .logoUrl(settings.getLogoUrl())
                 .cancellationHours(settings.getCancellationHours())
                 .updatedAt(settings.getUpdatedAt())
                 .build();

@@ -7,15 +7,8 @@ import { ErrorState } from '@/shared/components/feedback/ErrorState';
 import { ClientLayout } from '@/shared/components/layout/ClientLayout';
 import { ROUTES } from '@/router/routes';
 import { useActiveServices } from '@/features/services/hooks/useActiveServices';
-
-const SERVICE_IMAGES: Record<string, string> = {
-  'Basic Wash':     '/images/service-basic-wash.png',
-  'Express Wash':   '/images/service-express-wash.png',
-  'Full Detail':    '/images/service-full-detail.png',
-  'Premium Detail': '/images/service-premium-detail.png',
-};
-const DEFAULT_SERVICE_IMAGE = '/images/service-basic-wash.png';
 import { useMyVehicles } from '@/features/vehicles/hooks/useMyVehicles';
+import { getServiceImage } from '@/features/services/serviceImages';
 import { useCreateBooking } from '../hooks/useCreateBooking';
 import { useAvailableSlots } from '../hooks/useAvailableSlots';
 import type { WashServiceResponse } from '@/features/services/types';
@@ -74,7 +67,7 @@ function ServiceStep({ services, selectedServiceId, onSelect, isLoading, isError
               }`}
             >
               <img
-                src={SERVICE_IMAGES[service.name] ?? DEFAULT_SERVICE_IMAGE}
+                src={getServiceImage(service)}
                 alt={service.name}
                 className="w-full mb-3 aspect-video object-cover"
               />

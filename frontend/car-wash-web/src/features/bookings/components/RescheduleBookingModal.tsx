@@ -4,11 +4,19 @@ import { Button } from '@/shared/components/ui/Button';
 import { useAvailableSlots } from '../hooks/useAvailableSlots';
 import { useRescheduleBooking } from '../hooks/useRescheduleBooking';
 
+type RescheduleMutation = {
+  mutate: (args: { id: string; appointmentDateTime: string }, options?: { onSuccess?: () => void }) => void;
+  isPending: boolean;
+  isError: boolean;
+  error: unknown;
+};
+
 interface RescheduleBookingModalProps {
   isOpen: boolean;
   onClose: () => void;
   bookingId: string;
   washServiceId: string;
+  rescheduleMutation?: RescheduleMutation;
 }
 
 const inputCls =
@@ -19,6 +27,7 @@ export function RescheduleBookingModal({
   onClose,
   bookingId,
   washServiceId,
+  rescheduleMutation,
 }: RescheduleBookingModalProps) {
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
@@ -28,7 +37,8 @@ export function RescheduleBookingModal({
     washServiceId || null,
   );
 
-  const reschedule = useRescheduleBooking();
+  const internalMutation = useRescheduleBooking();
+  const reschedule = rescheduleMutation ?? internalMutation;
 
   useEffect(() => {
     if (isOpen) {

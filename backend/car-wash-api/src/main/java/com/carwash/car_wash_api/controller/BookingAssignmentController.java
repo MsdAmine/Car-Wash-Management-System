@@ -126,6 +126,12 @@ public class BookingAssignmentController {
         return ResponseEntity.ok(assignmentService.getAssignedBookingsForEmployee(employeeId));
     }
 
+    @GetMapping("/api/v1/employees/{employeeId}/bookings/details")
+    public ResponseEntity<List<BookingResponse>> getAssignedBookingDetailsForEmployee(
+            @PathVariable UUID employeeId) {
+        return ResponseEntity.ok(assignmentService.getAssignedBookingDetailsForEmployee(employeeId));
+    }
+
     // ── GET /api/v1/employees/me/bookings/today ───────────────────────────────
 
     @Operation(

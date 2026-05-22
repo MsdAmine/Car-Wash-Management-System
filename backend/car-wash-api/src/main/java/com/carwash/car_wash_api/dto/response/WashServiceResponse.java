@@ -18,6 +18,7 @@ public class WashServiceResponse {
     private BigDecimal price;
     private Integer durationMinutes;
     private Boolean active;
+    private String imageUrl;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

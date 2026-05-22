@@ -11,6 +11,7 @@ import { ErrorState } from '@/shared/components/feedback/ErrorState';
 import { ADMIN_KEYS } from '@/features/admin/hooks/useAdminDashboard';
 import { useBookingDetail } from '@/features/admin/hooks/useBookingDetail';
 import { useCancelBooking } from '@/features/admin/hooks/useCancelBooking';
+import { useRescheduleBooking as useAdminRescheduleBooking } from '@/features/admin/hooks/useRescheduleBooking';
 import { fetchBookingAssignments } from '@/features/admin/api';
 import { AssignJobModal } from '@/features/bookings/components/AssignJobModal';
 import { RescheduleBookingModal } from '@/features/bookings/components/RescheduleBookingModal';
@@ -73,6 +74,7 @@ export function AdminBookingDetailPage() {
   const [confirmingCancel, setConfirmingCancel] = useState(false);
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const cancelMutation = useCancelBooking();
+  const rescheduleMutation = useAdminRescheduleBooking();
 
   const { data: booking, isLoading, isError } = useBookingDetail(id!);
 
@@ -280,6 +282,7 @@ export function AdminBookingDetailPage() {
         onClose={() => setRescheduleOpen(false)}
         bookingId={booking.id}
         washServiceId={booking.washServiceId}
+        rescheduleMutation={rescheduleMutation}
       />
     </AdminLayout>
   );

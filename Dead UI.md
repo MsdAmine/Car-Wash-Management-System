@@ -1,46 +1,18 @@
-**Dead Or Placeholder Controls**
+I re-audited the current code and compared it against [Dead UI.md](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/Dead%20UI.md:1). That file is now stale: most listed dead buttons have been fixed, and I found no remaining `console.log`, empty click handlers, `alert(...)`, or `href="#"` dead controls in the frontend.
+
+Still not fully functional:
+
+- [AdminDashboardPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/admin/pages/AdminDashboardPage.tsx:16): revenue chart still uses `MOCK_CHART_DATA`; Daily/Weekly/Monthly only changes selected styling, not data.
 
 
 
+- [WasherHistoryPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/washer/pages/WasherHistoryPage.tsx:156): filters now work, but the page still relies on a temporary “today” endpoint instead of real history data. Confirmed in [washer/api.ts](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/washer/api.ts:11).
+- [LoginPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/auth/pages/LoginPage.tsx:78): `Forgot password?` no longer uses `href="#"`, but it only shows “contact support”; there is no reset flow.
 
-**Client-Facing Gaps**
-
-
-
-**Cards And Interactive-Looking Elements**
-
-
-**Other Placeholder Sections**
-
+Fixed from `Dead UI.md`: admin assign/new booking/filter/sort/pagination, client reschedule/cancel/book-again/receipt/detail links, booking flow service preselection, analytics export/date filters, remember-me persistence, profile password/avatar/notification/delete controls, staff activate/edit/deactivate, and service add/edit/toggle controls.
 
 
 **Fixed**
-- [AdminDashboardPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/admin/pages/AdminDashboardPage.tsx:190): `Assign washer` only logs to console.
-- [AdminDashboardPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/admin/pages/AdminDashboardPage.tsx:227): `+ New booking` only logs to console.
-- [AdminBookingsPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/bookings/pages/AdminBookingsPage.tsx:304): `Filter` only logs.
-- [AdminBookingsPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/bookings/pages/AdminBookingsPage.tsx:308): `Sort` only logs.
-- [AdminBookingsPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/bookings/pages/AdminBookingsPage.tsx:374): pagination changes `currentPage`, but rows are rendered from `visibleBookings.map(...)` without slicing, so pages do not change the table.
-- [AdminAnalyticsPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/admin/pages/AdminAnalyticsPage.tsx:328): date range inputs have no state/query wiring.
-- [AdminAnalyticsPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/admin/pages/AdminAnalyticsPage.tsx:336): `Export CSV` only logs.
-- [AdminBookingsPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/bookings/pages/AdminBookingsPage.tsx:264): admin `+ New booking` only logs.
-- [AdminBookingDetailPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/bookings/pages/AdminBookingDetailPage.tsx:99): `Reschedule` only logs.
-- [AdminBookingDetailPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/bookings/pages/AdminBookingDetailPage.tsx:102): admin `Cancel` only logs, even though an admin cancel hook exists.
-- [ClientBookingsPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/bookings/pages/ClientBookingsPage.tsx:79): booking card `Reschedule` only logs.
-- [ClientBookingsPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/bookings/pages/ClientBookingsPage.tsx:82): booking card `Cancel` only logs.
-- [ClientBookingsPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/bookings/pages/ClientBookingsPage.tsx:92): `Book again` only logs.
-- [ClientBookingsPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/bookings/pages/ClientBookingsPage.tsx:95): `Receipt` only logs.
-- [ClientProfilePage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/auth/pages/ClientProfilePage.tsx:80): `Upload photo` only logs.
-- [ClientProfilePage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/auth/pages/ClientProfilePage.tsx:175): notification toggles are local state only.
-- [ClientProfilePage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/auth/pages/ClientProfilePage.tsx:223): `Update password` only logs.
-- [ClientProfilePage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/auth/pages/ClientProfilePage.tsx:263): `Delete my account` only logs.
-- [ClientHomePage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/bookings/pages/ClientHomePage.tsx:120): upcoming booking `Reschedule` only logs.
-- [ClientHomePage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/bookings/pages/ClientHomePage.tsx:127): upcoming booking `Cancel` only logs.
-- [ClientBookingDetailPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/bookings/pages/ClientBookingDetailPage.tsx:209): detail `Reschedule` only logs. Detail `Cancel` is functional.
-- [ClientBookingDetailPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/bookings/pages/ClientBookingDetailPage.tsx:234): detail `Book again` only logs.
-- [ClientBookingDetailPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/bookings/pages/ClientBookingDetailPage.tsx:237): detail `Receipt` only logs.
-- [LandingPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/auth/pages/LandingPage.tsx:121): service cards use mock data, `cursor-pointer`, hover styling, and `Learn more`, but have no click handler or destination.
-- [LandingPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/auth/pages/LandingPage.tsx:46): `Pricing` anchors point to `#pricing`, but no `id="pricing"` section exists.
-- [LandingPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/auth/pages/LandingPage.tsx:198): footer `About`, `Contact`, `Privacy`, `Terms` all use `href="#"`.
-- [AdminDashboardPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/admin/pages/AdminDashboardPage.tsx:154): active booking rows show `See detail`, but it is plain text, not navigation.
-- [ClientBookingsPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/bookings/pages/ClientBookingsPage.tsx:111): booking cards do not link to the existing client detail route.
-- [ClientHomePage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/bookings/pages/ClientHomePage.tsx:24): quick-book cards use mock services and navigate to generic booking, but do not preselect the clicked service.
+- [AdminBookingDetailPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/bookings/pages/AdminBookingDetailPage.tsx:121): admin `Reschedule` opens the shared customer reschedule modal. That modal calls the customer endpoint via [useRescheduleBooking.ts](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/bookings/hooks/useRescheduleBooking.ts:9), while the proper admin hook exists separately at [admin/hooks/useRescheduleBooking.ts](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/admin/hooks/useRescheduleBooking.ts:5).
+- [AdminClientsPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/clients/pages/AdminClientsPage.tsx:48): `Create booking for this client` navigates with `?clientId=...`, but [AdminBookingsPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/bookings/pages/AdminBookingsPage.tsx:242) does not read that param, so the client is not preselected and the modal does not auto-open.
+- [AdminClientsPage.tsx](C:/Users/massi/IdeaProjects/Car-Wash-Managment-System/frontend/car-wash-web/src/features/clients/pages/AdminClientsPage.tsx:86): client detail panel still has placeholder `Vehicle data not available` / `Booking data not available` sections.

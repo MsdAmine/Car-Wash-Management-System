@@ -71,6 +71,9 @@ public class WashServiceService {
         if (request.getActive() != null) {
             washService.setActive(request.getActive());
         }
+        if (request.getImageUrl() != null) {
+            washService.setImageUrl(request.getImageUrl());
+        }
 
         return washServiceMapper.toResponse(washServiceRepository.save(washService));
     }

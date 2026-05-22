@@ -10,6 +10,7 @@ import { useAdminCreateBooking } from '@/features/admin/hooks/useAdminCreateBook
 interface AdminNewBookingModalProps {
   isOpen: boolean;
   onClose: () => void;
+  preselectedClientId?: number;
 }
 
 const selectCls =
@@ -29,7 +30,7 @@ function Field({ label, children }: FieldProps) {
   );
 }
 
-export function AdminNewBookingModal({ isOpen, onClose }: AdminNewBookingModalProps) {
+export function AdminNewBookingModal({ isOpen, onClose, preselectedClientId }: AdminNewBookingModalProps) {
   const [customerId, setCustomerId] = useState<number | null>(null);
   const [vehicleId, setVehicleId] = useState('');
   const [serviceId, setServiceId] = useState('');
@@ -51,13 +52,13 @@ export function AdminNewBookingModal({ isOpen, onClose }: AdminNewBookingModalPr
 
   useEffect(() => {
     if (isOpen) {
-      setCustomerId(null);
+      setCustomerId(preselectedClientId ?? null);
       setVehicleId('');
       setServiceId('');
       setDate('');
       setTime('');
     }
-  }, [isOpen]);
+  }, [isOpen, preselectedClientId]);
 
   const today = new Date().toISOString().split('T')[0];
   const canSubmit = customerId !== null && vehicleId !== '' && serviceId !== '' && date !== '' && time !== '';

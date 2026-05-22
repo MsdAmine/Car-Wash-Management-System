@@ -23,6 +23,9 @@ public class BusinessSettings {
     private String address;
     private String city;
 
+    @Column(name = "logo_url", columnDefinition = "text")
+    private String logoUrl;
+
     @Builder.Default
     private Integer cancellationHours = 24;
 

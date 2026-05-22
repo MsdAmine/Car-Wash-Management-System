@@ -16,6 +16,7 @@ public class WashServiceMapper {
                 .price(request.getPrice())
                 .durationMinutes(request.getDurationMinutes())
                 .active(request.getActive() != null ? request.getActive() : true)
+                .imageUrl(request.getImageUrl())
                 .build();
     }
 
@@ -28,6 +29,7 @@ public class WashServiceMapper {
                 .price(washService.getPrice())
                 .durationMinutes(washService.getDurationMinutes())
                 .active(washService.getActive())
+                .imageUrl(washService.getImageUrl())
                 .createdAt(washService.getCreatedAt())
                 .updatedAt(washService.getUpdatedAt())
                 .build();

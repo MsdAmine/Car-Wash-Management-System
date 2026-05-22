@@ -12,16 +12,9 @@ import { ROUTES } from '@/router/routes';
 import { useMyBookings } from '../hooks/useMyBookings';
 import { useCancelBooking } from '../hooks/useCancelBooking';
 import { RescheduleBookingModal } from '../components/RescheduleBookingModal';
-
-const SERVICE_IMAGES: Record<string, string> = {
-  'Basic Wash':     '/images/service-basic-wash.png',
-  'Express Wash':   '/images/service-express-wash.png',
-  'Full Detail':    '/images/service-full-detail.png',
-  'Premium Detail': '/images/service-premium-detail.png',
-};
-const DEFAULT_SERVICE_IMAGE = '/images/service-basic-wash.png';
 import { useMyVehicles } from '@/features/vehicles/hooks/useMyVehicles';
 import { useActiveServices } from '@/features/services/hooks/useActiveServices';
+import { getServiceImage } from '@/features/services/serviceImages';
 import { formatAppointmentDate, formatAppointmentDateTime, formatShortDate } from '@/shared/lib/formatDate';
 import type { BookingResponse } from '../types';
 import type { WashServiceResponse } from '@/features/services/types';
@@ -162,7 +155,7 @@ function QuickServiceCard({ service, onBook }: QuickServiceCardProps) {
       className="bg-white rounded-xl border border-gray-200 p-4 hover:border-indigo-300 hover:shadow-sm cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
     >
       <img
-        src={SERVICE_IMAGES[service.name] ?? DEFAULT_SERVICE_IMAGE}
+        src={getServiceImage(service)}
         alt={service.name}
         className="w-full mb-3 aspect-video object-cover"
       />

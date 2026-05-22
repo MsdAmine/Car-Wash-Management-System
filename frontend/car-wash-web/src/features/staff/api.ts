@@ -1,4 +1,5 @@
 import api from '@/shared/lib/axios'
+import type { BookingResponse } from '@/features/bookings/types'
 import type { EmployeeResponse } from './types'
 
 export interface UpdateEmployeeBody {
@@ -22,5 +23,10 @@ export async function deactivateEmployee(id: string): Promise<void> {
 
 export async function updateEmployee(id: string, body: UpdateEmployeeBody): Promise<EmployeeResponse> {
   const { data } = await api.put<EmployeeResponse>(`/employees/${id}`, body)
+  return data
+}
+
+export async function fetchEmployeeBookingDetails(id: string): Promise<BookingResponse[]> {
+  const { data } = await api.get<BookingResponse[]>(`/employees/${id}/bookings/details`)
   return data
 }

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Search,
   SlidersHorizontal,
@@ -237,6 +238,11 @@ function SkeletonRows() {
 export function AdminBookingsPage() {
   const { data: bookings, isLoading, isError } = useAllBookings();
 
+  const [searchParams] = useSearchParams();
+  const preselectedClientId = searchParams.has('clientId')
+    ? Number(searchParams.get('clientId'))
+    : undefined;
+
   const [activeTab, setActiveTab]       = useState<TabKey>('today');
   const [search, setSearch]             = useState('');
   const [filterAssignment, setFilterAssignment] = useState<FilterAssignment>('all');
@@ -245,7 +251,7 @@ export function AdminBookingsPage() {
   const [sortOpen, setSortOpen]         = useState(false);
   const [selectedIds, setSelectedIds]   = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage]   = useState(1);
-  const [newBookingOpen, setNewBookingOpen] = useState(false);
+  const [newBookingOpen, setNewBookingOpen] = useState(preselectedClientId !== undefined);
   const [assignModal, setAssignModal] = useState<{
     isOpen: boolean;
     booking: {
@@ -498,6 +504,7 @@ export function AdminBookingsPage() {
       <AdminNewBookingModal
         isOpen={newBookingOpen}
         onClose={() => setNewBookingOpen(false)}
+        preselectedClientId={preselectedClientId}
       />
     </>
   );

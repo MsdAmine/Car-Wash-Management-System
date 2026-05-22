@@ -39,6 +39,7 @@ export interface BusinessSettingsResponse {
   phone: string
   address: string
   city: string
+  logoUrl?: string | null
   cancellationHours: number
   updatedAt: string
 }
@@ -48,6 +49,7 @@ export interface BusinessSettingsRequest {
   phone: string
   address: string
   city: string
+  logoUrl?: string | null
   cancellationHours: number
 }
 
